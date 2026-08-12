@@ -776,13 +776,13 @@ export default function CreateTest() {
     };
 
     if (loading && !testData.title) return (
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex h-full min-h-[60vh] items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
     );
 
     return (
-        <div className={`h-screen flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`h-full min-h-0 flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
             {/* --- HEADER --- */}
             <div className={`h-16 px-3 sm:px-6 flex items-center justify-between gap-3 border-b shrink-0 z-20 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>

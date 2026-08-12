@@ -10,15 +10,15 @@ export default function AdminLayout() {
 
     return (
         <SidebarProvider
-            className={`h-screen overflow-hidden font-sans transition-colors duration-300 ${theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}
+            className={`h-[100dvh] overflow-hidden font-sans transition-colors duration-300 ${theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}
         >
             <AdminSidebar />
 
-            <SidebarInset>
+            <SidebarInset className="min-w-0">
                 <AdminHeader />
 
                 {/* SCROLLABLE CONTENT */}
-                <main className="flex-1 overflow-y-auto">
+                <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain">
                     <Outlet />
                 </main>
             </SidebarInset>

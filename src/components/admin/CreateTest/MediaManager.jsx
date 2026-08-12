@@ -384,7 +384,7 @@ const MediaManager = ({
                                             </span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         <div>
                                             <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Boshlash</span>
                                             <input

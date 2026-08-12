@@ -103,7 +103,7 @@ export default function MaterialSelectorModal({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-            <div className={`w-full max-w-lg rounded-3xl p-6 border relative flex flex-col max-h-[85vh] transition-colors ${
+            <div className={`w-full max-w-lg rounded-3xl p-4 sm:p-6 border relative flex flex-col max-h-[85dvh] transition-colors ${
                 isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
             }`}>
                 <button 
@@ -157,7 +157,7 @@ export default function MaterialSelectorModal({
                 />
 
                 {/* List Area */}
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin max-h-[45vh]">
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin max-h-[45dvh]">
                     {loadingSelector ? (
                         <div className="flex justify-center items-center py-10">
                             <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />

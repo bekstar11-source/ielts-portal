@@ -271,7 +271,7 @@ export default function TestPreview({ testData, testType }) {
 
     // Writing / Speaking uchun oddiy preview
     return (
-        <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 p-8">
+        <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 p-5 sm:p-8">
             <svg className="w-12 h-12 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Users, BookOpen, Settings,
     ChevronLeft, FileText, Megaphone,
-    BarChart2, PenTool, Trophy, ScrollText, Headphones, Key, Newspaper, Layers
+    BarChart2, PenTool, Trophy, ScrollText, Headphones, Key, Newspaper, Layers, Sparkles
 } from 'lucide-react';
 import {
     Sidebar,
@@ -24,7 +24,8 @@ const menuGroups = [
         items: [
             { name: "Dashboard", path: "/admin", icon: LayoutDashboard, exact: true },
             { name: "Analytics", path: "/admin/analytics", icon: BarChart2 },
-            { name: "Announcements", path: "/admin/announcements", icon: Megaphone }
+            { name: "Announcements", path: "/admin/announcements", icon: Megaphone },
+            { name: "Spotlight", path: "/admin/spotlights", icon: Sparkles }
         ]
     },
     {
@@ -62,7 +63,7 @@ export default function AdminSidebar() {
 
     return (
         <Sidebar collapsible="icon">
-            <SidebarHeader className={`h-14 flex items-center relative flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
+            <SidebarHeader className={`h-14 flex items-center relative flex-shrink-0 pt-[env(safe-area-inset-top)] ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
                 <div className="font-bold text-lg tracking-tighter flex items-center gap-3 text-gray-900 dark:text-white">
                     <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white flex-shrink-0 text-xs font-black">A</div>
                     {!collapsed && <SidebarMenuLabel>Control</SidebarMenuLabel>}
@@ -71,9 +72,10 @@ export default function AdminSidebar() {
                 {isMobile ? (
                     <button
                         onClick={() => setOpenMobile(false)}
-                        className="absolute -right-3 top-5 bg-blue-600 text-white p-1 rounded-full shadow-lg"
+                        aria-label="Menyuni yopish"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-9 h-9 flex items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform"
                     >
-                        <ChevronLeft size={12} />
+                        <ChevronLeft size={18} />
                     </button>
                 ) : (
                     <button
@@ -87,7 +89,7 @@ export default function AdminSidebar() {
                 )}
             </SidebarHeader>
 
-            <SidebarContent className="py-3 px-2.5">
+            <SidebarContent className="py-3 px-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 {menuGroups.map((group) => (
                     <SidebarGroup key={group.title}>
                         <SidebarGroupLabel>{group.title}</SidebarGroupLabel>

@@ -61,7 +61,7 @@ function TestSearchModal({ isOpen, onClose, type, tests, onSelect, selectedId, i
       />
       
       {/* Content Container */}
-      <div className={`relative w-full max-w-xl rounded-2xl border p-6 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden transition-all animate-in zoom-in-95 duration-200 ${
+      <div className={`relative w-full max-w-xl rounded-2xl border p-6 shadow-2xl flex flex-col max-h-[85dvh] overflow-hidden transition-all animate-in zoom-in-95 duration-200 ${
         isDark ? "bg-[#0c0c0e] border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-800"
       }`}>
         {/* Header */}
@@ -178,7 +178,7 @@ const ChevronRightForModal = ({ isDark }) => (
     strokeWidth="2" 
     strokeLinecap="round" 
     strokeLinejoin="round" 
-    className={`opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}
+    className={`opacity-100 md:opacity-0 md:group-hover:opacity-100 group-hover:translate-x-0.5 transition-all ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}
   >
     <polyline points="9 18 15 12 9 6"></polyline>
   </svg>
@@ -367,7 +367,7 @@ export default function AdminMocks() {
   const selectedWriting = getSelectedTestDetails("writing", selectedTests.writing);
 
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-200 p-4 sm:p-6 md:p-8 ${
+    <div className={`min-h-full font-sans transition-colors duration-200 p-3 sm:p-6 md:p-8 ${
       isDark ? "bg-[#18181b] text-zinc-150" : "bg-[#fafafa] text-zinc-800"
     }`}>
       
@@ -375,7 +375,7 @@ export default function AdminMocks() {
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight">Mock Creator</h1>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight">Mock Creator</h1>
             <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border ${
               isDark ? "bg-zinc-900 border-zinc-805 text-zinc-400" : "bg-zinc-100 border-zinc-200 text-zinc-500"
             }`}>Mock Manager</span>
@@ -397,10 +397,10 @@ export default function AdminMocks() {
         </button>
       </div>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         
         {/* LEFT COLUMN: CREATOR / EDITOR FORM */}
-        <div className={`lg:col-span-1 rounded-2xl border p-6 shadow-sm h-fit sticky top-8 transition-colors ${
+        <div className={`lg:col-span-1 rounded-2xl border p-4 sm:p-6 shadow-sm h-fit lg:sticky lg:top-8 transition-colors ${
           isDark ? "bg-[#0c0c0e] border-zinc-850" : "bg-white border-zinc-200/80"
         }`}>
           <h2 className="font-extrabold text-sm uppercase tracking-wider mb-5 flex items-center gap-2">

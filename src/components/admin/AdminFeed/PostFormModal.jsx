@@ -254,8 +254,8 @@ export default function PostFormModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-            <div className={`w-full max-w-5xl rounded-3xl p-6 border relative transition-colors grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 ${
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto overscroll-contain">
+            <div className={`w-full max-w-5xl max-h-[90dvh] overflow-y-auto rounded-3xl p-4 sm:p-6 border relative transition-colors grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 my-4 sm:my-8 ${
                 isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
             }`}>
                 <button 
@@ -268,7 +268,7 @@ export default function PostFormModal({
                 {/* Left Side: Form */}
                 <div className="lg:col-span-7 flex flex-col justify-between">
                     <div>
-                        <h2 className="text-xl font-bold mb-4">{editingPost ? "Postni Tahrirlash" : "Yangiliklar Tasmasiga Post Yaratish"}</h2>
+                        <h2 className="text-lg sm:text-xl font-bold mb-4 pr-8">{editingPost ? "Postni Tahrirlash" : "Yangiliklar Tasmasiga Post Yaratish"}</h2>
                         <form onSubmit={handleCreatePost} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase mb-1.5 text-gray-400">Post Turi</label>
@@ -294,7 +294,7 @@ export default function PostFormModal({
                                 <>
                                     <div>
                                         <label className="block text-xs font-bold uppercase mb-1 text-gray-400">E'lon Turi</label>
-                                        <div className="grid grid-cols-4 gap-2">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                             {['info', 'success', 'warning', 'danger'].map((t) => (
                                                 <button
                                                     key={t}
@@ -452,7 +452,7 @@ export default function PostFormModal({
                 </div>
 
                 {/* Right Side: iPhone Live Preview */}
-                <div className="lg:col-span-5 flex flex-col items-center justify-center bg-gray-100 dark:bg-black/40 rounded-3xl p-6 border border-dashed border-gray-250 dark:border-white/5">
+                <div className="hidden lg:col-span-5 lg:flex flex-col items-center justify-center bg-gray-100 dark:bg-black/40 rounded-3xl p-4 sm:p-6 border border-dashed border-gray-250 dark:border-white/5">
                     <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-4">LIVE PREVIEW</span>
                     
                     {/* iPhone Shell */}

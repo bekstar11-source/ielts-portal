@@ -42,8 +42,8 @@ export default function PublishChecklistModal({
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className={`w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden ${card}`}>
-                <div className="p-6">
+            <div className={`w-full max-w-md max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${card}`}>
+                <div className="p-4 sm:p-6">
                     <h3 className="text-sm font-black tracking-tight">
                         {isEditMode ? "O'zgarishlarni saqlash" : "Testni yaratish"}
                     </h3>

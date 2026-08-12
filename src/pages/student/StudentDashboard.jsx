@@ -19,6 +19,7 @@ import MyResults from "./MyResults";
 import SiteFooter from "../../components/common/SiteFooter";
 import BottomNav from "../../components/dashboard/BottomNav";
 import ProfileSidebar from "../../components/dashboard/ProfileSidebar";
+import PromoSpotlight from "../../components/dashboard/PromoSpotlight";
 
 export default function StudentDashboard() {
     const { user, logout, userData } = useAuth();
@@ -124,7 +125,13 @@ export default function StudentDashboard() {
                     {/* Left Column: Stories & Feed */}
                     <div className="flex-1 max-w-[630px] w-full flex flex-col gap-2">
                         {/* Instagram-like news feed */}
-                        <NewsFeed user={user} userData={userData} assignments={rawAssignments} groupIds={groupIds} />
+                        <NewsFeed
+                            user={user}
+                            userData={userData}
+                            assignments={rawAssignments}
+                            groupIds={groupIds}
+                            spotlight={<PromoSpotlight compact />}
+                        />
                     </div>
 
                     {/* Right Column: Profile Sidebar */}

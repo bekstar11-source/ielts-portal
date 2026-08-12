@@ -118,10 +118,10 @@ export default function CollectionModal({
             aria-labelledby="collection-modal-title"
         >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className={`relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border ${
+            <div className={`relative w-full max-w-md max-h-[90dvh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border ${
                 isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
             }`}>
-                <div className={`p-6 border-b flex justify-between items-center ${
+                <div className={`p-4 sm:p-6 border-b flex justify-between items-center ${
                     isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'
                 }`}>
                     <h2 id="collection-modal-title" className="font-bold text-lg flex items-center gap-2">
@@ -132,14 +132,14 @@ export default function CollectionModal({
                         <X size={20} />
                     </button>
                 </div>
-                <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                <div className="p-4 sm:p-6 space-y-5 max-h-[60dvh] overflow-y-auto custom-scrollbar">
                     <div>
                         <label htmlFor="col-name" className={labelClass}>Collection Name</label>
                         <input id="col-name" className={inputClass} placeholder="Enter collection name..." value={colName} onChange={e => setColName(e.target.value)} />
                     </div>
                     <div>
                         <label className={labelClass}>To'plam Turi (Collection Type)</label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {["reading", "listening", "mock"].map((type) => (
                                 <button key={type} type="button" onClick={() => setColType(type)} className={`${btnBase} ${colType === type ? btnActive : btnInactive}`}>
                                     {type === "reading" ? "📖 Reading" : type === "listening" ? "🎧 Listening" : "🎓 Mock"}
@@ -149,7 +149,7 @@ export default function CollectionModal({
                     </div>
                     <div>
                         <label className={labelClass}>Obuna Darajasi (Access Tier)</label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {[{ id: "free", label: "🎁 Free" }, { id: "standard", label: "⚡ Standard" }, { id: "pro", label: "👑 Pro" }].map((tier) => (
                                 <button key={tier.id} type="button" onClick={() => setAccessTier(tier.id)} className={`${btnBase} ${accessTier === tier.id ? btnActive : btnInactive}`}>
                                     {tier.label}
@@ -230,7 +230,7 @@ export default function CollectionModal({
                         </div>
                     </div>
                 </div>
-                <div className={`p-6 pt-0 flex gap-3 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+                <div className={`p-4 sm:p-6 pt-0 flex gap-3 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
                     {editingCol && (
                         <button onClick={onDelete} className="px-4 py-3 text-rose-500 font-bold text-sm hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors">
                             Delete

@@ -127,10 +127,10 @@ const AdminTestsToolbar = ({
     }`;
 
     return (
-        <header className={`border-b flex flex-col px-6 py-3.5 shrink-0 transition-colors z-45 gap-4 ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-white border-zinc-200'}`}>
+        <header className={`border-b flex flex-col px-3 sm:px-6 py-3 sm:py-3.5 shrink-0 transition-colors z-45 gap-3 sm:gap-4 ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-white border-zinc-200'}`}>
             {/* Top Row: Search & Actions */}
-            <div className="flex items-end justify-between gap-4 flex-wrap md:flex-nowrap">
-                <div className="flex items-end gap-3 flex-1 min-w-[260px]">
+            <div className="flex items-end justify-between gap-3 sm:gap-4 flex-wrap lg:flex-nowrap">
+                <div className="flex items-end gap-2 sm:gap-3 flex-1 min-w-0 flex-wrap">
                     {/* View Mode Toggle */}
                     <div className={`flex p-1 rounded-lg shrink-0 ${isDark ? 'bg-white/5' : 'bg-zinc-100'}`}>
                         <button onClick={() => setViewMode('grid')} title="Grid ko'rinish" className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? (isDark ? 'bg-white/10 text-white' : 'bg-white shadow-sm text-zinc-900') : 'text-zinc-400 hover:text-zinc-600'}`}><LayoutGrid size={14} /></button>
@@ -138,7 +138,7 @@ const AdminTestsToolbar = ({
                     </div>
 
                     {/* Search by Title Box */}
-                    <div className="flex flex-col gap-1 w-full max-w-[220px] shrink-0">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[150px] sm:max-w-[220px]">
                         <span className={`text-[9px] font-black uppercase tracking-widest px-0.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Nomi</span>
                         <div className="relative">
                             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={13} />
@@ -153,7 +153,7 @@ const AdminTestsToolbar = ({
                     </div>
 
                     {/* Search by Content Box */}
-                    <div className="flex flex-col gap-1 w-full max-w-[220px] shrink-0">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[150px] sm:max-w-[220px]">
                         <span className={`text-[9px] font-black uppercase tracking-widest px-0.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Matn</span>
                         <div className="relative">
                             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} size={13} />
@@ -169,7 +169,7 @@ const AdminTestsToolbar = ({
                 </div>
 
                 {/* Actions Section */}
-                <div ref={actionsRef} className="flex items-center gap-2 shrink-0 relative">
+                <div ref={actionsRef} className="flex items-center gap-2 shrink-0 relative flex-wrap">
                     <button onClick={onOpenQuestionBank} className={secondaryBtnClass}>
                         <BookOpen size={12} className="text-blue-500" />
                         <span className="hidden sm:inline">Savollar banki</span>
@@ -219,7 +219,7 @@ const AdminTestsToolbar = ({
             </div>
 
             {/* Bottom Row: Filters & Sort */}
-            <div ref={containerRef} className="flex items-center justify-between gap-3 pt-3 border-t border-zinc-100 dark:border-white/5 flex-wrap">
+            <div ref={containerRef} className="flex items-center justify-between gap-2 sm:gap-3 pt-3 border-t border-zinc-100 dark:border-white/5 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] font-black uppercase tracking-widest mr-1.5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Filters:</span>
 
@@ -316,7 +316,7 @@ const AdminTestsToolbar = ({
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); onEditCollection(c); closeDropdown(); }}
-                                                    className="absolute right-2 p-1 opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all"
+                                                    className="absolute right-2 p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all"
                                                 >
                                                     <Edit2 size={10} />
                                                 </button>

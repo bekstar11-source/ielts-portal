@@ -124,6 +124,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // BOSH SAHIFA SPOTLIGHT (aksiyalar + savol parchalari)
+    // Faqat reklama kontenti — bu yerdagi `answer` haqiqiy test kalitiga
+    // tegishli emas, ataylab ochiq ko'rsatiladi. Yozish — faqat admin.
+    match /promo_spotlights/{spotlightId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
     // RESULTS
     // ⚠️ Test natijalari SERVERDA yoziladi (submitTestAnswers / submitMockExam —
     // Admin SDK bu qoidalarni chetlab o'tadi). Klientga yozish huquqi berilishi

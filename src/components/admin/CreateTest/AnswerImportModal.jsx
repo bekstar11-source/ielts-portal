@@ -29,8 +29,8 @@ export default function AnswerImportModal({ show, jsonInput, onApply, onClose, i
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className={`w-full max-w-xl rounded-2xl shadow-2xl border overflow-hidden ${card}`}>
-                <div className="p-6">
+            <div className={`w-full max-w-xl max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${card}`}>
+                <div className="p-4 sm:p-6">
                     <h3 className="text-sm font-black tracking-tight">Javoblarni ommaviy kiritish</h3>
                     <p className="text-xs mt-0.5 mb-4 opacity-50">
                         Har bir qatorda bitta javob: <span className="font-mono">1. TRUE</span> · <span className="font-mono">2) glass</span> · <span className="font-mono">3 - museum</span>.

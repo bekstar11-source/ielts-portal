@@ -71,7 +71,7 @@ export default function QuestionBankModal({
             aria-labelledby="qbank-modal-title"
         >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className={`relative w-full max-w-5xl h-[80vh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border flex flex-col ${
+            <div className={`relative w-full max-w-5xl h-[80dvh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border flex flex-col ${
                 isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
             }`}>
                 <div className={`p-4 border-b flex justify-between items-center ${

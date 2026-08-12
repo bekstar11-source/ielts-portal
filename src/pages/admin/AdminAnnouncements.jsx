@@ -88,31 +88,31 @@ export default function AdminAnnouncements() {
     };
 
     return (
-        <div className={`min-h-screen font-sans p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`min-h-full font-sans p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/admin')} className={`p-2 rounded-xl transition ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}>
+                <div className="flex items-start justify-between gap-3 mb-6 md:mb-8">
+                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                        <button onClick={() => navigate('/admin')} className={`p-2 shrink-0 rounded-xl transition ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}>
 
                             <FaArrowLeft />
                         </button>
-                        <div>
-                            <h1 className={`text-2xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        <div className="min-w-0">
+                            <h1 className={`text-lg md:text-2xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 <FaBullhorn className="text-yellow-500" />
 
                                 E'lonlar Boshqaruvi
                             </h1>
-                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-sm`}>O'quvchilar uchun yangiliklar va xabarlar</p>
+                            <p className={`${isDark ? 'text-white/40' : 'text-gray-500'} text-xs md:text-sm`}>O'quvchilar uchun yangiliklar va xabarlar</p>
                         </div>
 
                     </div>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 transition"
+                        className="shrink-0 px-3 md:px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 transition text-sm"
                     >
-                        <FaPlus /> Yangi E'lon
+                        <FaPlus /> <span className="hidden sm:inline">Yangi E'lon</span>
                     </button>
                 </div>
 
@@ -128,19 +128,19 @@ export default function AdminAnnouncements() {
                         announcements.map((item) => {
                             const typeStyle = getTypeLabel(item.type);
                             return (
-                                <div key={item.id} className={`p-5 rounded-2xl border flex justify-between items-start group transition ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'}`}>
-                                    <div className="flex gap-4">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-colors ${isDark ? 'bg-white/5' : 'bg-gray-50 border border-gray-100'}`}>
+                                <div key={item.id} className={`p-4 sm:p-5 rounded-2xl border flex justify-between items-start gap-2 group transition ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'}`}>
+                                    <div className="flex gap-3 sm:gap-4 min-w-0">
+                                        <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl flex items-center justify-center text-lg sm:text-xl transition-colors ${isDark ? 'bg-white/5' : 'bg-gray-50 border border-gray-100'}`}>
                                             {getTypeIcon(item.type)}
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h3>
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                <h3 className={`font-bold text-base sm:text-lg break-words ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h3>
                                                 <span className={`text-[10px] px-2 py-0.5 rounded border uppercase font-bold ${typeStyle.bg}`}>
                                                     {typeStyle.text}
                                                 </span>
                                             </div>
-                                            <p className={`text-sm whitespace-pre-wrap ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{item.message}</p>
+                                            <p className={`text-sm whitespace-pre-wrap break-words ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{item.message}</p>
                                             <p className={`text-xs mt-2 ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
                                                 {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleString() : 'Sana yo\'q'}
                                             </p>
@@ -148,7 +148,7 @@ export default function AdminAnnouncements() {
                                     </div>
                                     <button
                                         onClick={() => handleDelete(item.id)}
-                                        className={`p-2 rounded-lg transition opacity-0 group-hover:opacity-100 ${isDark ? 'text-white/20 hover:text-red-500 hover:bg-red-500/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
+                                        className={`p-2 shrink-0 rounded-lg transition opacity-100 md:opacity-0 md:group-hover:opacity-100 ${isDark ? 'text-white/20 hover:text-red-500 hover:bg-red-500/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
                                     >
                                         <FaTrash />
                                     </button>
@@ -163,11 +163,11 @@ export default function AdminAnnouncements() {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className={`w-full max-w-md rounded-3xl p-6 border relative transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
+                    <div className={`w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl p-5 sm:p-6 border relative transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
                         <button onClick={() => setShowModal(false)} className={`absolute top-4 right-4 hover:text-white transition-colors ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
                             <FaTimes />
                         </button>
-                        <h2 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Yangi E'lon Yaratish</h2>
+                        <h2 className={`text-lg sm:text-xl font-bold mb-5 sm:mb-6 pr-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>Yangi E'lon Yaratish</h2>
 
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>
@@ -195,7 +195,7 @@ export default function AdminAnnouncements() {
 
                             <div>
                                 <label className={`block text-xs font-bold uppercase mb-1 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>Turi</label>
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     {['info', 'success', 'warning', 'danger'].map(type => (
                                         <button
                                             key={type}

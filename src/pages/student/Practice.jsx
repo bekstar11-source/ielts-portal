@@ -17,6 +17,7 @@ import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import Pagination from "../../components/common/Pagination";
 import SiteFooter from "../../components/common/SiteFooter";
+import BottomNav from "../../components/dashboard/BottomNav";
 import LimitReachedSheet from "../../components/dashboard/LimitReachedSheet";
 import { useDailyLimit } from "../../hooks/useDailyLimit";
 import { useTranslation } from "../../context/LanguageContext";
@@ -397,7 +398,7 @@ export default function Practice() {
   };
 
   return (
-    <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark pb-section selection:bg-warm-primary/30 selection:text-warm-ink">
+    <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark pb-24 md:pb-section selection:bg-warm-primary/30 selection:text-warm-ink">
       
       <DashboardHeader
         user={user} userData={userData}
@@ -664,6 +665,8 @@ export default function Practice() {
         userName={userData?.fullName?.split(' ')[0]} 
       />
       <SiteFooter />
+      {/* Mobil: bu sahifada pastki navigatsiya yo'q edi — o'quvchi bosh sahifaga qayta olmasdi. */}
+      <BottomNav activeTab="practice" />
     </div>
   );
 }

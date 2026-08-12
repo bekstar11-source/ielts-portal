@@ -151,22 +151,22 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
             />
 
             {/* Centered Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
                 <div
-                    className={`w-full max-w-6xl flex flex-col rounded-[32px] shadow-2xl transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${isDark ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white border border-gray-100'}`}
-                    style={{ maxHeight: 'calc(100vh - 48px)' }}
+                    className={`w-full max-w-6xl flex flex-col rounded-t-3xl sm:rounded-[32px] shadow-2xl transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${isDark ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white border border-gray-100'}`}
+                    style={{ maxHeight: 'min(92dvh, calc(100dvh - 24px))' }}
                 >
                     {/* Header */}
-                    <div className={`flex-shrink-0 h-16 px-6 flex items-center justify-between border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                    <div className={`flex-shrink-0 min-h-16 px-4 sm:px-6 py-3 flex items-center justify-between gap-2 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+                            <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
                                 {user.fullName ? user.fullName.charAt(0).toUpperCase() : <User size={16} />}
                             </div>
-                        <div>
-                            <h2 className={`font-bold text-base leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.fullName}</h2>
-                            <p className="text-xs text-gray-500">{user.email}</p>
+                        <div className="min-w-0">
+                            <h2 className={`font-bold text-sm sm:text-base leading-tight truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{user.fullName}</h2>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
                         </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-lg font-bold ml-2 ${user.isBlocked ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-lg font-bold ${user.isBlocked ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
                             {user.isBlocked ? 'Bloklangan' : 'Faol'}
                         </span>
                         {user.role === 'teacher' && (
@@ -186,7 +186,7 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                         <div className="grid grid-cols-1 lg:grid-cols-12">
 
                             {/* LEFT: Form */}
-                            <div className={`lg:col-span-4 p-6 border-r ${isDark ? 'border-white/5' : 'border-gray-100'} space-y-6`}>
+                            <div className={`lg:col-span-4 p-4 sm:p-6 border-b lg:border-b-0 lg:border-r ${isDark ? 'border-white/5' : 'border-gray-100'} space-y-6`}>
                                 <div className="space-y-4">
                                     <h4 className={sectionTitle}>Shaxsiy Ma'lumotlar</h4>
                                     <div className="space-y-1">
@@ -325,17 +325,17 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                             </div>
 
                             {/* RIGHT: Chart */}
-                            <div className="lg:col-span-8 p-6 space-y-6">
+                            <div className="lg:col-span-8 p-4 sm:p-6 space-y-6">
                                 <h4 className={sectionTitle}>O'sish Dinamikasi — Band Scores</h4>
 
-                                <div className={`rounded-3xl border p-6 transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50 shadow-sm'}`}>
+                                <div className={`rounded-2xl sm:rounded-3xl border p-3 sm:p-6 transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50 shadow-sm'}`}>
 
                                     {loading ? (
-                                        <div className="min-h-[340px] flex items-center justify-center">
+                                        <div className="h-[260px] sm:h-[340px] flex items-center justify-center">
                                             <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                         </div>
                                     ) : chartData.length > 0 ? (
-                                        <div style={{ height: 340 }}>
+                                        <div className="h-[260px] sm:h-[340px]">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                     <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)"} vertical={false} />
@@ -362,7 +362,7 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                             </ResponsiveContainer>
                                         </div>
                                     ) : (
-                                        <div className="min-h-[340px] flex flex-col items-center justify-center text-gray-400 gap-3">
+                                        <div className="h-[260px] sm:h-[340px] flex flex-col items-center justify-center text-gray-400 gap-3">
                                             <BookOpen size={40} className="opacity-20" />
                                             <p className="text-sm italic">Hali natijalar mavjud emas</p>
                                         </div>
@@ -379,10 +379,10 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                                 : null;
                                             const colors = { reading: 'text-blue-400 border-blue-500/20 bg-blue-500/5', listening: 'text-purple-400 border-purple-500/20 bg-purple-500/5', writing: 'text-orange-400 border-orange-500/20 bg-orange-500/5', speaking: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' };
                                             return (
-                                                <div key={type} className={`p-4 rounded-2xl border transition-all ${colors[type]} ${isDark ? '' : 'bg-opacity-30 shadow-sm'}`}>
+                                                <div key={type} className={`p-3 sm:p-4 rounded-2xl border transition-all ${colors[type]} ${isDark ? '' : 'bg-opacity-30 shadow-sm'}`}>
 
                                                     <p className="text-xs font-bold uppercase tracking-wider opacity-70 capitalize">{type}</p>
-                                                    <p className="text-2xl font-bold mt-1">{avg ?? '—'}</p>
+                                                    <p className="text-xl sm:text-2xl font-bold mt-1">{avg ?? '—'}</p>
                                                     <p className="text-[10px] opacity-60 mt-0.5">{typeResults.length} ta natija</p>
                                                 </div>
                                             );

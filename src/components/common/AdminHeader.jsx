@@ -47,28 +47,36 @@ export default function AdminHeader() {
 
 
     return (
-        <header className={`h-16 px-4 md:px-6 flex items-center justify-between border-b transition-all duration-200 relative ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <header className={`h-14 md:h-16 shrink-0 px-2 sm:px-4 md:px-6 flex items-center justify-between gap-2 border-b transition-all duration-200 relative ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
 
 
 
             {/* LEFT: Toggle & Breadcrumbs */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0">
                 <button
                     onClick={toggleSidebar}
-                    className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-white' : 'hover:bg-gray-100 text-gray-900'}`}
+                    className={`p-2 -ml-1 rounded-lg shrink-0 transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-white' : 'hover:bg-gray-100 text-gray-900'}`}
                     title="Menyuni yig'ish/ochish"
+                    aria-label="Menyuni yig'ish/ochish"
                 >
                     <Menu size={20} />
                 </button>
 
-                <div className="hidden md:flex items-center text-sm text-gray-500">
+                <div className="hidden md:flex items-center text-sm text-gray-500 min-w-0 truncate">
                     <Link to="/admin" className="hover:text-blue-500 transition-colors">Home</Link>
                     {breadcrumbs}
                 </div>
+
+                {/* Mobile: current page title only */}
+                <span className={`md:hidden text-sm font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {pathnames.length > 1
+                        ? pathnames[pathnames.length - 1].charAt(0).toUpperCase() + pathnames[pathnames.length - 1].slice(1).replace(/-/g, ' ')
+                        : 'Dashboard'}
+                </span>
             </div>
 
             {/* RIGHT: Actions & Profile */}
-            <div className="flex items-center gap-3 md:gap-4">
+            <div className="flex items-center gap-1 sm:gap-3 md:gap-4 shrink-0">
 
                 {/* Search (Desktop) */}
                 <div className={`hidden md:flex items-center px-3 py-1.5 rounded-full border transition-all ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/10' : 'bg-gray-100 border-transparent'}`}>
@@ -91,7 +99,7 @@ export default function AdminHeader() {
                 </button>
 
                 {/* Notifications — disabled to save Firestore costs */}
-                <div className="relative" ref={notificationRef}>
+                <div className="relative hidden sm:block" ref={notificationRef}>
                     <button
                         className={`p-2 rounded-full relative transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
                         title="Notifications"
@@ -101,15 +109,15 @@ export default function AdminHeader() {
                 </div>
 
                 {/* Profile Dropdown Trigger */}
-                <div className="flex items-center gap-3 pl-3 border-l border-inherit relative">
+                <div className="flex items-center gap-2 sm:gap-3 sm:pl-3 sm:border-l border-inherit relative">
                     <div className="text-right hidden md:block">
                         <p className={`text-sm font-medium leading-none ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                             {userData?.fullName || "Admin"}
                         </p>
                         <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider">Administrator</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px]">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px] shrink-0">
                             <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${theme === 'dark' ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
 
                                 {userData?.photoURL ? (
@@ -130,8 +138,8 @@ export default function AdminHeader() {
 
                     {/* Logout Confirmation Modal */}
                     {showLogoutConfirm && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                            <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl transition-all scale-100 opacity-100 ${theme === 'dark' ? 'bg-[#1E1E1E] border border-white/10 text-white' : 'bg-white text-gray-900'}`}>
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <div className={`w-full max-w-sm rounded-2xl p-5 sm:p-6 shadow-2xl transition-all scale-100 opacity-100 ${theme === 'dark' ? 'bg-[#1E1E1E] border border-white/10 text-white' : 'bg-white text-gray-900'}`}>
 
                                 <h3 className="text-lg font-bold mb-2">Are you sure?</h3>
                                 <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>

@@ -11,6 +11,7 @@ import GlobalPodcastPlayer from './components/podcast/GlobalPodcastPlayer';
 import { ProtectedRoute, DashboardRouter, LoadingScreen } from './components/common/RouteGuards';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import SpotlightToast from './components/dashboard/SpotlightToast';
 
 // STATIC PAGES (Immediate access)
 import LandingPage from './pages/public/LandingPage';
@@ -42,6 +43,7 @@ const CreateTest = lazy(() => import('./pages/admin/CreateTest'));
 const AdminResults = lazy(() => import('./pages/admin/AdminResults'));
 const AdminAnnouncements = lazy(() => import('./pages/admin/AdminAnnouncements'));
 const AdminFeedManagement = lazy(() => import('./pages/admin/AdminFeedManagement'));
+const AdminSpotlights = lazy(() => import('./pages/admin/AdminSpotlights'));
 const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
 const AdminGamification = lazy(() => import('./pages/admin/AdminGamification'));
 const TestSolving = lazy(() => import('./pages/test/TestSolving'));
@@ -109,6 +111,8 @@ function App() {
                 },
               }}
             />
+            {/* Yangi spotlight e'loni — istalgan sahifada bir martalik eslatma */}
+            {user && <SpotlightToast />}
             <Routes>
             {/* PUBLIC ROUTES */}
             <Route path="/" element={
@@ -193,6 +197,7 @@ function App() {
               <Route path="tests" element={<AdminTests />} />
               <Route path="announcements" element={<AdminAnnouncements />} />
               <Route path="feed" element={<AdminFeedManagement />} />
+              <Route path="spotlights" element={<AdminSpotlights />} />
               <Route path="articles" element={<AdminArticles />} />
               <Route path="create-test" element={<CreateTest />} />
               <Route path="edit-test/:id" element={<CreateTest />} />

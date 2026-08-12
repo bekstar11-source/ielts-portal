@@ -25,7 +25,7 @@ export default function ConfirmModal({
             aria-labelledby="confirm-modal-title"
         >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose} />
-            <div className={`relative w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border p-6 space-y-5 ${
+            <div className={`relative w-full max-w-sm max-h-[90dvh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border p-4 sm:p-6 space-y-5 ${
                 isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
             }`}>
                 <div className="flex flex-col items-center text-center space-y-3">

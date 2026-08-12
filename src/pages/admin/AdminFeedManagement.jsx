@@ -97,34 +97,34 @@ export default function AdminFeedManagement() {
     };
 
     return (
-        <div className={`min-h-screen font-sans p-4 md:p-6 transition-colors duration-200 ${
+        <div className={`min-h-full font-sans p-4 md:p-6 transition-colors duration-200 ${
             isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'
         }`}>
             <div className="max-w-5xl mx-auto space-y-6">
                 
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <button 
                             onClick={() => navigate('/admin')} 
-                            className={`p-2 rounded-xl transition ${
+                            className={`p-2 shrink-0 rounded-xl transition ${
                                 isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-white border border-gray-200 hover:bg-gray-50 shadow-sm'
                             }`}
                         >
                             <FaArrowLeft />
                         </button>
-                        <div className="text-left">
-                            <h1 className="text-2xl font-bold tracking-tight">Feed & Stories Boshqaruvi</h1>
+                        <div className="text-left min-w-0">
+                            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Feed & Stories Boshqaruvi</h1>
                             <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-500'}`}>
                                 O'quvchilar dashboard tasmasi va stories kontentini yaratish hamda boshqarish.
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                         <button
                             onClick={() => setShowStoryModal(true)}
-                            className="px-4 py-2 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:opacity-90 text-white rounded-xl font-bold flex items-center gap-2 text-xs shadow-md transition"
+                            className="flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2.5 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:opacity-90 text-white rounded-xl font-bold flex items-center gap-2 text-xs shadow-md transition whitespace-nowrap"
                         >
                             <FaPlus /> Yangi Story
                         </button>
@@ -133,7 +133,7 @@ export default function AdminFeedManagement() {
                                 setEditingPost(null);
                                 setShowPostModal(true);
                             }}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 text-xs shadow-md transition"
+                            className="flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 text-xs shadow-md transition whitespace-nowrap"
                         >
                             <FaPlus /> Yangi Post
                         </button>
@@ -141,10 +141,10 @@ export default function AdminFeedManagement() {
                 </div>
 
                 {/* Sub Tab Controls */}
-                <div className="flex border-b border-gray-200 dark:border-white/5 gap-6">
+                <div className="flex border-b border-gray-200 dark:border-white/5 gap-4 sm:gap-6 overflow-x-auto">
                     <button
                         onClick={() => setActiveSubTab('posts')}
-                        className={`pb-3 text-sm font-bold transition-all relative ${
+                        className={`pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${
                             activeSubTab === 'posts' 
                                 ? 'text-blue-500' 
                                 : 'text-gray-400 dark:text-zinc-500 hover:text-gray-300'
@@ -155,7 +155,7 @@ export default function AdminFeedManagement() {
                     </button>
                     <button
                         onClick={() => setActiveSubTab('stories')}
-                        className={`pb-3 text-sm font-bold transition-all relative ${
+                        className={`pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${
                             activeSubTab === 'stories' 
                                 ? 'text-pink-500' 
                                 : 'text-gray-400 dark:text-zinc-500 hover:text-gray-300'

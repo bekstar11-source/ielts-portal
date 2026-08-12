@@ -162,7 +162,7 @@ export default function AdminPodcasts() {
             {editingCol && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingCol(null)} />
-                    <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="relative bg-white w-full max-w-md max-h-[90dvh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
                             <h2 className="font-bold text-lg flex items-center gap-2 text-zinc-800">
                                 <Folder className="text-emerald-600" size={20} /> Edit Collection
@@ -282,7 +282,7 @@ export default function AdminPodcasts() {
                                             </span>
                                             <span className="text-[10px] font-bold opacity-40">{podcasts.filter(p => p.collectionId === c.id).length}</span>
                                         </button>
-                                        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 flex items-center transition-all bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb] to-transparent pl-4">
+                                        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 flex items-center transition-all bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb] to-transparent pl-4">
                                             <button onClick={(e) => { e.stopPropagation(); setEditingCol(c); }} className="p-1.5 hover:text-emerald-600 transition-colors">
                                                 <Edit2 size={12} />
                                             </button>
@@ -429,7 +429,7 @@ export default function AdminPodcasts() {
                                             <td className="py-3 text-xs font-mono font-bold text-zinc-500">{formatTime(p.duration)}</td>
                                             <td className="py-3 text-xs font-medium text-zinc-400">{formatDate(p.createdAt)}</td>
                                             <td className="py-3 pr-2 text-right">
-                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                                     <button onClick={() => navigate(p.mode === 'spotify' ? `/admin/edit-spotify-podcast/${p.id}` : `/admin/edit-podcast/${p.id}`)} className="p-2 hover:bg-white rounded-md text-zinc-400 hover:text-emerald-600 border border-transparent hover:border-zinc-200"><Edit2 size={14} /></button>
                                                     <button onClick={() => toggleStatus(p)} className="p-2 hover:bg-white rounded-md text-zinc-400 hover:text-zinc-900 border border-transparent hover:border-zinc-200">{p.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}</button>
                                                     <button onClick={() => handleDelete(p.id)} className="p-2 hover:bg-white rounded-md text-zinc-300 hover:text-rose-600 border border-transparent hover:border-zinc-200"><Trash2 size={14} /></button>

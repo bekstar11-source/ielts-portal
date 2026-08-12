@@ -37,7 +37,7 @@ export default function CommandPalette({ commands, onClose, isDark }) {
         <div className="fixed inset-0 z-[210] flex items-start justify-center pt-[12vh] px-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
             <div
                 onClick={e => e.stopPropagation()}
-                className={`w-full max-w-lg rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}
+                className={`w-full max-w-lg max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}
             >
                 <input
                     autoFocus
@@ -47,7 +47,7 @@ export default function CommandPalette({ commands, onClose, isDark }) {
                     placeholder="Buyruq qidirish..."
                     className={`w-full h-12 px-4 outline-none text-sm font-medium border-b ${isDark ? 'bg-transparent border-white/5 placeholder:text-gray-600' : 'bg-transparent border-gray-100 placeholder:text-gray-400'}`}
                 />
-                <div ref={listRef} className="max-h-[50vh] overflow-y-auto custom-scrollbar p-1.5">
+                <div ref={listRef} className="max-h-[50dvh] overflow-y-auto custom-scrollbar p-1.5">
                     {filtered.length === 0 ? (
                         <p className="text-[11px] opacity-40 text-center py-6">Hech narsa topilmadi</p>
                     ) : filtered.map((cmd, idx) => (

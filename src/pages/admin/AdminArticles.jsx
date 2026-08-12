@@ -92,28 +92,28 @@ export default function AdminArticles() {
     const isFiltered = Boolean(searchTerm.trim() || activeCategory);
 
     return (
-        <div className="flex-1 space-y-5">
+        <div className="flex-1 p-4 md:p-6 space-y-4 md:space-y-5">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Maqolalar</h1>
+                <div className="min-w-0">
+                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">Maqolalar</h1>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
                         O&apos;quvchilar uchun darajali maqolalar yarating va boshqaring.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full md:w-auto">
                     <button
                         type="button"
                         onClick={refresh}
                         disabled={loading}
                         title="Yangilash"
-                        className="p-2.5 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-gray-100 dark:border-white/5 text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
+                        className="p-2.5 shrink-0 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-gray-100 dark:border-white/5 text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
                     >
                         <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
                     </button>
                     <button
                         type="button"
                         onClick={() => handleOpenModal()}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-2xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-95"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-2xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-95"
                     >
                         <Plus size={20} />
                         <span>Yangi maqola</span>
@@ -130,7 +130,7 @@ export default function AdminArticles() {
                 </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
                     { icon: <FileText size={16} />, label: "Jami", value: stats.total, tone: "text-blue-600 bg-blue-500/10" },
                     { icon: <Lock size={16} />, label: "PRO", value: stats.pro, tone: "text-yellow-600 bg-yellow-500/10" },
@@ -138,18 +138,18 @@ export default function AdminArticles() {
                 ].map(({ icon, label, value, tone }) => (
                     <div
                         key={label}
-                        className="bg-white dark:bg-[#1E1E1E] p-4 rounded-[20px] border border-gray-100 dark:border-white/5 flex items-center gap-3"
+                        className="bg-white dark:bg-[#1E1E1E] p-3 sm:p-4 rounded-[20px] border border-gray-100 dark:border-white/5 flex items-center gap-2 sm:gap-3 min-w-0"
                     >
-                        <div className={`p-2.5 rounded-xl ${tone}`}>{icon}</div>
-                        <div>
+                        <div className={`p-2 sm:p-2.5 shrink-0 rounded-xl ${tone}`}>{icon}</div>
+                        <div className="min-w-0">
                             <p className="text-lg font-bold leading-none">{loading ? "—" : value}</p>
-                            <p className="text-[11px] text-gray-400 font-medium mt-1">{label}</p>
+                            <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium mt-1 truncate">{label}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-[24px] border border-gray-100 dark:border-white/5 space-y-3">
+            <div className="bg-white dark:bg-[#1E1E1E] p-3 sm:p-4 rounded-2xl sm:rounded-[24px] border border-gray-100 dark:border-white/5 space-y-3">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -170,13 +170,13 @@ export default function AdminArticles() {
                             </button>
                         )}
                     </div>
-                    <div className="flex gap-1 p-1 rounded-xl bg-gray-50 dark:bg-[#252525] shrink-0">
+                    <div className="flex gap-1 p-1 rounded-xl bg-gray-50 dark:bg-[#252525] shrink-0 overflow-x-auto">
                         {SORT_OPTIONS.map((opt) => (
                             <button
                                 key={opt.id}
                                 type="button"
                                 onClick={() => setSortBy(opt.id)}
-                                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                                className={`flex-1 sm:flex-none whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                                     sortBy === opt.id
                                         ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
                                         : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"

@@ -70,8 +70,8 @@ export default function AdminResults() {
     const selectedCount = selectedIds.size;
 
     return (
-        <div className={`h-full overflow-y-auto custom-scrollbar p-6 font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-slate-800'}`}>
-            <div className="max-w-7xl mx-auto pb-24">
+        <div className={`h-full overflow-y-auto custom-scrollbar p-3 sm:p-4 md:p-6 font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-slate-800'}`}>
+            <div className="max-w-7xl mx-auto pb-28">
                 {/* Sarlavha */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-3">
@@ -172,15 +172,15 @@ export default function AdminResults() {
 
             {/* Tanlanganlar uchun pastdagi amal paneli */}
             {selectedCount > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 w-full max-w-lg animate-content-in">
-                    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border backdrop-blur-md ${
+                <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 px-3 sm:px-4 w-full max-w-lg animate-content-in">
+                    <div className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 rounded-2xl shadow-2xl border backdrop-blur-md ${
                         isDark ? 'bg-[#1E1E1E]/95 border-white/10' : 'bg-white/95 border-gray-200'
                     }`}>
                         <span className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-lg bg-blue-600 text-white text-[12px] font-bold tabular-nums">
                             {selectedCount}
                         </span>
-                        <span className={`text-[13px] font-semibold flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            ta natija tanlandi
+                        <span className={`text-[13px] font-semibold flex-1 truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            <span className="hidden sm:inline">ta natija </span>tanlandi
                         </span>
                         <button
                             onClick={exportCsv}
@@ -213,7 +213,7 @@ export default function AdminResults() {
             {toast && (
                 <div
                     role="status"
-                    className={`fixed top-6 right-6 z-[210] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-[13px] font-semibold animate-content-in ${
+                    className={`fixed top-4 right-3 left-3 sm:left-auto sm:top-6 sm:right-6 z-[210] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-[13px] font-semibold animate-content-in ${
                         toast.type === 'error'
                             ? 'bg-red-600 border-red-500 text-white'
                             : isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'

@@ -54,19 +54,19 @@ export default function AdminLogs() {
     };
 
     return (
-        <div className={`min-h-screen p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`min-h-full p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
 
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold">System Audit Logs</h1>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Track all system activities</p>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-6">
+                <div className="min-w-0">
+                    <h1 className="text-xl md:text-2xl font-bold">System Audit Logs</h1>
+                    <p className={`text-xs md:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Track all system activities</p>
                 </div>
                 <div className="flex gap-2">
                     <select
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
-                        className={`px-4 py-2 rounded-xl outline-none border transition-all ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white' : 'bg-white border-gray-200 text-gray-700'}`}
+                        className={`w-full sm:w-auto px-4 py-2.5 text-sm rounded-xl outline-none border transition-all ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white' : 'bg-white border-gray-200 text-gray-700'}`}
                     >
 
                         <option value="ALL">All Actions</option>
@@ -78,10 +78,10 @@ export default function AdminLogs() {
                 </div>
             </div>
 
-            <div className={`rounded-[24px] border overflow-hidden transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <div className={`rounded-2xl md:rounded-[24px] border overflow-hidden transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
                 <div className="overflow-x-auto">
 
-                    <table className="w-full text-left">
+                    <table className="w-full min-w-[680px] text-left">
                         <thead className={`border-b transition-colors ${isDark ? 'border-white/5 bg-[#121212]' : 'border-gray-100 bg-gray-50'}`}>
 
                             <tr>

@@ -5,7 +5,7 @@ import StoriesContainer from './StoriesContainer';
 import { db } from '../../firebase/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 
-export default function NewsFeed({ user, userData, assignments, groupIds = [] }) {
+export default function NewsFeed({ user, userData, assignments, groupIds = [], spotlight = null }) {
     const {
         posts, loading, loadingMore, hasMore,
         fetchNextPage, handleLike, handleCommentAdded, handlePostDeleted
@@ -77,6 +77,13 @@ export default function NewsFeed({ user, userData, assignments, groupIds = [] })
             <div className="w-[calc(100%+2rem)] -mx-4 md:w-full md:mx-0 lg:-ml-20 lg:w-[calc(100%+80px)] border-b border-warm-hairline dark:border-white/5 md:border-none">
                 <StoriesContainer user={user} userData={userData} />
             </div>
+
+            {/* Spotlight: aksiyalar + savol parchalari (stories bilan feed orasida) */}
+            {spotlight && (
+                <div className="w-full max-w-[470px] mt-4">
+                    {spotlight}
+                </div>
+            )}
 
             {/* Posts Stream */}
             <div className={`mt-2 w-full max-w-[470px] divide-y divide-warm-hairline dark:divide-white/5 ${!loading ? 'animate-fade-in' : 'opacity-0'}`}>

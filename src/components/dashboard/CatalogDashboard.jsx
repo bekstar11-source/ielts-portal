@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Headphones, BookOpen, PenTool, ArrowRight, Clock } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
+import PromoSpotlight from './PromoSpotlight';
 
 const packIconWrap = 'w-11 h-11 rounded-xl flex items-center justify-center bg-warm-surface dark:bg-white/5 shrink-0';
 
@@ -47,6 +48,9 @@ export default function CatalogDashboard({ onPremiumClick }) {
 
     return (
         <div className="w-full max-w-[1100px] mx-auto px-4 md:px-6 pt-4 pb-16">
+            {/* Spotlight: aksiyalar + savol parchalari */}
+            <PromoSpotlight className="mb-10" />
+
             {/* Promo banner */}
             <div className="bg-warm-ink rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-14">
                 <div className="flex flex-col gap-4 max-w-lg">

@@ -44,12 +44,12 @@ export default function ManageTests() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8 font-sans">
+    <div className="min-h-full bg-gray-100 p-4 sm:p-6 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto">
         
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">📚 Barcha Testlar Boshqaruvi</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">📚 Barcha Testlar Boshqaruvi</h1>
             <p className="text-gray-500">Jami testlar soni: {tests.length}</p>
           </div>
           <div className="flex gap-3">
@@ -62,8 +62,8 @@ export default function ManageTests() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left border-collapse">
             <thead className="bg-slate-50 border-b">
               <tr>
                 <th className="p-4 text-sm font-medium text-gray-500">Test Nomi</th>

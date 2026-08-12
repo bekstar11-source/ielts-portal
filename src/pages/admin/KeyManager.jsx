@@ -832,7 +832,7 @@ export default function KeyManager() {
 
   return (
     <div
-      className={`min-h-screen font-sans transition-colors duration-200 p-4 sm:p-6 md:p-8 ${
+      className={`min-h-full font-sans transition-colors duration-200 p-3 sm:p-6 md:p-8 ${
         isDark ? "bg-[#18181b] text-zinc-100" : "bg-[#fafafa] text-zinc-800"
       }`}
     >
@@ -841,7 +841,7 @@ export default function KeyManager() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-black tracking-tight">Access Keys</h1>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight">Access Keys</h1>
               <span
                 className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border ${
                   isDark ? "bg-zinc-900 border-zinc-800 text-zinc-400" : "bg-zinc-100 border-zinc-200 text-zinc-500"
@@ -927,7 +927,7 @@ export default function KeyManager() {
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* CHAP USTUN */}
-        <div className={`rounded-2xl border p-6 shadow-sm lg:sticky lg:top-8 transition-colors ${panelCls}`}>
+        <div className={`rounded-2xl border p-4 sm:p-6 shadow-sm lg:sticky lg:top-8 transition-colors ${panelCls}`}>
           <h2 className="font-extrabold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
             <Bolt className={`w-4 h-4 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} /> Mock Manager
           </h2>
@@ -1247,7 +1247,7 @@ export default function KeyManager() {
         </div>
 
         {/* O'NG USTUN: KALITLAR */}
-        <div className={`lg:col-span-2 rounded-2xl border shadow-sm flex flex-col lg:h-[82vh] overflow-hidden transition-colors ${panelCls}`}>
+        <div className={`lg:col-span-2 rounded-2xl border shadow-sm flex flex-col lg:h-[82dvh] overflow-hidden transition-colors ${panelCls}`}>
           {/* Toolbar */}
           <div className={`p-4 border-b space-y-3 transition-colors ${isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50/50"}`}>
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">

@@ -705,3 +705,21 @@
 .mock-exam-shimmer:active {
   transform: translateY(0.5px);
 }
+/* ==========================================================================
+   iOS: prevent auto-zoom on focus
+   Safari zooms the page whenever a focused form control has a font-size below
+   16px. The viewport meta no longer locks scaling (user-scalable=no was
+   removed for accessibility), so the floor is enforced here instead.
+   Applies only below Tailwind's `sm` breakpoint; !important is required to
+   beat utility classes such as `text-xs` / `text-sm`.
+   ========================================================================== */
+@media (max-width: 639.98px) {
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+  select,
+  textarea,
+  [contenteditable='true'] {
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+  }
+}

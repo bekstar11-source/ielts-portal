@@ -3,15 +3,15 @@ import { Medal, Search, Plus, Minus } from 'lucide-react';
 import { calculateLevel } from '../../../utils/scoreUtils';
 
 export const LeaderboardTable = ({ users, loading, searchTerm, setSearchTerm, onUpdatePoints, isDark }) => (
-    <div className={`lg:col-span-2 rounded-[24px] border overflow-hidden flex flex-col h-[600px] transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
-        <div className={`p-4 border-b flex items-center justify-between transition-colors ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+    <div className={`lg:col-span-2 rounded-2xl sm:rounded-[24px] border overflow-hidden flex flex-col h-[460px] sm:h-[600px] min-w-0 transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+        <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
             <h3 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider opacity-70"><Medal size={16} /> Top Students</h3>
-            <div className={`flex items-center px-4 py-2 rounded-xl border transition-all ${isDark ? 'bg-black/20 border-white/5 focus-within:bg-black/40' : 'bg-gray-50 border-gray-200 focus-within:bg-white focus-within:border-blue-400'}`}>
+            <div className={`flex items-center px-3 sm:px-4 py-2 rounded-xl border transition-all w-full sm:w-auto ${isDark ? 'bg-black/20 border-white/5 focus-within:bg-black/40' : 'bg-gray-50 border-gray-200 focus-within:bg-white focus-within:border-blue-400'}`}>
                 <Search size={14} className="opacity-40 mr-2" />
                 <input
                     type="text"
                     placeholder="Search students..."
-                    className="bg-transparent border-none outline-none text-xs w-40 font-medium"
+                    className="bg-transparent border-none outline-none text-xs w-full sm:w-40 font-medium"
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                 />
@@ -24,7 +24,7 @@ export const LeaderboardTable = ({ users, loading, searchTerm, setSearchTerm, on
                     <div className="animate-spin w-8 h-8 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto"></div>
                 </div>
             ) : (
-                <table className="w-full text-left">
+                <table className="w-full min-w-[420px] text-left">
                     <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
                         <tr>
                             <th className="p-4 text-[10px] font-black uppercase tracking-widest opacity-40">Rank</th>
@@ -47,12 +47,12 @@ export const LeaderboardTable = ({ users, loading, searchTerm, setSearchTerm, on
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                                        <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                                             {user.fullName?.charAt(0).toUpperCase()}
                                         </div>
-                                        <div>
-                                            <p className="font-bold text-sm leading-none mb-1">{user.fullName || "Ismsiz"}</p>
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-sm leading-none mb-1 truncate">{user.fullName || "Ismsiz"}</p>
                                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Level {calculateLevel(user.points)}</p>
                                         </div>
                                     </div>
@@ -61,7 +61,7 @@ export const LeaderboardTable = ({ users, loading, searchTerm, setSearchTerm, on
                                     <span className="font-mono font-black text-sm text-yellow-500">{user.points?.toLocaleString()}</span>
                                 </td>
                                 <td className="p-4">
-                                    <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => onUpdatePoints(user.id, 100)}
                                             className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"

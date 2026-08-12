@@ -54,13 +54,13 @@ export default function ManageUsers() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8 font-sans">
+    <div className="min-h-full bg-gray-100 p-4 sm:p-6 md:p-8 font-sans">
       <div className="max-w-5xl mx-auto">
         
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">👥 Foydalanuvchilar ({users.length})</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">👥 Foydalanuvchilar ({users.length})</h1>
             <p className="text-gray-500">Tizimdagi barcha o'quvchilar va adminlar</p>
           </div>
           <button onClick={() => navigate('/admin')} className="text-gray-500 hover:text-gray-800 font-medium">
@@ -83,8 +83,8 @@ export default function ManageUsers() {
         </div>
 
         {/* Jadval */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left border-collapse">
             <thead className="bg-slate-50 border-b">
               <tr>
                 <th className="p-4 text-sm font-medium text-gray-500">№</th>

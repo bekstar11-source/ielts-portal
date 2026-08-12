@@ -136,7 +136,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
             <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-8 space-y-8 custom-scrollbar">
                 <div className="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {/* Task 1 */}
-                    <div className={`rounded-2xl p-6 border ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100'}`}>
+                    <div className={`rounded-2xl p-4 sm:p-6 border ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100'}`}>
                         <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-100 dark:border-white/5">
                             <h4 className="text-sm font-medium text-gray-500">
                                 {t('teacher.writingReview.workspace.task1') || (lang === 'uz' ? '1-topshiriq' : 'Task 1')}
@@ -150,7 +150,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
                     </div>
 
                     {/* Task 2 */}
-                    <div className={`rounded-2xl p-6 border ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100'}`}>
+                    <div className={`rounded-2xl p-4 sm:p-6 border ${isDark ? 'bg-[#1A1A1A] border-white/5' : 'bg-white border-gray-100'}`}>
                         <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-100 dark:border-white/5">
                             <h4 className="text-sm font-medium text-gray-500">
                                 {t('teacher.writingReview.workspace.task2') || (lang === 'uz' ? '2-topshiriq' : 'Task 2')}

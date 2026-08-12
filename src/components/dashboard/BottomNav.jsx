@@ -2,11 +2,16 @@ import React from 'react';
 import { Home, Headphones, Settings, Newspaper, BookMarked, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { useSpotlightNotice } from '../../hooks/useSpotlightNotice';
 
 export default function BottomNav({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  // Bosh sahifada o'qilmagan e'lon bo'lsa — Home ikonkasida qizil nuqta.
+  const { hasNew, latest } = useSpotlightNotice(user);
 
   const navItems = [
     { id: 'dashboard', label: t('dashboard.home') || 'Home', icon: Home, path: '/dashboard' },
@@ -22,6 +27,12 @@ export default function BottomNav({ activeTab, setActiveTab }) {
 
     if (setActiveTab) {
       setActiveTab(item.id);
+    }
+
+    // Yangi e'lon bo'lsa — Home bosilganda to'g'ridan-to'g'ri o'sha slaydga.
+    if (item.id === 'dashboard' && hasNew && latest) {
+      navigate(`/dashboard?spotlight=${latest.id}`);
+      return;
     }
 
     if (!isLocalDashboardTab) {
@@ -60,7 +71,12 @@ export default function BottomNav({ activeTab, setActiveTab }) {
                   : 'text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-body dark:hover:text-warm-on-dark'
               }`}
             >
-              <Icon size={19} className={isActive ? 'scale-110 transition-transform' : 'transition-transform'} />
+              <span className="relative">
+                <Icon size={19} className={isActive ? 'scale-110 transition-transform' : 'transition-transform'} />
+                {item.id === 'dashboard' && hasNew && (
+                  <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-warm-primary ring-2 ring-warm-canvas dark:ring-warm-dark animate-pulse" />
+                )}
+              </span>
               <span className="text-[9px] tracking-tight whitespace-nowrap font-medium">{item.label}</span>
             </button>
           );

@@ -202,7 +202,7 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
 
                     {activeSection === 'settings' && (
                         <div className="space-y-4">

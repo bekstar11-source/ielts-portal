@@ -121,7 +121,7 @@ export default function MockExamEditModal({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !saving && onClose()} />
       <div
-        className={`relative w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden animate-content-in ${
+        className={`relative w-full max-w-md max-h-[90dvh] rounded-2xl border shadow-2xl overflow-hidden animate-content-in ${
           isDark ? "bg-[#141416] border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-800"
         }`}
       >
@@ -137,7 +137,7 @@ export default function MockExamEditModal({
           </button>
         </div>
 
-        <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+        <div className="p-4 sm:p-6 space-y-4 max-h-[65dvh] overflow-y-auto custom-scrollbar">
           <div>
             <label className={labelCls}>Nomi</label>
             <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Mock exam nomi" />

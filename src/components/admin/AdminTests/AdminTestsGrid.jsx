@@ -69,7 +69,7 @@ const AdminTestsGrid = ({
                             <input
                                 type="checkbox"
                                 className={`absolute top-3 left-3 z-10 accent-blue-600 w-4 h-4 cursor-pointer rounded border-zinc-300 transition-opacity ${
-                                    isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                    isSelected ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'
                                 }`}
                                 checked={isSelected}
                                 onChange={() => onToggleSelect(test.id)}

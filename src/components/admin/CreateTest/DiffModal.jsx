@@ -74,7 +74,7 @@ export default function DiffModal({ show, originalJson, currentJson, onClose, on
 
     return (
         <div className="fixed inset-0 z-[205] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className={`w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+            <div className={`w-full max-w-2xl max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
                 <div className="p-5">
                     <div className="flex items-center justify-between gap-3 mb-3">
                         <div>
@@ -87,7 +87,7 @@ export default function DiffModal({ show, originalJson, currentJson, onClose, on
                         </div>
                     </div>
 
-                    <div className={`rounded-xl border overflow-auto max-h-[55vh] custom-scrollbar ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className={`rounded-xl border overflow-auto max-h-[55dvh] custom-scrollbar ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                         {diff.tooBig ? (
                             <p className="p-4 text-[11px] opacity-50">JSON juda katta — farq hisoblanmadi.</p>
                         ) : diff.rows.length === 0 ? (

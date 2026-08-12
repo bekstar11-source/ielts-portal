@@ -1,10 +1,14 @@
 import React from "react";
 import { Home, Search, Library, Heart, Headphones } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useSpotlightNotice } from "../../hooks/useSpotlightNotice";
 
 export default function PodcastBottomNav({ isDark }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
+    const { hasNew, latest } = useSpotlightNotice(user);
 
     const tabs = [
         { id: 'home', label: 'Podcasts', icon: Headphones, path: '/podcasts' },
@@ -28,18 +32,27 @@ export default function PodcastBottomNav({ isDark }) {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => navigate(tab.path)}
+                            onClick={() => navigate(
+                                tab.id === 'dashboard' && hasNew && latest
+                                    ? `/dashboard?spotlight=${latest.id}`
+                                    : tab.path
+                            )}
                             className={`flex flex-col items-center gap-1 transition-all active:scale-90 ${
-                                active 
-                                    ? (isDark ? 'text-white' : 'text-zinc-900 font-bold') 
+                                active
+                                    ? (isDark ? 'text-white' : 'text-zinc-900 font-bold')
                                     : ''
                             }`}
                         >
-                            <tab.icon 
-                                size={24} 
-                                strokeWidth={active ? 2.5 : 2}
-                                className={active ? (isDark ? 'text-white' : 'text-zinc-900') : ''}
-                            />
+                            <span className="relative">
+                                <tab.icon
+                                    size={24}
+                                    strokeWidth={active ? 2.5 : 2}
+                                    className={active ? (isDark ? 'text-white' : 'text-zinc-900') : ''}
+                                />
+                                {tab.id === 'dashboard' && hasNew && (
+                                    <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-warm-primary ring-2 ${isDark ? 'ring-black' : 'ring-white'}`} />
+                                )}
+                            </span>
                             <span className="text-[10px] font-medium">{tab.label}</span>
                         </button>
                     );

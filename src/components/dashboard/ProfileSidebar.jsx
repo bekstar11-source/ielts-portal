@@ -108,85 +108,67 @@ export default function ProfileSidebar({
 
             {/* Overall Band Score */}
             {statsLoading ? (
-                <div className="p-4 animate-pulse">
-                    <div className="h-3 bg-warm-surface dark:bg-white/5 rounded w-1/2 mb-4"></div>
-                    <div className="h-8 bg-warm-surface dark:bg-white/5 rounded w-1/3 mb-6"></div>
-                    <div className="space-y-1">
-                        <div className="h-9 bg-warm-surface dark:bg-white/5 rounded-xl"></div>
-                        <div className="h-9 bg-warm-surface dark:bg-white/5 rounded-xl"></div>
-                        <div className="h-9 bg-warm-surface dark:bg-white/5 rounded-xl"></div>
+                <div className="p-3.5 animate-pulse">
+                    <div className="h-8 bg-warm-surface dark:bg-white/5 rounded w-2/3 mb-3"></div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        {[0, 1, 2, 3].map(i => (
+                            <div key={i} className="h-11 bg-warm-surface dark:bg-white/5 rounded-lg"></div>
+                        ))}
                     </div>
                 </div>
             ) : (
-                <div className="p-4">
-                    {/* Section title, styled like AdminSidebar group titles */}
-                    <div className="flex items-center justify-between mb-4 px-1">
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-warm-muted-soft dark:text-warm-muted">
-                            OVERALL BAND SCORE
-                        </span>
-                        <div className="p-1.5 rounded-lg bg-warm-primary/10 dark:bg-warm-primary/20 text-warm-primary flex items-center justify-center">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="20" x2="18" y2="10"></line>
-                                <line x1="12" y1="20" x2="12" y2="4"></line>
-                                <line x1="6" y1="20" x2="6" y2="14"></line>
-                            </svg>
+                <div className="p-3.5">
+                    {/* Ball + maqsad/imtihon — bitta qatorda (ilgari uch blok edi) */}
+                    <div className="flex items-end justify-between gap-3 mb-3 px-1">
+                        <div className="min-w-0">
+                            <span className="block text-[9px] font-bold uppercase tracking-widest text-warm-muted-soft dark:text-warm-muted mb-1">
+                                OVERALL BAND
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-[30px] font-black text-warm-ink dark:text-warm-on-dark tracking-tight leading-none">
+                                    {calculatedOverallBand}
+                                </span>
+                                <span className="text-[13px] font-bold text-warm-muted-soft dark:text-warm-on-dark-soft leading-none">
+                                    / 9.0
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className="text-[10px] font-semibold text-warm-muted-soft dark:text-warm-on-dark-soft whitespace-nowrap">
+                                {t('dashboard.targetScore')}
+                                <b className="ml-1 text-warm-ink dark:text-warm-on-dark">{targetBand}</b>
+                            </span>
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-warm-primary/10 dark:bg-warm-primary/20 text-[10px] font-bold text-warm-primary whitespace-nowrap">
+                                <span className="w-1 h-1 rounded-full bg-warm-primary" />
+                                <span>{daysUntilExam !== null ? `${daysUntilExam} ${t('dashboard.daysUnit')}` : '—'}</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Large score display */}
-                    <div className="flex items-baseline mb-4 px-1">
-                        <span className="text-[44px] font-black text-warm-ink dark:text-warm-on-dark tracking-tight leading-none">
-                            {calculatedOverallBand}
-                        </span>
-                        <span className="text-lg font-black text-warm-ink dark:text-warm-on-dark ml-2 leading-none">
-                            / 9.0
-                        </span>
-                    </div>
-
-                    {/* Skills list, styled like AdminSidebar nav items */}
-                    <div className="space-y-0.5 mb-4">
+                    {/* Bo'limlar — 2×2 katak (ilgari 4 ta baland qator edi) */}
+                    <div className="grid grid-cols-2 gap-1.5">
                         {[
                             { key: 'listening', label: t('dashboard.listening'), value: listeningAvg, dot: 'bg-emerald-500' },
                             { key: 'reading', label: t('dashboard.reading'), value: readingAvg, dot: 'bg-blue-600' },
                             { key: 'writing', label: t('dashboard.writing'), value: writingAvg, dot: 'bg-amber-500' },
-                            { key: 'speaking', label: t('dashboard.speaking'), value: speakingAvg, dot: 'bg-purple-500' },
+                            // "Speaking with AI" tor katakka sig'maydi — birinchi so'z yetarli.
+                            { key: 'speaking', label: t('dashboard.speaking').split(' ')[0], value: speakingAvg, dot: 'bg-purple-500' },
                         ].map((skill) => (
                             <div
                                 key={skill.key}
-                                className="flex items-center justify-between px-2.5 py-2 rounded-xl text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 hover:text-warm-ink dark:hover:text-warm-on-dark transition-all duration-200"
+                                className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-warm-surface/60 dark:bg-white/[0.03] hover:bg-warm-surface dark:hover:bg-white/[0.06] transition-colors"
                             >
-                                <div className="flex items-center gap-2.5">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${skill.dot}`} />
-                                    <span className="text-[11px] font-semibold uppercase tracking-wide">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${skill.dot}`} />
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide truncate text-warm-muted dark:text-warm-on-dark-soft">
                                         {skill.label}
                                     </span>
                                 </div>
-                                <span className="text-sm font-bold text-warm-ink dark:text-warm-on-dark">
+                                <span className="text-[13px] font-bold text-warm-ink dark:text-warm-on-dark">
                                     {skill.value}
                                 </span>
                             </div>
                         ))}
-                    </div>
-
-                    {/* Footer rows: Target Score & Until Exam */}
-                    <div className="flex flex-col gap-3 pt-3 px-1 border-t border-warm-hairline dark:border-white/5">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-semibold text-warm-muted-soft dark:text-warm-on-dark-soft">
-                                {t('dashboard.targetScore')}
-                            </span>
-                            <span className="text-sm font-bold text-warm-ink dark:text-warm-on-dark">
-                                {targetBand}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-semibold text-warm-muted-soft dark:text-warm-on-dark-soft">
-                                {t('dashboard.untilExam')}
-                            </span>
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-warm-primary/10 dark:bg-warm-primary/20 text-[11px] font-bold text-warm-primary dark:text-warm-primary">
-                                <span className="w-1.5 h-1.5 rounded-full bg-warm-primary" />
-                                <span>{daysUntilExam !== null ? `${daysUntilExam} ${t('dashboard.daysUnit')}` : '—'}</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             )}

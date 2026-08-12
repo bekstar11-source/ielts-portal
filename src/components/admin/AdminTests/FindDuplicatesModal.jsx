@@ -126,7 +126,7 @@ const FindDuplicatesModal = ({ isOpen, onClose, onDeleteTest }) => {
                 onClick={onClose}
             />
             
-            <div className={`relative w-full max-w-4xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${
+            <div className={`relative w-full max-w-4xl max-h-[85dvh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${
                 isDark ? 'bg-[#181818] border border-white/10' : 'bg-white border border-zinc-200'
             }`}>
                 {/* Header */}
@@ -172,7 +172,7 @@ const FindDuplicatesModal = ({ isOpen, onClose, onDeleteTest }) => {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
                     {/* Filters & Controls */}
                     <div className={`flex flex-wrap items-center justify-between gap-4 pb-4 border-b ${isDark ? 'border-white/10' : 'border-zinc-200'}`}>
                         <div className="flex flex-wrap gap-2">

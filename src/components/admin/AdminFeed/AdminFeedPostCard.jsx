@@ -8,11 +8,11 @@ export default function AdminFeedPostCard({ post, onEdit, onDelete }) {
 
     return (
         <div 
-            className={`p-5 rounded-3xl border flex justify-between items-start gap-4 transition shadow-sm ${
+            className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border flex justify-between items-start gap-3 sm:gap-4 transition shadow-sm ${
                 isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:bg-gray-300'
             }`}
         >
-            <div className="flex-1 flex gap-4">
+            <div className="flex-1 flex gap-3 sm:gap-4 min-w-0">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
                     isDark ? 'bg-white/5' : 'bg-gray-55 border border-gray-100'
                 }`}>

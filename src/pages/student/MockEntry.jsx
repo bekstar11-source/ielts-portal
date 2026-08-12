@@ -25,6 +25,7 @@ import MockInterfacePresentation from '../../components/student/mock/MockInterfa
 import { MUTED_CLS } from '../../components/student/mock/mockHelpers';
 
 import SiteFooter from '../../components/common/SiteFooter';
+import BottomNav from '../../components/dashboard/BottomNav';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
 import PricingModal from '../../components/dashboard/PricingModal';
@@ -142,7 +143,7 @@ export default function MockEntry() {
     const firstName = userData?.fullName?.split(' ')[0] || t('mock.candidate');
 
     return (
-        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark antialiased flex flex-col selection:bg-warm-primary/30 selection:text-warm-ink transition-colors duration-200">
+        <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark font-sans text-warm-ink dark:text-warm-on-dark antialiased flex flex-col selection:bg-warm-primary/30 selection:text-warm-ink transition-colors duration-200 pb-16 md:pb-0">
             <DashboardHeader
                 user={user}
                 userData={userData}
@@ -217,6 +218,7 @@ export default function MockEntry() {
             </main>
 
             <SiteFooter />
+            <BottomNav activeTab="mock" />
 
             <MockActivatedModal
                 open={Boolean(activatedMock)}

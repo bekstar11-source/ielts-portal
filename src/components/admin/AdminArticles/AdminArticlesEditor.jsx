@@ -315,7 +315,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
     const levelTabClass = (level) => {
         const meta = ARTICLE_LEVEL_META[level];
         const isActive = activeEditorLevel === level;
-        const base = 'relative px-4 py-2.5 rounded-2xl text-xs font-bold transition-all text-left min-w-[112px]';
+        const base = 'relative px-3 sm:px-4 py-2.5 rounded-2xl text-xs font-bold transition-all text-left min-w-[96px] sm:min-w-[112px]';
         if (!isActive) {
             return `${base} bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10`;
         }
@@ -325,7 +325,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
     };
 
     const tabClass = (tab) =>
-        `px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+        `px-2.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
             activeTab === tab
                 ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
@@ -335,7 +335,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
         'w-full bg-gray-50 dark:bg-[#252525] border border-transparent focus:border-blue-500/40 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/30 font-medium text-gray-900 dark:text-white outline-none transition-all';
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <Motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -347,10 +347,10 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                 initial={{ opacity: 0, y: 30, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 30, scale: 0.98 }}
-                className="relative w-full max-w-4xl h-[92vh] bg-white dark:bg-[#1E1E1E] rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
+                className="relative w-full max-w-4xl h-[94dvh] sm:h-[92dvh] bg-white dark:bg-[#1E1E1E] rounded-t-3xl sm:rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
             >
                 {/* Header */}
-                <div className="px-4 sm:px-6 py-3.5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center gap-4 bg-gray-50/60 dark:bg-white/[0.02]">
+                <div className="px-3 sm:px-6 py-3 sm:py-3.5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center gap-2 sm:gap-4 bg-gray-50/60 dark:bg-white/[0.02]">
                     <div className="min-w-0">
                         <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
                             {article ? 'Maqolani tahrirlash' : 'Yangi maqola'}
@@ -378,7 +378,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                 </div>
 
                 <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-5 custom-scrollbar overscroll-contain">
                         {/* ------------ TAB: MA'LUMOT ------------ */}
                         {activeTab === 'meta' && (
                             <div className="space-y-5">

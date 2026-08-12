@@ -101,7 +101,7 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onU
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar pb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 overflow-y-auto custom-scrollbar pb-6">
                 {filteredGroups.map(group => {
                     const memberPreview = (group.studentIds || [])
                         .slice(0, 3)
@@ -110,16 +110,16 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onU
                     return (
                     <div
                         key={group.id}
-                        className={`group relative p-6 rounded-2xl border transition-all duration-300 hover:shadow-xl ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-blue-500/30' : 'bg-white border-gray-100 hover:border-blue-200 shadow-sm'}`}
+                        className={`group relative p-4 sm:p-6 rounded-2xl border transition-all duration-300 hover:shadow-xl ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-blue-500/30' : 'bg-white border-gray-100 hover:border-blue-200 shadow-sm'}`}
                     >
-                        <div className="flex justify-between items-start mb-6">
+                        <div className="flex justify-between items-start mb-4 sm:mb-6">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
                                 <Users size={24} />
                             </div>
                             <button
                                 onClick={() => handleDeleteGroup(group.id)}
                                 disabled={deletingGroupId === group.id}
-                                className={`p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-100 ${isDark ? 'hover:bg-red-500/10 text-red-400' : 'hover:bg-red-50 text-red-500'}`}
+                                className={`p-2 rounded-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all disabled:opacity-100 ${isDark ? 'hover:bg-red-500/10 text-red-400' : 'hover:bg-red-50 text-red-500'}`}
                             >
                                 {deletingGroupId === group.id
                                     ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
@@ -166,8 +166,8 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onU
             {showCreateModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-                    <div className={`relative w-full max-w-md p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 ${isDark ? 'bg-[#1E1E1E] text-white border border-white/5' : 'bg-white text-gray-900'}`}>
-                        <h2 className="text-2xl font-black mb-6 tracking-tight">Yangi Guruh</h2>
+                    <div className={`relative w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 sm:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 ${isDark ? 'bg-[#1E1E1E] text-white border border-white/5' : 'bg-white text-gray-900'}`}>
+                        <h2 className="text-xl sm:text-2xl font-black mb-5 sm:mb-6 tracking-tight">Yangi Guruh</h2>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1.5 block">Guruh Nomi</label>
@@ -194,7 +194,7 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onU
                                 <p className="text-xs text-red-500 font-medium">Guruh nomi va o'qituvchi tanlanishi shart.</p>
                             )}
                         </div>
-                        <div className="flex gap-3 mt-8">
+                        <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6 sm:mt-8">
                             <button onClick={() => setShowCreateModal(false)} className={`flex-1 h-12 rounded-xl font-bold text-sm ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>Bekor qilish</button>
                             <button
                                 onClick={handleCreateGroup}

@@ -38,7 +38,7 @@ export default function ConfirmModal({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !busy && onCancel?.()} />
       <div
-        className={`relative w-full max-w-sm rounded-2xl border shadow-2xl p-6 animate-content-in ${
+        className={`relative w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl border shadow-2xl p-4 sm:p-6 animate-content-in ${
           isDark ? "bg-[#141416] border-zinc-800 text-zinc-100" : "bg-white border-zinc-200 text-zinc-800"
         }`}
       >

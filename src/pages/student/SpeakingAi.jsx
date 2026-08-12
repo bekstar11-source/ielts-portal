@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../context/LanguageContext';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
+import BottomNav from '../../components/dashboard/BottomNav';
 import SpeakingSession from '../../components/speaking/SpeakingSession';
 import SpeakingHistory from '../../components/speaking/SpeakingHistory';
 import SpeakingMistakes from '../../components/speaking/SpeakingMistakes';
@@ -171,7 +172,7 @@ export default function SpeakingAi() {
     }
 
     return (
-        <div className={`min-h-screen transition-colors duration-500 flex flex-col selection:bg-warm-primary/20 ${isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'
+        <div className={`min-h-screen transition-colors duration-500 flex flex-col selection:bg-warm-primary/20 pb-16 md:pb-0 ${isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'
             } font-sans`}>
             <DashboardHeader
                 user={user}
@@ -278,6 +279,7 @@ export default function SpeakingAi() {
                 setShowLogoutConfirm={setShowLogoutConfirm}
                 confirmLogout={logout}
             />
+            <BottomNav activeTab="speaking" />
         </div>
     );
 }

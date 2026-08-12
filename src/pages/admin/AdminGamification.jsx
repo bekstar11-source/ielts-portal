@@ -37,17 +37,17 @@ export default function AdminGamification() {
     const seasonTitle = `Weekly Season #${currentWeek} (${currentYear})`;
 
     return (
-        <div className={`min-h-screen p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`min-h-full p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
             {/* HEADER */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-2xl font-black tracking-tight flex items-center gap-3">
-                        <Trophy className="text-yellow-500" size={28} /> Gamification Control
+            <div className="flex justify-between items-start gap-3 mb-6 md:mb-8">
+                <div className="min-w-0">
+                    <h1 className="text-lg md:text-2xl font-black tracking-tight flex items-center gap-2 md:gap-3">
+                        <Trophy className="text-yellow-500 shrink-0" size={24} /> Gamification Control
                     </h1>
-                    <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Manage leaderboard, user rewards and global ranking</p>
+                    <p className={`text-xs md:text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Manage leaderboard, user rewards and global ranking</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                     <button
                         onClick={refresh}
                         className={`p-2.5 rounded-xl transition-all border shadow-sm ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:bg-white/10 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-600'}`}
@@ -57,7 +57,7 @@ export default function AdminGamification() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                 {/* SEASON MANAGEMENT */}
                 <SeasonHeader 
                     title={seasonTitle} 

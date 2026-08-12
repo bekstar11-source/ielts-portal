@@ -6,12 +6,12 @@ export const UserDetailModal = ({ user, onClose, onBlock, onUpdateType, isDark }
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-            <div className={`relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
-                <div className="p-6 border-b flex justify-between items-center border-gray-100 dark:border-white/5">
+            <div className={`relative w-full max-w-lg max-h-[90dvh] rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
+                <div className="p-4 sm:p-6 border-b flex justify-between items-center border-gray-100 dark:border-white/5">
                     <h2 className="text-xl font-bold">O'quvchi Profili</h2>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full"><X size={20} /></button>
                 </div>
-                <div className="p-8 space-y-6">
+                <div className="p-5 sm:p-8 space-y-6">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
                             {user.fullName?.charAt(0).toUpperCase()}
@@ -38,12 +38,12 @@ export const GroupSelectionModal = ({ user, groups, onClose, onAdd, processing, 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-            <div className={`relative w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
-                <div className="p-6 border-b flex justify-between items-center border-gray-100 dark:border-white/5">
+            <div className={`relative w-full max-w-md max-h-[90dvh] rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
+                <div className="p-4 sm:p-6 border-b flex justify-between items-center border-gray-100 dark:border-white/5">
                     <h2 className="text-xl font-bold">Guruhga Qo'shish</h2>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full"><X size={20} /></button>
                 </div>
-                <div className="p-6 space-y-3">
+                <div className="p-4 sm:p-6 space-y-3">
                     {groups.map(group => (
                         <button 
                             key={group.id}

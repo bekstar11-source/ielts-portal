@@ -14,7 +14,7 @@ export default function ConfirmDialog({ show, title, message, confirmLabel = "Da
 
     return (
         <div className="fixed inset-0 z-[205] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className={`w-full max-w-sm rounded-2xl shadow-2xl border p-6 ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+            <div className={`w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl shadow-2xl border p-4 sm:p-6 ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
                 <h3 className="text-sm font-black tracking-tight mb-1.5">{title}</h3>
                 <p className="text-xs opacity-60 leading-relaxed mb-5">{message}</p>
                 <div className="flex gap-3">

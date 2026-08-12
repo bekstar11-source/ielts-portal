@@ -652,8 +652,8 @@ export default function AdminTests() {
                 />
  
                 {/* Vaqtincha audio qidirish UI */}
-                <div className={`mx-6 mt-4 p-4 rounded-xl border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-white border-zinc-200'} shrink-0`}>
-                    <div className="flex gap-2 items-center">
+                <div className={`mx-3 sm:mx-6 mt-4 p-3 sm:p-4 rounded-xl border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-white border-zinc-200'} shrink-0`}>
+                    <div className="flex gap-2 items-center flex-wrap">
                         <input 
                             type="text" 
                             placeholder="Audio URL yoki fayl nomini qidiring (masalan: 170564...)" 
@@ -686,9 +686,9 @@ export default function AdminTests() {
                             <Loader2 className="animate-spin text-blue-500" size={32} />
                         </div>
                     ) : (
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar relative">
+                        <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar relative">
                             {isBackgroundRefreshing && (
-                                <div className="absolute top-2 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 backdrop-blur-md animate-pulse">
+                                <div className="absolute top-2 right-3 sm:right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 backdrop-blur-md animate-pulse">
                                     <Loader2 className="animate-spin" size={10} />
                                     Fonda yangilanmoqda...
                                 </div>

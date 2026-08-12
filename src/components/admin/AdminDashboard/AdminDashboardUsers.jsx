@@ -8,7 +8,7 @@ const AdminDashboardUsers = ({
     itemsPerPage, onSelectUser, onShowGroupModal, isDark 
 }) => {
     return (
-        <div className={`rounded-[24px] p-6 border transition-colors ${isDark ? 'bg-[#272727] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+        <div className={`rounded-[24px] p-4 sm:p-6 border transition-colors ${isDark ? 'bg-[#272727] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <h3 className="text-gray-900 dark:text-white font-medium flex items-center gap-2">
                     O'quvchilar Boshqaruvi

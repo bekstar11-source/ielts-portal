@@ -40,6 +40,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getTier, canAccessPremiumContent } from '../../utils/subscription';
+import { useSpotlightNotice } from '../../hooks/useSpotlightNotice';
 
 export default function DashboardHeader({ 
   user, 
@@ -105,7 +106,14 @@ export default function DashboardHeader({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Bosh sahifadagi o'qilmagan e'lon — sidebar/Bell'dagi qizil nuqta.
+  const { hasNew: hasNewSpotlight, latest: latestSpotlight } = useSpotlightNotice(user);
+  const spotlightPath = latestSpotlight ? `/dashboard?spotlight=${latestSpotlight.id}` : '/dashboard';
+
   const coreItems = [
+    // Ilgari bosh sahifaga faqat logotip orqali qaytish mumkin edi — desktopda
+    // bu ko'rinmas yo'l edi, shuning uchun aniq punkt qo'shildi.
+    { id: 'dashboard', label: 'Bosh sahifa', path: '/dashboard', icon: Home },
     { id: 'mock', label: 'Mock Exam', path: '/mock', icon: Computer },
     { id: 'results', label: 'Results', path: '/my-results', icon: BarChart2 },
     // { id: 'leaderboard', label: 'Reyting', path: '/leaderboard', icon: TrendingUp },
@@ -348,8 +356,18 @@ export default function DashboardHeader({
         onClick={() => handleNavigation(item)}
         className={`w-full flex items-center rounded-lg text-sm transition-all duration-200 ${isCollapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-1.5'} ${buttonClasses}`}
       >
-        <Icon size={18} strokeWidth={2} className={`flex-shrink-0 ${iconClasses}`} />
+        <span className="relative flex-shrink-0">
+          <Icon size={18} strokeWidth={2} className={iconClasses} />
+          {item.id === 'dashboard' && hasNewSpotlight && isCollapsed && (
+            <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-warm-primary ring-2 ring-warm-canvas dark:ring-warm-dark-elevated" />
+          )}
+        </span>
         {!isCollapsed && label}
+        {item.id === 'dashboard' && hasNewSpotlight && !isCollapsed && (
+          <span className="ml-auto rounded-full bg-warm-primary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            Yangi
+          </span>
+        )}
       </button>
     );
   };
@@ -379,6 +397,11 @@ export default function DashboardHeader({
       >
         <Icon size={16} strokeWidth={2} className={iconClasses} />
         {getLabel(item.id, item.label)}
+        {item.id === 'dashboard' && hasNewSpotlight && (
+          <span className="ml-auto rounded-full bg-warm-primary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            Yangi
+          </span>
+        )}
       </button>
     );
   };
@@ -411,6 +434,11 @@ export default function DashboardHeader({
     }
     if (setActiveTab && item.id) {
       setActiveTab(item.id);
+    }
+    // Yangi e'lon bo'lsa — bosh sahifaga o'sha slaydga yo'naltirib kiramiz.
+    if (item.id === 'dashboard' && hasNewSpotlight) {
+      navigate(spotlightPath);
+      return;
     }
     if (item.path) {
       navigate(item.path);
@@ -511,6 +539,18 @@ export default function DashboardHeader({
               {isMac ? '⌘K' : 'Ctrl K'}
             </kbd>
           </div>
+
+          {/* E'lonlar qo'ng'irog'i — bosh sahifadagi spotlightga olib boradi */}
+          <button
+            onClick={() => navigate(spotlightPath)}
+            title={hasNewSpotlight ? `Yangi e'lon: ${latestSpotlight?.title}` : "Bosh sahifadagi e'lonlar"}
+            className="relative w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 text-warm-muted dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/10 hover:text-warm-ink dark:hover:text-warm-on-dark"
+          >
+            <Bell size={15} />
+            {hasNewSpotlight && (
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-warm-primary ring-2 ring-warm-canvas dark:ring-warm-dark animate-pulse" />
+            )}
+          </button>
 
           {/* Language Switcher */}
           <div className="flex items-center gap-1.5 text-xs font-semibold select-none">
@@ -731,6 +771,18 @@ export default function DashboardHeader({
         </div>
 
         <div className="flex items-center gap-sm">
+          {/* E'lonlar qo'ng'irog'i — Mobile */}
+          <button
+            onClick={() => navigate(spotlightPath)}
+            className="relative p-1 text-warm-muted dark:text-warm-on-dark-soft hover:text-warm-ink dark:hover:text-warm-on-dark"
+            aria-label="E'lonlar"
+          >
+            <Bell size={18} />
+            {hasNewSpotlight && (
+              <span className="absolute right-0 top-0.5 h-2 w-2 rounded-full bg-warm-primary ring-2 ring-warm-canvas dark:ring-warm-dark animate-pulse" />
+            )}
+          </button>
+
           {/* Language Switcher for Mobile */}
           <div className="flex items-center gap-xs text-[11px] font-semibold select-none">
             <button

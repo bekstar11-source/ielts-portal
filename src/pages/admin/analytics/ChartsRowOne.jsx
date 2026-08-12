@@ -6,10 +6,10 @@ export const ChartsRowOne = ({ activityData, skillRadar, isDark }) => {
     const [chartRange, setChartRange] = useState("week");
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
             {/* ACTIVITY CHART */}
             <AdvancedAnalyticsChart
-                className="col-span-2"
+                className="col-span-1 lg:col-span-2"
                 data={chartRange === 'week' ? activityData?.slice(-7) : activityData}
                 height={300}
                 title="Faollik Statistikasi"
@@ -34,9 +34,9 @@ export const ChartsRowOne = ({ activityData, skillRadar, isDark }) => {
             />
 
             {/* SKILL RADAR */}
-            <div className={`p-6 rounded-[24px] border shadow-sm transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
-                <h3 className="text-lg font-bold mb-2">Skill Balance</h3>
-                <div style={{ width: '100%', height: 300 }}>
+            <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+                <h3 className="text-base sm:text-lg font-bold mb-2">Skill Balance</h3>
+                <div className="w-full h-[240px] sm:h-[300px]">
                     <ResponsiveContainer>
                         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skillRadar}>
                             <PolarGrid stroke={isDark ? "#ffffff20" : "#e5e7eb"} />
