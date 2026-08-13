@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, CheckCircle2, XCircle, AlertCircle, Lock, Zap, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, isChoiceQuestionType } from '../../utils/ieltsScoring';
+import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, isChoiceQuestionType, resolveOptionDisplay } from '../../utils/ieltsScoring';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function PremiumLockedReview({
@@ -20,9 +20,12 @@ export default function PremiumLockedReview({
         const list = [];
         const scoredIds = new Set();
 
-        const walk = (obj, parentType) => {
+        const walk = (obj, parentType, parentOptions = null) => {
             if (!obj) return;
             const currentType = obj.type || parentType;
+            // "Choose from the list" guruhlarida kalit harf, javob esa so'z bo'lishi mumkin.
+            const groupOptions = (Array.isArray(obj.options) && obj.options.length > 0) ? obj.options : parentOptions;
+            const hasGroupOptions = Array.isArray(groupOptions) && groupOptions.length > 0;
 
             const answer = obj.answer || obj.correct_answer || obj.correctAnswer || obj.correct_answer_value;
             if (obj.id && answer) {
@@ -50,14 +53,18 @@ export default function PremiumLockedReview({
                             partialText = `${scoreRes.matches}/${scoreRes.weight}`;
                         }
                     } else {
-                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType));
+                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType) || hasGroupOptions, groupOptions);
                     }
 
                     list.push({
                         id: obj.id,
                         qNumber: parseInt(obj.id) || obj.id,
-                        correctAnswer: answer,
-                        userAnswer: uAns,
+                        correctAnswer: (hasGroupOptions && !isChoiceQuestionType(currentType))
+                            ? (resolveOptionDisplay(answer, groupOptions) || answer)
+                            : answer,
+                        userAnswer: (hasGroupOptions && !isChoiceQuestionType(currentType))
+                            ? (resolveOptionDisplay(uAns, groupOptions) || uAns)
+                            : uAns,
                         type: currentType || 'input',
                         questionText: obj.questionText || obj.question || obj.title || obj.label || '',
                         passageId: obj.passageId || '',
@@ -72,9 +79,9 @@ export default function PremiumLockedReview({
             for (const key of CONTAINER_KEYS) {
                 const val = obj[key];
                 if (val && Array.isArray(val)) {
-                    val.forEach(child => walk(child, currentType));
+                    val.forEach(child => walk(child, currentType, groupOptions));
                 } else if (val && typeof val === 'object') {
-                    walk(val, currentType);
+                    walk(val, currentType, groupOptions);
                 }
             }
         };

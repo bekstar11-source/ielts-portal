@@ -2,19 +2,24 @@ import React from "react";
 import HighlightableText from '../HighlightableText';
 import { injectKeywordsToHTML } from '../../../utils/highlightUtils';
 import { 
-    checkAnswer, 
-    QuestionExplanation, 
+    checkAnswer,
+    QuestionExplanation,
     ReadingTextInput,
     getOptionValue,
     isChoiceContext
 } from './CommonComponents';
+import { resolveOptionDisplay, findOptionIndex } from '../../../utils/ieltsScoring';
 
 export const GapFillQuestion = ({ 
     group, q, val, onAnswerChange, isReviewMode, highlights, handlePartSelect, onRemoveHighlight, keywordTable, activePassage, handleLocationClick, isSummary, isFlowChart, isLast, onOpenNotes, isPremium
 }) => {
     const itemOptions = (Array.isArray(q.options) && q.options.length > 0) ? q.options : (Array.isArray(group.options) ? group.options : []);
     const parts = (q.text || "").split(/(\[INPUT\]|\[DROP\])/g);
-    const isCorrect = checkAnswer(val, q.answer, isChoiceContext(group.type, itemOptions));
+    const isCorrect = checkAnswer(val, q.answer, isChoiceContext(group.type, itemOptions), itemOptions);
+    // "Choose from the list" turida kalit "B" harfi bo'lishi ham, "adaptation" so'zi bo'lishi
+    // ham mumkin — talaba esa ro'yxatdan SO'Z tanlaydi, shuning uchun to'g'ri javobni ham
+    // har doim so'z ko'rinishida ko'rsatamiz.
+    const correctDisplay = resolveOptionDisplay(q.answer, itemOptions) || q.answer;
 
     const renderParts = () => {
         return parts.map((part, i) => {
@@ -45,6 +50,12 @@ export const GapFillQuestion = ({
             }
             if (isSelectDropdown) {
                 let inputBorderClass = isReviewMode ? (isCorrect ? "border-green-500 bg-green-50 text-green-700" : "border-red-500 bg-red-50 text-red-700") : "border-gray-300 focus:border-ielts-blue";
+                // Saqlangan javob variant matni ("adaptation") bo'lsa ham, harfi ("B") bo'lsa ham
+                // <select> to'g'ri variantni ko'rsatishi kerak — aks holda review'da bo'sh chiqardi.
+                const selectedIdx = findOptionIndex(val, itemOptions);
+                const selectValue = selectedIdx !== -1
+                    ? getOptionValue(typeof itemOptions[selectedIdx] === 'object' ? itemOptions[selectedIdx].text : itemOptions[selectedIdx])
+                    : val;
                 return (
                     <span key={i} className="inline-flex items-center align-middle mx-1 whitespace-nowrap relative">
                         <span 
@@ -55,7 +66,7 @@ export const GapFillQuestion = ({
                         </span>
                         <select
                             className={`h-[26px] border rounded px-1 pr-5 font-semibold text-sm focus:outline-none focus:ring-1 transition-all cursor-pointer w-[92px] py-0 leading-none bg-white ${inputBorderClass}`}
-                            value={val}
+                            value={selectValue}
                             onChange={(e) => onAnswerChange(q.id, e.target.value)}
                             disabled={isReviewMode}
                         >
@@ -67,7 +78,7 @@ export const GapFillQuestion = ({
                             })}
                         </select>
                         {isReviewMode && !isCorrect && (
-                            <span className="ml-2 text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded border border-green-200">✓ {q.answer}</span>
+                            <span className="ml-2 text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded border border-green-200">✓ {correctDisplay}</span>
                         )}
                     </span>
                 );

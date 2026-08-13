@@ -60,8 +60,8 @@ export const getOptionValue = (text) => {
     return match ? match[1].trim() : text;
 };
 
-export const checkAnswer = (userVal, correctVal, isChoiceType = false) => {
-    return centralCheckAnswer(correctVal, userVal, isChoiceType);
+export const checkAnswer = (userVal, correctVal, isChoiceType = false, choiceOptions = null) => {
+    return centralCheckAnswer(correctVal, userVal, isChoiceType, choiceOptions);
 };
 
 // Review UI ball hisoblagich (`evaluateTest`) bilan AYNAN bir xil qoidaga tayanishi shart:

@@ -204,13 +204,84 @@ const splitAlternatives = (raw) => {
     return s.split(/[/|]/).map(x => x.trim()).filter(Boolean);
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// VARIANTLAR RO'YXATI ("Choose from the list" — summary/note completion, matching)
+// Bunday guruhlarda javob kaliti ba'zan variant HARFI ("B"), ba'zan variant SO'ZI
+// ("adaptation") ko'rinishida saqlanadi, talaba esa ro'yxatdan SO'Z tanlaydi.
+// Quyidagi yordamchilar ikkala ko'rinishni bitta variant indeksiga keltiradi —
+// shusiz harfli kalit hech qachon so'zli javobga mos kelmasdi.
+// ─────────────────────────────────────────────────────────────────────────────
+const getOptionRawText = (opt) => {
+    if (opt === undefined || opt === null) return '';
+    if (typeof opt === 'object') return String(opt.text ?? opt.content ?? opt.label ?? '').trim();
+    return String(opt).trim();
+};
+
+// Variant harfi: matndagi "B." prefiksi, bo'lmasa `label`, u ham bo'lmasa tartib bo'yicha (A, B, C...)
+const getOptionLabel = (opt, idx = 0) => {
+    if (opt && typeof opt === 'object' && opt.label !== undefined && opt.label !== null) {
+        const lbl = String(opt.label).trim().replace(/[.)]$/, '');
+        if (/^[A-Za-z]$/.test(lbl)) return lbl.toUpperCase();
+    }
+    const match = getOptionRawText(opt).match(/^([A-Za-z])[.)]/);
+    if (match) return match[1].toUpperCase();
+    return String.fromCharCode(65 + idx);
+};
+
+// Variant matni harf prefiksisiz: "B. adaptation" → "adaptation"
+const getOptionText = (opt) => {
+    const raw = getOptionRawText(opt);
+    const stripped = raw.replace(/^[A-Za-z][.)]\s*/, '').trim();
+    return stripped || raw;
+};
+
+// Qiymat (harf yoki so'z) ro'yxatdagi qaysi variantga tegishli? Topilmasa -1.
+const findOptionIndex = (value, choiceOptions) => {
+    if (!Array.isArray(choiceOptions) || choiceOptions.length === 0) return -1;
+    const raw = String(value === undefined || value === null ? '' : value).trim();
+    if (!raw) return -1;
+
+    const bare = raw.replace(/[.)]$/, '');
+    if (/^[A-Za-z]$/.test(bare)) {
+        const byLabel = choiceOptions.findIndex((o, i) => getOptionLabel(o, i) === bare.toUpperCase());
+        if (byLabel !== -1) return byLabel;
+    }
+
+    const valueForms = new Set([normalizeString(raw), normalizeString(getOptionText(raw))].filter(Boolean));
+    if (valueForms.size === 0) return -1;
+    return choiceOptions.findIndex(o =>
+        [normalizeString(getOptionRawText(o)), normalizeString(getOptionText(o))]
+            .some(f => f && valueForms.has(f))
+    );
+};
+
+// Ko'rsatish uchun: harfni ro'yxatdagi so'zga aylantiradi ("B" → "adaptation").
+const resolveOptionDisplay = (value, choiceOptions) => {
+    const raw = String(value === undefined || value === null ? '' : value).trim();
+    if (!raw || !Array.isArray(choiceOptions) || choiceOptions.length === 0) return raw;
+
+    if (/[/|,]/.test(raw)) {
+        return raw.split(/[/|,]/).map(v => resolveOptionDisplay(v.trim(), choiceOptions)).filter(Boolean).join(' / ');
+    }
+    const idx = findOptionIndex(raw, choiceOptions);
+    return idx === -1 ? raw : getOptionText(choiceOptions[idx]);
+};
+
 // JAVOBNI TEKSHIRISH FUNKSIYASI
-const checkAnswer = (correct, user, isChoiceType = false) => {
+const checkAnswer = (correct, user, isChoiceType = false, choiceOptions = null) => {
     if (correct === undefined || correct === null) return false;
 
     // Massiv ko'rinishidagi kalit: har bir variant alohida tekshiriladi
     if (Array.isArray(correct)) {
-        return correct.some(c => checkAnswer(c, user, isChoiceType));
+        return correct.some(c => checkAnswer(c, user, isChoiceType, choiceOptions));
+    }
+
+    // Variantlar ro'yxati bor guruhlarda kalit ham, talaba javobi ham ayni variantga
+    // ishora qilishi mumkin, lekin turli ko'rinishda ("B" ↔ "adaptation").
+    if (Array.isArray(choiceOptions) && choiceOptions.length > 0) {
+        const correctIdx = findOptionIndex(correct, choiceOptions);
+        const userIdx = findOptionIndex(user, choiceOptions);
+        if (correctIdx !== -1 && userIdx !== -1) return correctIdx === userIdx;
     }
 
     const correctStr = String(correct).trim();
@@ -358,7 +429,7 @@ const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
         targetPassageId = testData.passages[partNumber - 1].id;
     }
 
-    const walk = (obj, parentType, parentHasOptions) => {
+    const walk = (obj, parentType, parentHasOptions, parentOptions) => {
         if (!obj || typeof obj !== 'object') return;
 
         // Skip questions and passages not belonging to the targeted part in part practice
@@ -370,7 +441,9 @@ const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
         const currentType = String(obj.type || parentType || "").toLowerCase();
         // `options` bo'lgan guruh — variant-tanlash guruhi (map_labeling, options'li flow_chart).
         // Review UI ham aynan shu qoidaga tayanadi, shuning uchun ikkalasi bir xil natija beradi.
-        const hasOptions = parentHasOptions || (Array.isArray(obj.options) && obj.options.length > 0);
+        const ownOptions = (Array.isArray(obj.options) && obj.options.length > 0) ? obj.options : null;
+        const groupOptions = ownOptions || parentOptions || null;
+        const hasOptions = parentHasOptions || !!ownOptions;
         const isChoice = isChoiceQuestionType(currentType) || hasOptions;
 
         if (isMultiAnswerType(obj.type) && !obj.id) {
@@ -427,7 +500,7 @@ const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
                     }
                 } else {
                     totalQ++;
-                    const isRight = checkAnswer(itemAns, userResp, isChoice);
+                    const isRight = checkAnswer(itemAns, userResp, isChoice, groupOptions);
                     addTypeStat(currentType, 1, isRight ? 1 : 0);
                     if (isRight) correctCount++;
                     else if (String(userResp).trim()) mistakes.push({ questionId: idStr, userResponse: userResp, correctAnswer: itemAns, questionType: canonicalQuestionType(currentType) });
@@ -445,12 +518,12 @@ const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
 
         ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'].forEach(key => {
             const val = obj[key];
-            if (val && Array.isArray(val)) val.forEach(child => walk(child, currentType, hasOptions));
-            else if (val && typeof val === 'object') walk(val, currentType, hasOptions);
+            if (val && Array.isArray(val)) val.forEach(child => walk(child, currentType, hasOptions, groupOptions));
+            else if (val && typeof val === 'object') walk(val, currentType, hasOptions, groupOptions);
         });
     };
 
-    walk(testData, null, false);
+    walk(testData, null, false, null);
 
     const band = calculateBandScore(correctCount, testData.type || 'reading', totalQ);
 

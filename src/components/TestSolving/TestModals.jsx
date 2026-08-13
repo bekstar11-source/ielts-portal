@@ -146,9 +146,12 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, totalQuest
             let totalQ = 0;
             const scoredIds = new Set();
 
-            const walk = (obj, parentType) => {
+            const walk = (obj, parentType, parentOptions = null) => {
                 if (!obj) return;
                 const currentType = obj.type || parentType;
+                // Variantlar ro'yxati bo'lgan guruhlarda ("choose from the list") kalit harf,
+                // talaba javobi esa so'z bo'lishi mumkin — `evaluateTest` bilan bir xil qoida.
+                const groupOptions = (Array.isArray(obj.options) && obj.options.length > 0) ? obj.options : parentOptions;
 
                 if (isMultiAnswerType(obj.type) && !obj.id) {
                     const groupItems = [];
@@ -206,7 +209,8 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, totalQuest
                         scoredIds.add(idStr);
                     } else {
                         const userResp = userAnswers[idStr] || userAnswers[id] || "";
-                        const isCorrect = checkAnswer(answer, userResp, isChoiceQuestionType(currentType));
+                        const hasGroupOptions = Array.isArray(groupOptions) && groupOptions.length > 0;
+                        const isCorrect = checkAnswer(answer, userResp, isChoiceQuestionType(currentType) || hasGroupOptions, groupOptions);
                         if (isCorrect) correctCount++;
                         totalQ++;
                         scoredIds.add(idStr);
@@ -217,9 +221,9 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, totalQuest
                 for (const key of CONTAINER_KEYS) {
                     const val = obj[key];
                     if (val && Array.isArray(val)) {
-                        val.forEach(child => walk(child, currentType));
+                        val.forEach(child => walk(child, currentType, groupOptions));
                     } else if (val && typeof val === 'object') {
-                        walk(val, currentType);
+                        walk(val, currentType, groupOptions);
                     }
                 }
             };

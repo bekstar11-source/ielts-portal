@@ -49,7 +49,7 @@ export const TableQuestion = ({
                                                 }
                                                 if (part.type === 'input') {
                                                     const val = userAnswers[part.id] || "";
-                                                    const isCorrect = checkAnswer(val, part.answer, isChoiceContext(group.type, group.options));
+                                                    const isCorrect = checkAnswer(val, part.answer, isChoiceContext(group.type, group.options), group.options);
                                                     return (
                                                         <div key={pIdx} className="inline-flex items-center">
                                                             {isReviewMode && (

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Search, CheckCircle2, XCircle, ArrowRight, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, evaluateTest, calculateBandScore, isChoiceQuestionType, getAnswerKey, getMultiSelectCount, getQuestionWeight } from '../../utils/ieltsScoring';
+import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, evaluateTest, calculateBandScore, isChoiceQuestionType, getAnswerKey, getMultiSelectCount, getQuestionWeight, resolveOptionDisplay } from '../../utils/ieltsScoring';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function DetailedAnswersModal({
@@ -97,13 +97,21 @@ export default function DetailedAnswersModal({
                             partialText = `${scoreRes.matches}/${scoreRes.weight}`;
                         }
                     } else {
-                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType) || hasOptions);
+                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType) || hasOptions, hasOptions ? options : null);
                     }
 
                     // Resolve answer and user answer from letter to full text if matching
                     let displayCorrectAnswer = answer;
                     let displayUserAnswer = uAns;
                     const isMatchingType = currentType && String(currentType).toLowerCase().includes('matching') && !String(currentType).toLowerCase().includes('headings');
+
+                    // "Choose from the list" (summary/note/flow completion) turlarida talaba
+                    // ro'yxatdan SO'Z tanlaydi, kalit esa "B" harfi bo'lishi mumkin — ikkalasini
+                    // ham so'z ko'rinishida ko'rsatamiz, aks holda javob ABCD harfi bo'lib chiqardi.
+                    if (hasOptions && !isChoiceQuestionType(currentType)) {
+                        displayCorrectAnswer = resolveOptionDisplay(answer, options) || answer;
+                        displayUserAnswer = resolveOptionDisplay(uAns, options) || uAns;
+                    }
 
                     if (isMatchingType && options && options.length > 0) {
                         const resolveText = (val) => {
