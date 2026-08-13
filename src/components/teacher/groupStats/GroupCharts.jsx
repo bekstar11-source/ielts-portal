@@ -196,20 +196,22 @@ export function BandDistribution({ buckets }) {
     );
 }
 
+// Fayl darajasida: Leaderboards ichida e'lon qilinganda har renderda yangi tur bo'lib,
+// butun ro'yxat bekorga qayta mount bo'lardi.
+const Row = ({ index, name, value, tone }) => (
+    <div className="flex items-center gap-3 py-2">
+        <span className="w-4 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
+            {index + 1}
+        </span>
+        <span className="flex-1 text-xs text-gray-800 dark:text-gray-100 truncate">{name}</span>
+        <span className={`text-xs font-semibold tabular-nums ${tone}`}>{value}</span>
+    </div>
+);
+
 /** Top-3 va eng ko'p o'sgan o'quvchilar. */
 export function Leaderboards({ top, improved }) {
     const { t } = useTranslation();
     if (!top.length && !improved.length) return null;
-
-    const Row = ({ index, name, value, tone }) => (
-        <div className="flex items-center gap-3 py-2">
-            <span className="w-4 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
-                {index + 1}
-            </span>
-            <span className="flex-1 text-xs text-gray-800 dark:text-gray-100 truncate">{name}</span>
-            <span className={`text-xs font-semibold tabular-nums ${tone}`}>{value}</span>
-        </div>
-    );
 
     return (
         <Card className="p-5">

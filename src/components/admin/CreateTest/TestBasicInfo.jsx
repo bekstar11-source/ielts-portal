@@ -214,4 +214,4 @@ const TestBasicInfo = ({
     );
 };
 
-export default TestBasicInfo;
+export default React.memo(TestBasicInfo);

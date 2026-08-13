@@ -4,6 +4,33 @@ import {
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 
+// Fayl darajasida: komponent ichida e'lon qilinganda har renderda yangi tur bo'lib,
+// tooltip sichqoncha harakatida qayta mount bo'lardi (pirpirash).
+const CustomTooltip = ({ active, payload, label, isDark, config = [] }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className={`p-3 rounded-lg shadow-xl text-xs border ${isDark ? 'bg-[#2C2C2C] border-white/10' : 'bg-white border-gray-200'}`}>
+                <p className={`${isDark ? 'text-white/50' : 'text-gray-500'} mb-2 font-medium`}>{label}</p>
+
+                {payload.map((entry, index) => {
+                    const s = config.find(c => c.key === entry.dataKey);
+                    return (
+                        <div key={index} className="flex items-center gap-2 mb-1">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                            <span className={isDark ? "text-white/70" : "text-gray-600"}>{s?.label}:</span>
+                            <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+
+                                {s?.type === 'decimal' ? entry.value.toFixed(1) : entry.value.toLocaleString()}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+    return null;
+};
+
 export default function AdvancedAnalyticsChart({ data = [], height = 350, seriesConfig, title, headerActions, className = "" }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -52,31 +79,6 @@ export default function AdvancedAnalyticsChart({ data = [], height = 350, series
         return num;
     };
 
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className={`p-3 rounded-lg shadow-xl text-xs border ${isDark ? 'bg-[#2C2C2C] border-white/10' : 'bg-white border-gray-200'}`}>
-                    <p className={`${isDark ? 'text-white/50' : 'text-gray-500'} mb-2 font-medium`}>{label}</p>
-
-                    {payload.map((entry, index) => {
-                        const s = config.find(c => c.key === entry.dataKey);
-                        return (
-                            <div key={index} className="flex items-center gap-2 mb-1">
-                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                                <span className={isDark ? "text-white/70" : "text-gray-600"}>{s?.label}:</span>
-                                <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-
-                                    {s?.type === 'decimal' ? entry.value.toFixed(1) : entry.value.toLocaleString()}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-            );
-        }
-        return null;
-    };
-
     return (
         <div className={`border rounded-[24px] p-6 flex flex-col gap-6 min-h-[400px] transition-all duration-300 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'} ${className}`}>
             {(title || headerActions) && (
@@ -123,7 +125,7 @@ export default function AdvancedAnalyticsChart({ data = [], height = 350, series
                                     tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 11 }}
                                     tickFormatter={(val) => formatNumber(val, 'count')}
                                 />
-                                <Tooltip content={<CustomTooltip />} cursor={{ stroke: isDark ? '#ffffff20' : '#e5e7eb', strokeWidth: 1 }} />
+                                <Tooltip content={<CustomTooltip isDark={isDark} config={config} />} cursor={{ stroke: isDark ? '#ffffff20' : '#e5e7eb', strokeWidth: 1 }} />
 
                                 {config.map(s => visibleSeries[s.key] && (
                                     <Line 

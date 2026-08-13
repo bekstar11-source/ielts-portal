@@ -6,7 +6,7 @@ import { buildAnswerKey } from "./TestDoctor";
  * Javoblar kaliti — 40 ta javobni bitta ekranda ko'rish uchun.
  * Yetishmayotgan javob qizil, takrorlangan ID amber rangda.
  */
-export default function AnswerKeyPanel({ testData, isDark, onJump, onOpenImport }) {
+function AnswerKeyPanel({ testData, isDark, onJump, onOpenImport }) {
     const [isOpen, setIsOpen] = useState(false);
     const rows = useMemo(() => buildAnswerKey(testData), [testData]);
 
@@ -114,3 +114,5 @@ export default function AnswerKeyPanel({ testData, isDark, onJump, onOpenImport 
         </div>
     );
 }
+
+export default React.memo(AnswerKeyPanel);

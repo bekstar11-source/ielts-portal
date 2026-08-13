@@ -330,7 +330,7 @@ export function runValidation(testData) {
 
 // `result` berilsa qayta hisoblamaydi — sahifa validatsiyani memo qilib uzatadi,
 // aks holda komponent har renderda 40 ta savolni qaytadan tekshirib chiqardi.
-export default function TestValidator({ testData, isDark, result, onJump, onAutoFix }) {
+function TestValidator({ testData, isDark, result, onJump, onAutoFix }) {
     const [isOpen, setIsOpen] = useState(true);
     const { errors, warnings } = result || runValidation(testData);
 
@@ -521,3 +521,5 @@ export default function TestValidator({ testData, isDark, result, onJump, onAuto
         </div>
     );
 }
+
+export default React.memo(TestValidator);

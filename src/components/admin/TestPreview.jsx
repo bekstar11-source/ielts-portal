@@ -256,7 +256,7 @@ function ListeningPreview({ testData }) {
 }
 
 // ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
-export default function TestPreview({ testData, testType }) {
+function TestPreview({ testData, testType }) {
     if (!testData) return null;
 
     const actualType = testType || testData?.type;
@@ -281,3 +281,5 @@ export default function TestPreview({ testData, testType }) {
         </div>
     );
 }
+
+export default React.memo(TestPreview);

@@ -435,4 +435,4 @@ const MediaManager = ({
     );
 };
 
-export default MediaManager;
+export default React.memo(MediaManager);

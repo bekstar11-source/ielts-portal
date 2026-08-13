@@ -234,7 +234,10 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
         );
     };
 
-    const FlowChartBody = () => (
+    // Komponent emas, tayyor element: ilgari `<FlowChartBody />` deb chizilganda har renderda
+    // yangi komponent turi yaratilib, butun sxema unmount/mount bo'lardi — javob tanlanganda
+    // pirpirash va inputdagi focus yo'qolishiga olib kelardi.
+    const flowChartBody = (
         <div className="flex flex-col gap-2 w-full">
             {allSubGroups.map((sub, sIdx) => {
                 const subItems = (sub.items || sub.questions || []).filter(it => !isArrow((typeof it.text === 'object' ? it.text.text : it.text) || ""));
@@ -253,7 +256,7 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
         return (
             <DndContext id={`dnd-fc-${group.id || 'fc'}`} sensors={sensors} onDragStart={handleDragStart} onDragEnd={isReviewMode ? undefined : handleDragEnd} autoScroll={false}>
                 <div className="mb-10 flex flex-col lg:flex-row justify-center items-start gap-8 lg:gap-14 w-full max-w-6xl mx-auto">
-                    <div className="flex-1 w-full max-w-2xl"><FlowChartBody /></div>
+                    <div className="flex-1 w-full max-w-2xl">{flowChartBody}</div>
                     <div className="w-full lg:w-[280px] shrink-0 lg:sticky lg:top-4">
                         <FlowPoolDroppable isDragging={!!activeId}>
                             {options.map((opt, idx) => {
@@ -269,5 +272,5 @@ export const FlowChart = ({ group, userAnswers, onAnswerChange, isReviewMode, ha
         );
     }
 
-    return <div className="mb-6 flex flex-col items-center w-full"><div className="flex flex-col gap-2 w-full max-w-2xl"><FlowChartBody /></div></div>;
+    return <div className="mb-6 flex flex-col items-center w-full"><div className="flex flex-col gap-2 w-full max-w-2xl">{flowChartBody}</div></div>;
 };

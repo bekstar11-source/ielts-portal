@@ -97,4 +97,4 @@ const WritingSection = ({
     );
 };
 
-export default WritingSection;
+export default React.memo(WritingSection);

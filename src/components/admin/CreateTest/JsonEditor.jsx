@@ -248,4 +248,4 @@ const JsonEditor = ({
     );
 };
 
-export default JsonEditor;
+export default React.memo(JsonEditor);

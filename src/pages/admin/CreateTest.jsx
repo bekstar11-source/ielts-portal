@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { db } from "../../firebase/firebase";
@@ -44,6 +44,34 @@ const Icons = {
     Eye: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
     Cloud: (p) => <svg {...p} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-.41-8.98 4.5 4.5 0 018.4-2.32A5.25 5.25 0 0121 13.5a4.5 4.5 0 01-4.5 4.5H6.75z" /></svg>,
 };
+
+// Fayl darajasida — komponent CreateTest ichida e'lon qilinganda har renderda yangi
+// tur sifatida ko'rinib, butun switch qayta mount bo'lardi (ko'zga tashlanadigan pirpirash).
+const ViewModeSwitch = memo(function ViewModeSwitch({ isWide, effectiveMode, setViewMode, isDark }) {
+    const options = isWide
+        ? [{ key: 'editor', label: 'Tahrir', Icon: Icons.Editor }, { key: 'split', label: 'Ikkisi', Icon: Icons.Split }, { key: 'preview', label: "Ko'rinish", Icon: Icons.Eye }]
+        : [{ key: 'editor', label: 'Tahrir', Icon: Icons.Editor }, { key: 'preview', label: "Ko'rinish", Icon: Icons.Eye }];
+    return (
+        <div className={`flex items-center gap-0.5 p-1 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
+            {options.map((opt) => {
+                const active = effectiveMode === opt.key;
+                return (
+                    <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setViewMode(opt.key)}
+                        aria-pressed={active}
+                        title={opt.label}
+                        className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold transition ${active ? 'bg-blue-600 text-white shadow-sm' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900')}`}
+                    >
+                        <opt.Icon className="w-3.5 h-3.5" />
+                        <span className="hidden xl:inline">{opt.label}</span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+});
 
 export default function CreateTest() {
     const { theme } = useTheme();
@@ -349,12 +377,14 @@ export default function CreateTest() {
     };
 
     // JSON undo/redo helpers
-    const updateHistoryState = () => {
+    // Bu ikkalasi useCallback bo'lishi shart: quyidagi barcha handlerlar shularga tayanadi,
+    // ular esa memo'langan bolalarga prop bo'lib tushadi.
+    const updateHistoryState = useCallback(() => {
         setCanUndo(historyIdxRef.current > 0);
         setCanRedo(historyIdxRef.current < jsonHistoryRef.current.length - 1);
-    };
+    }, []);
 
-    const applyJsonValue = (newValue) => {
+    const applyJsonValue = useCallback((newValue) => {
         historyInitRef.current = true;
         const trimmed = jsonHistoryRef.current.slice(0, historyIdxRef.current + 1);
         trimmed.push(newValue);
@@ -364,9 +394,9 @@ export default function CreateTest() {
         setJsonInput(newValue);
         updateTestDataFromJSON(newValue);
         updateHistoryState();
-    };
+    }, [setJsonInput, updateTestDataFromJSON, updateHistoryState]);
 
-    const handleJsonChange = (e) => applyJsonValue(e.target.value);
+    const handleJsonChange = useCallback((e) => applyJsonValue(e.target.value), [applyJsonValue]);
 
     const handleJsonUndo = useCallback(() => {
         if (historyIdxRef.current > 0) {
@@ -376,7 +406,7 @@ export default function CreateTest() {
             updateTestDataFromJSON(prev);
             updateHistoryState();
         }
-    }, [setJsonInput, updateTestDataFromJSON]);
+    }, [setJsonInput, updateTestDataFromJSON, updateHistoryState]);
 
     const handleJsonRedo = useCallback(() => {
         if (historyIdxRef.current < jsonHistoryRef.current.length - 1) {
@@ -386,10 +416,10 @@ export default function CreateTest() {
             updateTestDataFromJSON(next);
             updateHistoryState();
         }
-    }, [setJsonInput, updateTestDataFromJSON]);
+    }, [setJsonInput, updateTestDataFromJSON, updateHistoryState]);
 
     // Prettify JSON (2-space indent)
-    const handleJsonFormat = () => {
+    const handleJsonFormat = useCallback(() => {
         try {
             const pretty = JSON.stringify(JSON.parse(jsonInput), null, 2);
             applyJsonValue(pretty);
@@ -397,7 +427,7 @@ export default function CreateTest() {
         } catch {
             toast.error("JSON xato — avval xatoni to'g'rilang");
         }
-    };
+    }, [jsonInput, applyJsonValue]);
 
     // JSON'ning ma'lum joyiga sakrash (validator / javoblar kalitidan chaqiriladi)
     const jumpToJsonPath = useCallback((path) => {
@@ -410,25 +440,25 @@ export default function CreateTest() {
     }, [jsonInput, showEditor, isWide]);
 
     // Avto-tuzatish natijasini qo'llash — tarixga tushadi, Ctrl+Z bilan qaytariladi
-    const handleApplyAutoFix = (result, changes) => {
+    const handleApplyAutoFix = useCallback((result, changes) => {
         applyJsonValue(JSON.stringify(result, null, 2));
         setShowAutoFix(false);
         const total = changes.reduce((sum, c) => sum + c.count, 0);
         toast.success(`${total} ta xato tuzatildi — yoqmasa Ctrl+Z`);
-    };
+    }, [applyJsonValue]);
 
-    const handleApplyAnswers = (result, count) => {
+    const handleApplyAnswers = useCallback((result, count) => {
         applyJsonValue(JSON.stringify(result, null, 2));
         setShowAnswerImport(false);
         toast.success(`${count} ta javob kiritildi`);
-    };
+    }, [applyJsonValue]);
 
     // Test turi almashganda tuzilma yaroqsiz bo'lib qolishi mumkin
-    const handleTypeChangeRequest = (nextType, apply) => {
+    const handleTypeChangeRequest = useCallback((nextType, apply) => {
         const hasContent = (testData.passages?.length || 0) > 0 || (testData.questions?.length || 0) > 0;
         if (!hasContent) { apply(); return; }
         setTypeChangeIntent({ nextType, apply });
-    };
+    }, [testData.passages, testData.questions]);
 
     // Template apply
     const handleApplyTemplate = (templateData) => {
@@ -572,7 +602,7 @@ export default function CreateTest() {
         await commitSave();
     };
 
-    const handlePartAudioUpload = async (e, index) => {
+    const handlePartAudioUpload = useCallback(async (e, index) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
@@ -587,9 +617,9 @@ export default function CreateTest() {
                 return { ...prev, passages: newPassages };
             });
         } catch (err) { toast.error(err.message); } finally { setUploading(false); setUploadingPart(null); e.target.value = ""; }
-    };
+    }, [uploadToFirebase, setPartAudios, setTestData, setUploading, setUploadingPart]);
 
-    const handleSingleAudioUpload = async (e) => {
+    const handleSingleAudioUpload = useCallback(async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
@@ -602,9 +632,9 @@ export default function CreateTest() {
                 return { ...prev, passages: newPassages, audio_url: url };
             });
         } catch (err) { toast.error(err.message); } finally { setUploading(false); setUploadingPart(null); e.target.value = ""; }
-    };
+    }, [uploadToFirebase, setSingleAudioUrl, setTestData, setUploading, setUploadingPart]);
 
-    const handleMapUpload = async (e) => {
+    const handleMapUpload = useCallback(async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
@@ -634,18 +664,18 @@ export default function CreateTest() {
                 toast.success("Rasm linki nusxalandi!");
             }
         } catch (err) { toast.error(err.message); } finally { setUploading(false); setUploadingPart(null); e.target.value = ""; }
-    };
+    }, [uploadToFirebase, setUploadedMaps, jsonInput, applyJsonValue, setUploading, setUploadingPart]);
 
-    const handleWritingUpdate = (field, value) => {
+    const handleWritingUpdate = useCallback((field, value) => {
         setTestData(prev => {
             // Eski hujjatlarda writingTasks bo'lmasligi mumkin
             const newTasks = [...(prev.writingTasks || [])];
             newTasks[activeWritingTask] = { ...(newTasks[activeWritingTask] || {}), [field]: value };
             return { ...prev, writingTasks: newTasks };
         });
-    };
+    }, [activeWritingTask, setTestData]);
 
-    const handleWritingImageUpload = async (e) => {
+    const handleWritingImageUpload = useCallback(async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
@@ -654,12 +684,12 @@ export default function CreateTest() {
             const url = await uploadToFirebase(file, "writing_images");
             handleWritingUpdate('image', url);
         } catch (err) { toast.error(err.message); } finally { setUploading(false); setUploadingPart(null); e.target.value = ""; }
-    };
+    }, [uploadToFirebase, handleWritingUpdate, setUploading, setUploadingPart]);
 
     // field — matn ("startTime") yoki bir nechta maydonli obyekt ({startTime, endTime}).
     // Obyekt shakli waveform uchun zarur: ketma-ket ikki chaqiruv bir xil eskirgan
     // jsonInput'ni o'qib, birinchi o'zgarishni yo'q qilib yuborardi.
-    const handlePassageTimeChange = (index, field, value) => {
+    const handlePassageTimeChange = useCallback((index, field, value) => {
         const patch = typeof field === 'object' && field !== null ? field : { [field]: value };
 
         // Iloji bo'lsa o'zgarishni JSON orqali qo'llaymiz — shunda undo/redo tarixi
@@ -692,7 +722,7 @@ export default function CreateTest() {
             newPassages[index] = { ...newPassages[index], ...patch };
             return { ...prev, passages: newPassages };
         });
-    };
+    }, [jsonInput, applyJsonValue, setTestData, audioMode, singleAudioUrl, partAudios]);
 
     const scrollToValidator = () => {
         if (!showEditor) setViewMode(isWide ? 'split' : 'editor');
@@ -732,6 +762,14 @@ export default function CreateTest() {
         );
     };
 
+    // Memo'langan bolalarga tushadigan barqaror callbacklar — inline strelka funksiyalari
+    // har renderda yangi bo'lib, memo'ni butunlay bekor qilardi.
+    const openAutoFix = useCallback(() => setShowAutoFix(true), []);
+    const openAnswerImport = useCallback(() => setShowAnswerImport(true), []);
+    const openTemplate = useCallback(() => setShowTemplateModal(true), []);
+    const handleAudioUrlChange = useCallback((url, i) => setPartAudios(p => ({ ...p, [i]: url })), [setPartAudios]);
+    const handleDeleteMap = useCallback((i) => setUploadedMaps(p => p.filter((_, idx) => idx !== i)), [setUploadedMaps]);
+
     // Ctrl+K buyruqlar ro'yxati
     const firstErrorWithPath = validationErrors.find(e => e.path);
     const paletteCommands = [
@@ -748,32 +786,6 @@ export default function CreateTest() {
         { id: 'diff', label: "O'zgarishlarni ko'rish (diff)", hidden: !isEditMode, disabled: !isDirty, run: () => setShowDiff(true) },
         { id: 'back', label: "Testlar ro'yxatiga qaytish", run: () => handleBack() },
     ];
-
-    const ViewModeSwitch = () => {
-        const options = isWide
-            ? [{ key: 'editor', label: 'Tahrir', Icon: Icons.Editor }, { key: 'split', label: 'Ikkisi', Icon: Icons.Split }, { key: 'preview', label: "Ko'rinish", Icon: Icons.Eye }]
-            : [{ key: 'editor', label: 'Tahrir', Icon: Icons.Editor }, { key: 'preview', label: "Ko'rinish", Icon: Icons.Eye }];
-        return (
-            <div className={`flex items-center gap-0.5 p-1 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                {options.map((opt) => {
-                    const active = effectiveMode === opt.key;
-                    return (
-                        <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => setViewMode(opt.key)}
-                            aria-pressed={active}
-                            title={opt.label}
-                            className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold transition ${active ? 'bg-blue-600 text-white shadow-sm' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900')}`}
-                        >
-                            <opt.Icon className="w-3.5 h-3.5" />
-                            <span className="hidden xl:inline">{opt.label}</span>
-                        </button>
-                    );
-                })}
-            </div>
-        );
-    };
 
     if (loading && !testData.title) return (
         <div className="flex h-full min-h-[60vh] items-center justify-center">
@@ -829,7 +841,12 @@ export default function CreateTest() {
 
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     <div className="hidden sm:block">{validatorBadge()}</div>
-                    <ViewModeSwitch />
+                    <ViewModeSwitch
+                        isWide={isWide}
+                        effectiveMode={effectiveMode}
+                        setViewMode={setViewMode}
+                        isDark={isDark}
+                    />
                     <button
                         onClick={handlePreSave}
                         disabled={loading || uploading}
@@ -903,7 +920,7 @@ export default function CreateTest() {
                                         isDark={isDark}
                                         result={validation}
                                         onJump={jumpToJsonPath}
-                                        onAutoFix={() => setShowAutoFix(true)}
+                                        onAutoFix={openAutoFix}
                                     />
                                 </div>
                             )}
@@ -932,11 +949,11 @@ export default function CreateTest() {
                                 handleSingleAudioUrlChange={setSingleAudioUrl}
                                 partAudios={partAudios}
                                 handlePartAudioUpload={handlePartAudioUpload}
-                                handleAudioUrlChange={(url, i) => setPartAudios(p => ({ ...p, [i]: url }))}
+                                handleAudioUrlChange={handleAudioUrlChange}
                                 listeningPartCount={listeningPartCount}
                                 uploadedMaps={uploadedMaps}
                                 handleMapUpload={handleMapUpload}
-                                handleDeleteMap={(i) => setUploadedMaps(p => p.filter((_, idx) => idx !== i))}
+                                handleDeleteMap={handleDeleteMap}
                                 uploading={uploading}
                                 uploadingPart={uploadingPart}
                                 uploadProgress={uploadProgress}
@@ -962,7 +979,7 @@ export default function CreateTest() {
                                     testData={testData}
                                     isDark={isDark}
                                     onJump={jumpToJsonPath}
-                                    onOpenImport={() => setShowAnswerImport(true)}
+                                    onOpenImport={openAnswerImport}
                                 />
                             )}
 
@@ -976,8 +993,8 @@ export default function CreateTest() {
                                 canUndo={canUndo}
                                 canRedo={canRedo}
                                 onFormat={handleJsonFormat}
-                                onOpenTemplate={!isEditMode ? () => setShowTemplateModal(true) : null}
-                                onAutoFix={() => setShowAutoFix(true)}
+                                onOpenTemplate={!isEditMode ? openTemplate : null}
+                                onAutoFix={openAutoFix}
                                 focusRequest={focusRequest}
                             />
                         </div>
@@ -1034,7 +1051,7 @@ export default function CreateTest() {
                 errors={pendingValidationErrors}
                 onConfirm={() => { setShowValidationModal(false); setShowChecklist(true); }}
                 onCancel={() => setShowValidationModal(false)}
-                onAutoFix={() => setShowAutoFix(true)}
+                onAutoFix={openAutoFix}
                 onJump={jumpToJsonPath}
                 isDark={isDark}
             />

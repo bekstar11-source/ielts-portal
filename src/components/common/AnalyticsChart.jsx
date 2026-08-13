@@ -5,24 +5,26 @@ import {
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 
+// Fayl darajasida: komponent ichida e'lon qilinganda har renderda yangi tur bo'lib,
+// tooltip sichqoncha harakatida qayta mount bo'lardi (pirpirash).
+const CustomTooltip = ({ active, payload, label, isDark, color }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className={`p-3 rounded-xl border shadow-lg ${isDark ? 'bg-[#2C2C2C] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+                <p className="text-xs font-medium opacity-50 mb-1">{label}</p>
+                <p className="text-sm font-bold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
+                    {payload[0].value}
+                </p>
+            </div>
+        );
+    }
+    return null;
+};
+
 export default function AnalyticsChart({ title, data, type = 'area', color = '#3B82F6', height = 300 }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className={`p-3 rounded-xl border shadow-lg ${isDark ? 'bg-[#2C2C2C] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-                    <p className="text-xs font-medium opacity-50 mb-1">{label}</p>
-                    <p className="text-sm font-bold flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
-                        {payload[0].value}
-                    </p>
-                </div>
-            );
-        }
-        return null;
-    };
 
     return (
         <div className={`p-6 rounded-[24px] border transition-colors ${isDark ? 'bg-[#272727] border-white/5' : 'bg-white border-gray-200'}`}>
@@ -58,7 +60,7 @@ export default function AnalyticsChart({ title, data, type = 'area', color = '#3
                                 tickLine={false}
                                 tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 12 }}
                             />
-                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: isDark ? '#ffffff20' : '#e5e7eb', strokeWidth: 1 }} />
+                            <Tooltip content={<CustomTooltip isDark={isDark} color={color} />} cursor={{ stroke: isDark ? '#ffffff20' : '#e5e7eb', strokeWidth: 1 }} />
                             <Area
                                 type="monotone"
                                 dataKey="value"
@@ -83,7 +85,7 @@ export default function AnalyticsChart({ title, data, type = 'area', color = '#3
                                 tickLine={false}
                                 tick={{ fill: isDark ? '#ffffff50' : '#9CA3AF', fontSize: 12 }}
                             />
-                            <Tooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#ffffff05' : '#f3f4f6' }} />
+                            <Tooltip content={<CustomTooltip isDark={isDark} color={color} />} cursor={{ fill: isDark ? '#ffffff05' : '#f3f4f6' }} />
                             <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={40} />
                         </BarChart>
                     )}
