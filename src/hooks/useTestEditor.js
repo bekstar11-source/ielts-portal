@@ -4,6 +4,7 @@ import { db, storage } from "../firebase/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
+import { invalidateAdminTestsCache } from "../utils/adminTestsCache";
 import { 
     detectSectionFromQuestions, 
     getQuestionTypesFromQuestions,
@@ -462,6 +463,8 @@ export const useTestEditor = (id) => {
 
                 toast.success("Test muvaffaqiyatli yaratildi!");
             }
+            // Drop the admin list cache so the saved test shows up immediately
+            invalidateAdminTestsCache();
             navigate("/admin/tests");
             return true;
         } catch (error) {

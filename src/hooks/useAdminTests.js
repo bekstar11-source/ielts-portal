@@ -1,6 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { db } from '../firebase/firebase';
 import { normalizeTestSegments } from '../utils/normalizeTestSegments';
+import {
+    ADMIN_TESTS_CACHE_KEY,
+    ADMIN_TESTS_CACHE_TIME_KEY,
+    ADMIN_TESTS_CACHE_TTL
+} from '../utils/adminTestsCache';
 import {
     collection,
     getDocs,
@@ -14,10 +19,6 @@ import {
     updateDoc,
     serverTimestamp
 } from 'firebase/firestore';
-
-const ADMIN_TESTS_CACHE_KEY = "admin_tests_data";
-const ADMIN_TESTS_CACHE_TIME_KEY = "admin_tests_data_time";
-const ADMIN_TESTS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 export const useAdminTests = (PAGE_SIZE = 12) => {
     const [allTestsCache, setAllTestsCache] = useState([]); // full client-side cache
@@ -115,97 +116,102 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         }
     };
 
-    // Warm the cache on mount — with SessionStorage to avoid redundant Firestore reads
-    useEffect(() => {
-        const warmCache = async () => {
-            try {
-                setLoading(true);
+    // Load the list from Firestore, or from the SessionStorage cache when it's
+    // still fresh. Pass force=true after a write (create/merge/import) so the
+    // caller sees the new test instead of the stale cached list.
+    const loadTests = useCallback(async ({ force = false } = {}) => {
+        try {
+            setLoading(true);
 
-                // Check SessionStorage cache first
-                const cachedTime = sessionStorage.getItem(ADMIN_TESTS_CACHE_TIME_KEY);
-                const isCacheValid = cachedTime && (Date.now() - parseInt(cachedTime) < ADMIN_TESTS_CACHE_TTL);
+            // Check SessionStorage cache first
+            const cachedTime = sessionStorage.getItem(ADMIN_TESTS_CACHE_TIME_KEY);
+            const isCacheValid = !force && cachedTime && (Date.now() - parseInt(cachedTime) < ADMIN_TESTS_CACHE_TTL);
 
-                if (isCacheValid) {
-                    const cached = sessionStorage.getItem(ADMIN_TESTS_CACHE_KEY);
-                    if (cached) {
-                        try {
-                            const parsed = JSON.parse(cached);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                                setAllTestsCache(parsed);
-                                setLoading(false);
-                                return;
-                            }
-                        } catch { /* corrupted cache, proceed to fetch */ }
-                    }
+            if (isCacheValid) {
+                const cached = sessionStorage.getItem(ADMIN_TESTS_CACHE_KEY);
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            setAllTestsCache(parsed);
+                            setLoading(false);
+                            return;
+                        }
+                    } catch { /* corrupted cache, proceed to fetch */ }
                 }
-
-                const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
-                // Strip combinedContent to save bandwidth on cache — it's loaded lazily for content search
-                const allDocs = snapAll.docs.map(d => {
-                    const data = d.data();
-                    const { combinedContent, ...rest } = data;
-                    return { id: d.id, ...rest };
-                });
-                
-                // Proactively clean up any orphaned isMergedSource flags in Firestore
-                const activeSourceIds = new Set();
-                const activeSourceTitles = new Set();
-                allDocs.forEach(t => {
-                    const titleLower = (t.title || "").toLowerCase().trim();
-                    const isMerged = t.isMerged || titleLower.startsWith("merged:");
-                    if (isMerged) {
-                        if (Array.isArray(t.mergedSourceIds)) {
-                            t.mergedSourceIds.forEach(id => activeSourceIds.add(id));
-                        }
-                        let content = t.title || "";
-                        if (titleLower.startsWith("merged:")) {
-                            content = content.slice(7).trim();
-                        }
-                        if (content) {
-                            const parts = content.split(" + ").map(p => p.trim()).filter(Boolean);
-                            parts.forEach(p => activeSourceTitles.add(p.toLowerCase()));
-                        }
-                    }
-                });
-
-                const orphans = allDocs.filter(t => {
-                    const isMergedTest = t.isMerged || (t.title?.toLowerCase().startsWith("merged:") && !t.isMergedSource);
-                    if (isMergedTest) return false;
-                    const isSrcId = activeSourceIds.has(t.id);
-                    const isSrcTitle = t.title && activeSourceTitles.has(t.title.toLowerCase().trim());
-                    return t.isMergedSource && !isSrcId && !isSrcTitle;
-                });
-
-                let finalDocs = allDocs;
-                if (orphans.length > 0) {
-                    console.log(`[useAdminTests] Found ${orphans.length} orphaned source tests. Cleaning up in Firestore...`);
-                    const batch = writeBatch(db);
-                    orphans.forEach(o => {
-                        batch.update(doc(db, "tests", o.id), { isMergedSource: false });
-                        batch.update(doc(db, "tests_metadata", o.id), { isMergedSource: false });
-                    });
-                    await batch.commit();
-                    console.log("[useAdminTests] Cleaned up orphaned source tests in Firestore.");
-                    const orphanIdsSet = new Set(orphans.map(o => o.id));
-                    finalDocs = allDocs.map(t => orphanIdsSet.has(t.id) ? { ...t, isMergedSource: false } : t);
-                }
-
-                setAllTestsCache(finalDocs);
-
-                // Persist to SessionStorage (without combinedContent, safe size)
-                try {
-                    sessionStorage.setItem(ADMIN_TESTS_CACHE_KEY, JSON.stringify(finalDocs));
-                    sessionStorage.setItem(ADMIN_TESTS_CACHE_TIME_KEY, Date.now().toString());
-                } catch { /* sessionStorage full — silently skip */ }
-            } catch (err) {
-                console.error("Proactive search cache warming failed:", err);
-            } finally {
-                setLoading(false);
             }
-        };
-        warmCache();
-        fetchCollections();
+
+            const snapAll = await getDocs(query(collection(db, "tests_metadata"), limit(1500)));
+            // Strip combinedContent to save bandwidth on cache — it's loaded lazily for content search
+            const allDocs = snapAll.docs.map(d => {
+                const data = d.data();
+                const { combinedContent, ...rest } = data;
+                return { id: d.id, ...rest };
+            });
+            
+            // Proactively clean up any orphaned isMergedSource flags in Firestore
+            const activeSourceIds = new Set();
+            const activeSourceTitles = new Set();
+            allDocs.forEach(t => {
+                const titleLower = (t.title || "").toLowerCase().trim();
+                const isMerged = t.isMerged || titleLower.startsWith("merged:");
+                if (isMerged) {
+                    if (Array.isArray(t.mergedSourceIds)) {
+                        t.mergedSourceIds.forEach(id => activeSourceIds.add(id));
+                    }
+                    let content = t.title || "";
+                    if (titleLower.startsWith("merged:")) {
+                        content = content.slice(7).trim();
+                    }
+                    if (content) {
+                        const parts = content.split(" + ").map(p => p.trim()).filter(Boolean);
+                        parts.forEach(p => activeSourceTitles.add(p.toLowerCase()));
+                    }
+                }
+            });
+
+            const orphans = allDocs.filter(t => {
+                const isMergedTest = t.isMerged || (t.title?.toLowerCase().startsWith("merged:") && !t.isMergedSource);
+                if (isMergedTest) return false;
+                const isSrcId = activeSourceIds.has(t.id);
+                const isSrcTitle = t.title && activeSourceTitles.has(t.title.toLowerCase().trim());
+                return t.isMergedSource && !isSrcId && !isSrcTitle;
+            });
+
+            let finalDocs = allDocs;
+            if (orphans.length > 0) {
+                console.log(`[useAdminTests] Found ${orphans.length} orphaned source tests. Cleaning up in Firestore...`);
+                const batch = writeBatch(db);
+                orphans.forEach(o => {
+                    batch.update(doc(db, "tests", o.id), { isMergedSource: false });
+                    batch.update(doc(db, "tests_metadata", o.id), { isMergedSource: false });
+                });
+                await batch.commit();
+                console.log("[useAdminTests] Cleaned up orphaned source tests in Firestore.");
+                const orphanIdsSet = new Set(orphans.map(o => o.id));
+                finalDocs = allDocs.map(t => orphanIdsSet.has(t.id) ? { ...t, isMergedSource: false } : t);
+            }
+
+            setAllTestsCache(finalDocs);
+
+            // Persist to SessionStorage (without combinedContent, safe size)
+            try {
+                sessionStorage.setItem(ADMIN_TESTS_CACHE_KEY, JSON.stringify(finalDocs));
+                sessionStorage.setItem(ADMIN_TESTS_CACHE_TIME_KEY, Date.now().toString());
+            } catch { /* sessionStorage full — silently skip */ }
+        } catch (err) {
+            console.error("Proactive search cache warming failed:", err);
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    const refreshTests = useCallback(() => loadTests({ force: true }), [loadTests]);
+
+    useEffect(() => {
+        loadTests();
+        fetchCollections();
+    }, [loadTests]);
 
     // Keep SessionStorage in sync when allTestsCache changes (CRUD operations)
     useEffect(() => {
@@ -393,12 +399,6 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
 
 
     // Compatible function handlers to update filter state from external triggers
-    const fetchInitial = (type = "All", collectionId = "All") => {
-        setFilterType(type);
-        setFilterCollection(collectionId);
-        setCurrentPage(1);
-    };
-
     const fetchPage = (page) => {
         setCurrentPage(page);
     };
@@ -834,7 +834,7 @@ export const useAdminTests = (PAGE_SIZE = 12) => {
         setCurrentPage,
 
         // Functions
-        fetchInitial,
+        refreshTests,
         fetchPage,
         searchTests,
         handleDelete,

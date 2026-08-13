@@ -146,7 +146,7 @@ export default function AdminTests() {
         handleDelete, bulkDeleteTests, bulkAssignToCollection,
         bulkUpdateStatus, bulkUpdateIsFree, duplicateTest, importTests,
         addCollection, updateCollection, deleteCollection, updateTestMetadata,
-        fetchInitial, fetchPage
+        fetchPage, refreshTests
     } = useAdminTests(12);
 
     // Compute available tests list client-side for mock selection dropdowns (saves Firestore reads)
@@ -880,7 +880,7 @@ export default function AdminTests() {
                 editingMock={editingMock}
                 collections={collections}
                 allAvailableTests={allAvailableTests}
-                onSaved={() => fetchInitial(filterType, filterCollection)}
+                onSaved={() => refreshTests()}
             />
 
             {/* BULK ASSIGN TO COLLECTION MODAL */}
@@ -899,7 +899,7 @@ export default function AdminTests() {
                 onClose={() => setMergeModalOpen(false)}
                 selectedTests={selectedTests}
                 tests={allTests}
-                onSaved={() => { setSelectedTests([]); fetchInitial(filterType, filterCollection); }}
+                onSaved={() => { setSelectedTests([]); refreshTests(); }}
             />
 
             {/* QUICK EDIT MODAL */}

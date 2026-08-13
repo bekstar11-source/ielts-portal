@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase/firebase";
 import toast from "react-hot-toast";
+import { invalidateAdminTestsCache } from "../utils/adminTestsCache";
 
 export function useMergeTests({ onSaved, onClose }) {
     const [isMerging, setIsMerging] = useState(false);
@@ -139,6 +140,8 @@ export function useMergeTests({ onSaved, onClose }) {
 
             await batch.commit();
 
+            // Drop the admin list cache so the merged test shows up immediately
+            invalidateAdminTestsCache();
             toast.success("Testlar muvaffaqiyatli birlashtirildi! 🎉");
             onSaved();
             onClose();
