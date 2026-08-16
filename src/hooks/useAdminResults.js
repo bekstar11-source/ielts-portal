@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { db } from "../firebase/firebase";
 import { collection, getDocs, orderBy, query, deleteDoc, doc, limit, writeBatch } from "firebase/firestore";
+import { getBandValue } from "../utils/teacherResults";
 
 const CACHE_KEY = "admin_results_data";
 const CACHE_TIME_KEY = "admin_results_time";
@@ -314,7 +315,11 @@ export const useAdminResults = () => {
     }, [results, debouncedSearch, typeFilter, statusFilter, dateRange, sort]);
 
     const stats = useMemo(() => {
-        const bands = results.map(numericScore).filter((v) => v !== null);
+        // O'rtacha BAND — `numericScore` emas, `getBandValue`. `numericScore` saralash
+        // uchun mo'ljallangan va band bo'lmagan qiymatlarni ham qaytaradi: podcast
+        // natijasidagi "12/20" xom ballni 5.4 "band" ga aylantirardi, baholanmagan
+        // writing/speaking dagi `bandScore: 0` esa o'rtachani sun'iy pasaytirardi.
+        const bands = results.map(getBandValue).filter((v) => v !== null);
         return {
             total: results.length,
             graded: results.filter((r) => isGraded(r.status)).length,

@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from '../../context/LanguageContext';
+import Logo from '../../components/common/Logo';
 
 const ScrollingComments = () => {
     const [isHovered, setIsHovered] = useState(false);
@@ -73,11 +74,15 @@ export default function Register() {
   const [step, setStep] = useState(1); // 1: Name & Email, 2: Password
   const { t } = useTranslation();
 
-  const { signup, signInWithGoogle, user } = useAuth();
+  const { signup, signInWithGoogle, user, isGuest } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    // ⚠️ Trialni yechgan mehmonda ham `user` to'ldirilgan (anonim sessiya).
+    // `isGuest` ni tekshirmasak, u ro'yxatdan o'tish sahifasini umuman
+    // ko'rmasdi: bu effekt darhol `/dashboard` ga uloqtirardi, `ProtectedRoute`
+    // esa mehmonni `/` ga qaytarardi — ya'ni "registratsiya ochilmayapti".
+    if (user && !isGuest) {
       const redirectAfterGoogleLogin = async () => {
         try {
           const docRef = doc(db, "users", user.uid);
@@ -91,7 +96,7 @@ export default function Register() {
       };
       redirectAfterGoogleLogin();
     }
-  }, [user, navigate]);
+  }, [user, isGuest, navigate]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -150,9 +155,7 @@ export default function Register() {
         >
 
           <div className="text-center mb-8 flex flex-col items-center">
-            <Link to="/" className="mb-6 block transition-transform hover:scale-105 active:scale-95">
-              <img src="/englev-logo.png" alt="englev." className="h-11 md:h-12 w-auto object-contain" />
-            </Link>
+            <Logo to="/" tone="ink" size="lg" className="mb-6" />
             <h1 className="text-2xl font-bold text-[#1a1a1a] tracking-tight mb-2">
               {t('auth.registerTitle')}
             </h1>

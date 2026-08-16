@@ -104,7 +104,7 @@ export default function AdminSpotlights() {
     const [editing, setEditing] = useState(null); // { id | null, form }
     const [saving, setSaving] = useState(false);
 
-    const card = isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm';
+    const card = isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200 shadow-sm';
     const input = `w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 transition-all ${
         isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
     }`;
@@ -217,7 +217,7 @@ export default function AdminSpotlights() {
     const showQuestion = mode !== 'promo';
 
     return (
-        <div className={`min-h-full font-sans p-4 md:p-6 transition-colors ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`min-h-full font-sans p-4 md:p-6 transition-colors ${isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6 md:mb-8 gap-3 flex-wrap">
@@ -308,7 +308,7 @@ export default function AdminSpotlights() {
             {/* Modal: yaratish / tahrirlash */}
             {editing && (
                 <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/70 p-3 sm:p-4 backdrop-blur-sm">
-                    <div className={`w-full max-w-3xl max-h-[92dvh] overflow-y-auto my-4 sm:my-8 rounded-2xl sm:rounded-3xl border p-4 sm:p-6 ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
+                    <div className={`w-full max-w-3xl max-h-[92dvh] overflow-y-auto my-4 sm:my-8 rounded-2xl sm:rounded-3xl border p-4 sm:p-6 ${isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
                         <div className="flex items-center justify-between gap-3 mb-5 sm:mb-6">
                             <h2 className="text-lg sm:text-xl font-bold">{editing.id ? 'Slaydni tahrirlash' : 'Yangi slayd'}</h2>
                             <button onClick={() => setEditing(null)} className={isDark ? 'text-white/40 hover:text-white' : 'text-gray-400 hover:text-gray-700'}>
@@ -354,7 +354,7 @@ export default function AdminSpotlights() {
                                         {ACCENTS.map(c => (
                                             <button key={c} type="button" onClick={() => setForm({ accent: c })}
                                                 style={{ backgroundColor: c }}
-                                                className={`w-6 h-6 rounded-full transition ${editing.form.accent === c ? 'ring-2 ring-offset-2 ring-blue-500 ' + (isDark ? 'ring-offset-[#1E1E1E]' : 'ring-offset-white') : ''}`}
+                                                className={`w-6 h-6 rounded-full transition ${editing.form.accent === c ? 'ring-2 ring-offset-2 ring-blue-500 ' + (isDark ? 'ring-offset-[#1f1e1b]' : 'ring-offset-white') : ''}`}
                                             />
                                         ))}
                                     </div>

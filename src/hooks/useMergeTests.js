@@ -3,28 +3,93 @@ import { db } from "../firebase/firebase";
 import toast from "react-hot-toast";
 import { invalidateAdminTestsCache } from "../utils/adminTestsCache";
 
+const formatListeningQType = (t) => {
+    const lower = t.toLowerCase();
+    if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+    if (lower.includes('table')) return 'Table Completion';
+    if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
+    if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
+    if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
+    if (lower.includes('short_answer')) return 'Short Answer';
+    return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
+const formatReadingQType = (t) => {
+    const lower = t.toLowerCase();
+    if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
+    if (lower.includes('matching_headings')) return 'Matching Headings';
+    if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
+    if (lower.includes('matching')) return 'Matching';
+    if (lower.includes('table')) return 'Table Completion';
+    if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary')) return 'Completion';
+    return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 export function useMergeTests({ onSaved, onClose }) {
     const [isMerging, setIsMerging] = useState(false);
 
-    const mergeTests = async (selectedTests, mergeTitle) => {
+    /**
+     * @param {string[]} selectedTests  birlashtiriladigan test id'lari
+     * @param {string}   mergeTitle     yangi test nomi
+     * @param {object}   options        { order: string[], sourceTests: object[] }
+     *                                  order — passage tartibi (MergeModal'dan),
+     *                                  sourceTests — oldindan yuklangan hujjatlar
+     */
+    const mergeTests = async (selectedTests, mergeTitle, options = {}) => {
         if (!mergeTitle.trim()) {
             toast.error("Birlashtirilgan test nomini kiriting!");
+            return;
+        }
+        if (!Array.isArray(selectedTests) || selectedTests.length < 2) {
+            toast.error("Kamida 2 ta test tanlang!");
             return;
         }
         setIsMerging(true);
         try {
             const { getDoc, doc, writeBatch, collection } = await import("firebase/firestore");
-            const { getQuestionTypesFromQuestions, getPassageOrPartNum } = await import("../components/admin/CreateTest/CreateTestUtils");
+            const { getQuestionTypesFromQuestions } = await import("../components/admin/CreateTest/CreateTestUtils");
 
-            const snaps = await Promise.all(selectedTests.map(id => getDoc(doc(db, "tests", id))));
-            const selectedObjects = snaps.map(s => s.data()).filter(Boolean);
+            // MergeModal preview uchun hujjatlarni allaqachon yuklagan bo'lsa,
+            // qayta o'qimaymiz — ko'rsatilgan tartib bilan aynan bir xil bo'lishi shart.
+            let selectedObjects = Array.isArray(options.sourceTests) && options.sourceTests.length === selectedTests.length
+                ? options.sourceTests
+                : null;
+
+            if (!selectedObjects) {
+                const snaps = await Promise.all(selectedTests.map(id => getDoc(doc(db, "tests", id))));
+                selectedObjects = snaps
+                    .map(s => (s.exists() ? { id: s.id, ...s.data() } : null))
+                    .filter(Boolean);
+            }
 
             if (selectedObjects.length < selectedTests.length) {
                 throw new Error("Ba'zi test ma'lumotlarini yuklab bo'lmadi.");
             }
 
+            // Turli turdagi testlarni birlashtirib bo'lmaydi (savol tuzilishi mos kelmaydi)
+            const types = Array.from(new Set(selectedObjects.map(t => t.type).filter(Boolean)));
+            if (types.length > 1) {
+                throw new Error(`Turli test turlarini birlashtirib bo'lmaydi: ${types.join(", ")}.`);
+            }
+
             const { mergeTestsLogic } = await import("../utils/TestUtils");
-            const mergedPayload = mergeTestsLogic(selectedObjects, mergeTitle.trim());
+            const mergedPayload = mergeTestsLogic(selectedObjects, mergeTitle.trim(), {
+                order: options.order
+            });
+
+            if (mergedPayload.type === 'writing') {
+                if (!mergedPayload.writingTasks?.length) {
+                    throw new Error("Birlashtirish uchun task topilmadi.");
+                }
+            } else {
+                if (!mergedPayload.passages?.length) {
+                    throw new Error("Birlashtirish uchun passage topilmadi.");
+                }
+                if (!mergedPayload.questions?.length) {
+                    throw new Error("Birlashtirilgan testda savollar yo'q.");
+                }
+            }
+
             mergedPayload.isFree = false;
             mergedPayload.isPublic = false;
             mergedPayload.isMerged = true;
@@ -34,9 +99,19 @@ export function useMergeTests({ onSaved, onClose }) {
             const testDocRef = doc(collection(db, "tests"));
             const newTestId = testDocRef.id;
 
-            let duration = Number(mergedPayload.duration) || 30;
-            if (mergedPayload.type === 'listening') duration = 30;
-            else if (mergedPayload.type === 'reading') duration = 60;
+            const unitCount = mergedPayload.type === 'writing'
+                ? (mergedPayload.writingTasks || []).length
+                : (mergedPayload.passages || []).length;
+
+            // Standart uzunlik: Reading 60 daqiqa (3 passage), Listening 30 daqiqa
+            // (4 part). Nostandart hajmda vaqt proporsional kattalashadi.
+            let duration = Number(mergedPayload.duration) || 60;
+            if (mergedPayload.type === 'listening') {
+                duration = unitCount > 4 ? Math.ceil((30 / 4) * unitCount) : 30;
+            } else if (mergedPayload.type === 'reading') {
+                duration = unitCount > 3 ? 20 * unitCount : 60;
+            }
+            mergedPayload.duration = duration;
 
             let combinedContent = "";
             if (mergedPayload.passages && Array.isArray(mergedPayload.passages)) {
@@ -79,24 +154,14 @@ export function useMergeTests({ onSaved, onClose }) {
                         q => String(q.passageId) === String(passage.id)
                     );
                     const qTypes = Array.from(new Set(passageQuestions.map(q => q.type).filter(Boolean)));
-                    const formattedQTypes = qTypes.map(t => {
-                        const lower = t.toLowerCase();
-                        if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
-                        if (lower.includes('table')) return 'Table Completion';
-                        if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary') || lower.includes('form')) return 'Completion';
-                        if (lower.includes('flow_chart') || lower.includes('flowchart')) return 'Flow Chart';
-                        if (lower.includes('map_labeling') || lower.includes('diagram')) return 'Map/Diagram';
-                        if (lower.includes('short_answer')) return 'Short Answer';
-                        return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                    });
                     parts[partKey] = {
                         id: passage.id !== undefined ? String(passage.id) : `part-${partNum}`,
                         title: passage.title || `Part ${partNum}`,
                         difficulty: passage.difficulty || mergedPayload.difficulty || "medium",
-                        qTypes: Array.from(new Set(formattedQTypes)),
+                        qTypes: Array.from(new Set(qTypes.map(formatListeningQType))),
                         startSec: passage.startTime != null ? Number(passage.startTime) : 0,
                         endSec: passage.endTime != null ? Number(passage.endTime) : 0,
-                        audioUrl: passage.audio || mergedPayload.audio_url || ""
+                        audioUrl: passage.audio || mergedPayload.audioUrl || mergedPayload.audio_url || ""
                     };
                 });
                 metadata.parts = parts;
@@ -109,21 +174,11 @@ export function useMergeTests({ onSaved, onClose }) {
                         q => String(q.passageId) === String(passage.id)
                     );
                     const qTypes = Array.from(new Set(passageQuestions.map(q => q.type).filter(Boolean)));
-                    const formattedQTypes = qTypes.map(t => {
-                        const lower = t.toLowerCase();
-                        if (lower.includes('multiple_choice') || lower.includes('multi_choice') || lower.includes('selection')) return 'Multiple Choice';
-                        if (lower.includes('matching_headings')) return 'Matching Headings';
-                        if (lower.includes('true_false') || lower.includes('yes_no')) return 'TFNG/YNNG';
-                        if (lower.includes('matching')) return 'Matching';
-                        if (lower.includes('table')) return 'Table Completion';
-                        if (lower.includes('note') || lower.includes('gap_fill') || lower.includes('sentence') || lower.includes('summary')) return 'Completion';
-                        return t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                    });
                     passages[passKey] = {
                         id: passage.id !== undefined ? String(passage.id) : `passage-${passNum}`,
                         title: passage.title || `Passage ${passNum}`,
                         difficulty: passage.difficulty || mergedPayload.difficulty || "medium",
-                        qTypes: Array.from(new Set(formattedQTypes))
+                        qTypes: Array.from(new Set(qTypes.map(formatReadingQType)))
                     };
                 });
                 metadata.passages = passages;
@@ -133,9 +188,11 @@ export function useMergeTests({ onSaved, onClose }) {
             batch.set(testDocRef, mergedPayload);
             batch.set(metadataDocRef, metadata);
 
+            // `update` metadata hujjati yo'q bo'lsa butun batch'ni yiqitardi —
+            // shuning uchun merge bilan belgilaymiz.
             selectedTests.forEach(id => {
-                batch.update(doc(db, "tests", id), { isMergedSource: true });
-                batch.update(doc(db, "tests_metadata", id), { isMergedSource: true });
+                batch.set(doc(db, "tests", id), { isMergedSource: true }, { merge: true });
+                batch.set(doc(db, "tests_metadata", id), { isMergedSource: true }, { merge: true });
             });
 
             await batch.commit();

@@ -1,6 +1,6 @@
 // src/components/TestSolving/TestModals.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { calculateBandScore, formatTime, checkAnswer, scoreMultiAnswer, isMultiAnswerType, isChoiceQuestionType } from '../../utils/ieltsScoring';
+import { formatTime, evaluateTest } from '../../utils/ieltsScoring';
 import { Icons } from '../Icons';
 import { useAuth } from '../../context/AuthContext';
 import PricingModal from '../dashboard/PricingModal';
@@ -124,124 +124,25 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, totalQuest
 
     const timeSpent = testMode === 'practice' ? timeLeft : Math.max(0, (initialDuration || (test.duration || 60) * 60) - timeLeft);
 
-    // Xatoliklarni har bir bo'lim (Part/Passage) bo'yicha hisoblash
+    // Xatoliklarni har bir bo'lim (Part/Passage) bo'yicha hisoblash — ZAXIRA yo'l.
+    // Asosiy manba serverdan kelgan `partBreakdown`. Bu hisob faqat javob kalitlari
+    // klientda mavjud bo'lganda (admin/o'qituvchi) yoki eski natijalarda ishlaydi.
+    //
+    // Ilgari bu yerda `evaluateTest` ning mustaqil nusxasi bor edi: javob kalitini
+    // truthy tekshirardi ("0" javobli savollar hisobdan tushardi), ko'p javobli
+    // guruh og'irligini boshqacha sanardi va natijada natija ekranidagi xatolar soni
+    // review'dagidan farq qilardi.
     const partStats = React.useMemo(() => {
-        if (!test || !test.passages || !userAnswers) return [];
-
-        const getWeight = (id) => {
-            if (!id) return 1;
-            const s = String(id).trim();
-            const parts = s.split(/[\-–—_]/).map(Number);
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                return Math.abs(parts[1] - parts[0]) + 1;
-            }
-            if (s.includes(',')) {
-                return s.split(',').length;
-            }
-            return 1;
-        };
+        if (!test || !Array.isArray(test.passages) || test.passages.length === 0 || !userAnswers) return [];
 
         const stats = test.passages.map((passage, pIdx) => {
-            let correctCount = 0;
-            let totalQ = 0;
-            const scoredIds = new Set();
-
-            const walk = (obj, parentType, parentOptions = null) => {
-                if (!obj) return;
-                const currentType = obj.type || parentType;
-                // Variantlar ro'yxati bo'lgan guruhlarda ("choose from the list") kalit harf,
-                // talaba javobi esa so'z bo'lishi mumkin — `evaluateTest` bilan bir xil qoida.
-                const groupOptions = (Array.isArray(obj.options) && obj.options.length > 0) ? obj.options : parentOptions;
-
-                if (isMultiAnswerType(obj.type) && !obj.id) {
-                    const groupItems = [];
-                    const collectItems = (o) => {
-                        const ans = o.answer || o.correct_answer || o.correctAnswer || o.correct_answer_value;
-                        if (o.id && ans) {
-                            groupItems.push(o);
-                        }
-                        const subKeys = ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'];
-                        for (const sk of subKeys) {
-                            if (o[sk] && Array.isArray(o[sk])) {
-                                o[sk].forEach(collectItems);
-                            }
-                        }
-                    };
-                    collectItems(obj);
-
-                    if (groupItems.length > 0 && groupItems.some(i => scoredIds.has(String(i.id)))) {
-                        return;
-                    }
-
-                    if (groupItems.length > 0) {
-                        const allCorrect = groupItems.map(i => i.answer || i.correct_answer || i.correctAnswer || i.correct_answer_value).join(', ');
-                        const allUser = groupItems.map(i => userAnswers[i.id] || "").join(', ');
-                        
-                        let weight = groupItems.length;
-                        const t = String(obj.type).toLowerCase();
-                        if (t.includes('five')) weight = 5;
-                        else if (t.includes('four')) weight = 4;
-                        else if (t.includes('three')) weight = 3;
-                        else if (t.includes('two')) weight = 2;
-
-                        const result = scoreMultiAnswer(allCorrect, allUser, weight);
-                        correctCount += result.matches;
-                        totalQ += result.weight;
-
-                        groupItems.forEach(i => scoredIds.add(String(i.id)));
-                        return;
-                    }
-                }
-
-                const answer = obj.answer || obj.correct_answer || obj.correctAnswer || obj.correct_answer_value;
-                if (obj.id && answer) {
-                    const id = obj.id;
-                    const idStr = String(id);
-
-                    if (scoredIds.has(idStr)) return;
-
-                    if (isMultiAnswerType(currentType)) {
-                        const weight = getWeight(id);
-                        const userResp = userAnswers[idStr] || userAnswers[id] || "";
-                        const result = scoreMultiAnswer(answer, userResp, weight);
-                        correctCount += result.matches;
-                        totalQ += result.weight;
-                        scoredIds.add(idStr);
-                    } else {
-                        const userResp = userAnswers[idStr] || userAnswers[id] || "";
-                        const hasGroupOptions = Array.isArray(groupOptions) && groupOptions.length > 0;
-                        const isCorrect = checkAnswer(answer, userResp, isChoiceQuestionType(currentType) || hasGroupOptions, groupOptions);
-                        if (isCorrect) correctCount++;
-                        totalQ++;
-                        scoredIds.add(idStr);
-                    }
-                }
-
-                const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
-                for (const key of CONTAINER_KEYS) {
-                    const val = obj[key];
-                    if (val && Array.isArray(val)) {
-                        val.forEach(child => walk(child, currentType, groupOptions));
-                    } else if (val && typeof val === 'object') {
-                        walk(val, currentType, groupOptions);
-                    }
-                }
-            };
-
-            const filteredQuestions = (test.questions || []).filter(q => String(q.passageId) === String(passage.id));
-            filteredQuestions.forEach(q => walk(q, q.type));
-            
-            // Shuningdek passage ning o'zini ham walk qilamiz, agar savollar passage ichida (masalan, groups) bo'lsa
-            walk(passage, null);
-
-            const mistakes = Math.max(0, totalQ - correctCount);
-
+            const { correctCount, totalQ } = evaluateTest(test, userAnswers, pIdx + 1);
             return {
                 passageId: passage.id,
                 name: passage.title || `Part ${pIdx + 1}`,
                 correct: correctCount,
                 total: totalQ,
-                mistakes: mistakes,
+                mistakes: Math.max(0, totalQ - correctCount),
                 partIndex: pIdx
             };
         });
@@ -297,7 +198,11 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, totalQuest
                             {/* Band Score Panel */}
                             <div className="bg-warm-primary/[0.06] dark:bg-warm-primary/10 border border-warm-primary/15 rounded-2xl p-4 flex flex-col justify-center items-center">
                                 <span className="text-[11px] font-semibold text-warm-primary uppercase tracking-wide">{t('testSolving.bandScore') || 'Band score'}</span>
-                                <span className="text-4xl font-bold text-warm-primary mt-1.5">{bandScore}</span>
+                                {/* Band har doim bitta ko'rinishda — "7" va "7.0" bir xil
+                                    natijaning ikki xil yozuvi bo'lib chalkashtirardi. */}
+                                <span className="text-4xl font-bold text-warm-primary mt-1.5">
+                                    {Number.isFinite(Number(bandScore)) ? Number(bandScore).toFixed(1) : '0.0'}
+                                </span>
                                 <span className="text-[11px] font-medium text-warm-primary/70 mt-2">{t('testSolving.ieltsStandard') || 'IELTS standarti'}</span>
                             </div>
                         </div>
@@ -382,6 +287,9 @@ export const ResultModal = ({ show, test, testMode, score, bandScore, totalQuest
                     userAnswers={userAnswers}
                     score={score}
                     bandScore={bandScore}
+                    totalQuestions={totalQuestions}
+                    partNumber={partNumber}
+                    moduleType={test?.type}
                 />
             )}
         </div>

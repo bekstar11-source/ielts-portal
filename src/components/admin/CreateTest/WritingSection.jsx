@@ -9,7 +9,7 @@ const WritingSection = ({
     const activeTask = testData.writingTasks?.[activeWritingTask] || {};
 
     return (
-        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
             <h3 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-50">Writing Tasklar</h3>
             
             <div className="flex gap-2 mb-6 p-1 rounded-xl bg-gray-500/5">
@@ -29,7 +29,7 @@ const WritingSection = ({
                     <label className="text-xs font-bold mb-1.5 block opacity-60">Task Nomi</label>
                     <input
                         type="text"
-                        className={`w-full h-10 px-4 rounded-xl border outline-none text-xs ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}
+                        className={`w-full h-10 px-4 rounded-xl border outline-none text-xs ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}
                         value={activeTask.title || ""}
                         onChange={e => handleWritingUpdate('title', e.target.value)}
                     />
@@ -38,7 +38,7 @@ const WritingSection = ({
                 <div>
                     <label className="text-xs font-bold mb-1.5 block opacity-60">Savol Matni (Prompt)</label>
                     <textarea
-                        className={`w-full h-32 p-4 rounded-xl border outline-none text-xs resize-none ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}
+                        className={`w-full h-32 p-4 rounded-xl border outline-none text-xs resize-none ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}
                         value={activeTask.prompt || ""}
                         onChange={e => handleWritingUpdate('prompt', e.target.value)}
                     />
@@ -49,7 +49,7 @@ const WritingSection = ({
                         <label className="text-xs font-bold mb-1.5 block opacity-60">Minimal So'zlar</label>
                         <input
                             type="number"
-                            className={`w-full h-10 px-4 rounded-xl border outline-none text-xs ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}
+                            className={`w-full h-10 px-4 rounded-xl border outline-none text-xs ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}
                             value={activeTask.minWords || ""}
                             onChange={e => handleWritingUpdate('minWords', e.target.value)}
                         />
@@ -59,7 +59,7 @@ const WritingSection = ({
                         <div className="flex gap-2">
                             <input
                                 type="text"
-                                className={`flex-1 h-10 px-4 rounded-xl border outline-none text-xs ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}
+                                className={`flex-1 h-10 px-4 rounded-xl border outline-none text-xs ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}
                                 value={activeTask.image || ""}
                                 onChange={e => handleWritingUpdate('image', e.target.value)}
                                 placeholder="URL..."

@@ -11,6 +11,11 @@ import ShareModal from '../common/ShareModal';
 // (HAVE_CURRENT_DATA — enough data to start playback, avoids over-buffering)
 function AudioPreloader({ passages, test, onReady, partNumber = null }) {
     const [loadedCount, setLoadedCount] = useState(0);
+    // Xato bilan tugagan partlar. Ilgari `readyState >= 2 || audioEl.error`
+    // sharti xatoni ham "yuklandi" deb sanardi — audio umuman ochilmagan
+    // taqdirda ham ekran "Ready!" deb ko'rsatardi.
+    const [failedCount, setFailedCount] = useState(0);
+    const [timedOut, setTimedOut] = useState(false);
     const passagesToLoad = useMemo(() => {
         if (!passages) return [];
         if (partNumber) {
@@ -28,15 +33,23 @@ function AudioPreloader({ passages, test, onReady, partNumber = null }) {
             return;
         }
 
-        let loaded = 0;
+        let settled = 0;
+        let failed = 0;
         const pollIntervals = [];
 
-        const checkAllLoaded = () => {
-            loaded++;
-            setLoadedCount(loaded);
-            if (loaded >= totalCount && !hasCalledReady.current) {
-                hasCalledReady.current = true;
+        const checkAllLoaded = (didFail = false) => {
+            settled++;
+            if (didFail) {
+                failed++;
+                setFailedCount(failed);
+            }
+            setLoadedCount(settled - failed);
+            if (settled >= totalCount && !hasCalledReady.current) {
                 pollIntervals.forEach(id => clearInterval(id));
+                // Hech biri yuklanmagan bo'lsa avtomatik davom etmaymiz —
+                // foydalanuvchi xatoni ko'rib, o'zi qaror qabul qilsin.
+                if (failed >= totalCount) return;
+                hasCalledReady.current = true;
                 onReady?.();
             }
         };
@@ -49,7 +62,10 @@ function AudioPreloader({ passages, test, onReady, partNumber = null }) {
             const pollId = setInterval(() => {
                 const audioEl = document.getElementById(`audio-part-${actualIdx}`);
                 if (!audioEl) return;
-                if (audioEl.readyState >= 2 || audioEl.error) {
+                if (audioEl.error) {
+                    clearInterval(pollId);
+                    checkAllLoaded(true);
+                } else if (audioEl.readyState >= 2) {
                     clearInterval(pollId);
                     checkAllLoaded();
                 }
@@ -58,12 +74,12 @@ function AudioPreloader({ passages, test, onReady, partNumber = null }) {
             pollIntervals.push(pollId);
         });
 
-        // Hard timeout: 20 seconds
+        // Hard timeout: 20 seconds. Ilgari bu jimgina `onReady()` chaqirardi.
+        // Endi foydalanuvchiga holat ko'rsatiladi va qaror unga qoldiriladi.
         const timeout = setTimeout(() => {
             if (!hasCalledReady.current) {
-                hasCalledReady.current = true;
                 pollIntervals.forEach(id => clearInterval(id));
-                onReady?.();
+                setTimedOut(true);
             }
         }, 20000);
 
@@ -76,6 +92,49 @@ function AudioPreloader({ passages, test, onReady, partNumber = null }) {
 
     const pct = totalCount > 0 ? Math.round((loadedCount / totalCount) * 100) : 100;
     const isDone = loadedCount === totalCount && totalCount > 0;
+    const hasProblem = failedCount > 0 || timedOut;
+
+    const retryAll = () => {
+        document.querySelectorAll('audio[id^="audio-part-"]').forEach(el => {
+            try { el.load(); } catch { /* element hali tayyor emas */ }
+        });
+        window.location.reload();
+    };
+
+    if (hasProblem && !isDone) {
+        return (
+            <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/90">
+                <div className="text-center max-w-sm w-full bg-white p-8 rounded-[32px] shadow-2xl shadow-black/50">
+                    <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-3xl">
+                        ⚠️
+                    </div>
+                    <h2 className="text-zinc-900 text-2xl font-black mb-3 tracking-tight uppercase leading-none">
+                        Audio yuklanmadi
+                    </h2>
+                    <p className="text-zinc-500 text-sm mb-8 font-medium leading-relaxed">
+                        {failedCount > 0
+                            ? `${failedCount} ta audio fayl ochilmadi.`
+                            : 'Audio belgilangan vaqtda yuklanmadi.'}{' '}
+                        Internetni tekshiring va qayta urinib ko'ring. Muammo takrorlansa nazoratchini chaqiring.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={retryAll}
+                            className="w-full py-4 bg-[#e31837] text-white rounded-2xl font-black text-base hover:bg-red-700 transition-all active:scale-[0.98] uppercase tracking-widest"
+                        >
+                            Qayta urinish
+                        </button>
+                        <button
+                            onClick={() => { hasCalledReady.current = true; onReady?.(); }}
+                            className="w-full py-3 text-zinc-500 text-xs font-bold hover:text-zinc-900 transition-colors uppercase tracking-widest"
+                        >
+                            Baribir davom etish
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/90">
@@ -212,7 +271,8 @@ const TestHeader = ({
     audioRefs,
     partNumber = null,
     onTotalDurationCalculated,
-    onAudioEnded
+    onAudioEnded,
+    onPlaybackBlocked
 }) => {
     const { userData } = useAuth();
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -457,6 +517,7 @@ const TestHeader = ({
                                         startTime={startTime}
                                         endTime={endTime}
                                         resumeTime={resumeAudioTime}
+                                        onPlaybackBlocked={onPlaybackBlocked}
                                         extraSilentTime={Number(passage.extraSilentTime) || 0}
                                         onDurationCalculated={(dur) => {
                                             setPartDurations(prev => {

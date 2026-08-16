@@ -37,7 +37,7 @@ export default function CommandPalette({ commands, onClose, isDark }) {
         <div className="fixed inset-0 z-[210] flex items-start justify-center pt-[12vh] px-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
             <div
                 onClick={e => e.stopPropagation()}
-                className={`w-full max-w-lg max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}
+                className={`w-full max-w-lg max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-200'}`}
             >
                 <input
                     autoFocus

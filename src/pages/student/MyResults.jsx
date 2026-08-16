@@ -422,11 +422,26 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
           ) : (
             filteredResults.map((res) => {
               const theme = getTestTheme(res.type);
+
+              // OXIRGI urinish — kartadagi ball "Review" tugmasi ochadigan urinish bilan
+              // bir xil bo'lishi uchun. Ilgari bu yerda eng yaxshi urinish ko'rsatilardi
+              // va o'quvchi kartada 6.5, review'da esa 5.5 ko'rib chalkashardi.
+              // Reading/listening har bir urinishda avtomatik baholanadi, shuning uchun
+              // band urinishning o'zidan olinadi; writing/speaking va mock esa hujjat
+              // darajasida (o'qituvchi/AI baholaganda) yangilanadi.
+              const latestAttempt = Array.isArray(res.attempts) && res.attempts.length > 0
+                ? res.attempts[res.attempts.length - 1]
+                : null;
+              const latestScore = latestAttempt?.score ?? res.latestScore ?? res.bestScore ?? res.score;
+
               const bandScore = (res.type === 'reading' || res.type === 'listening')
-                ? (res.bestBandScore || res.bandScore || calculateBandScore(res.score, res.type, res.totalQuestions))
+                ? (latestAttempt?.bandScore
+                    ?? res.latestBandScore
+                    ?? res.bandScore
+                    ?? calculateBandScore(latestScore, res.type, res.totalQuestions))
                 : (res.type === 'writing' || res.type === 'speaking')
                   ? (res.writingBand || res.speakingBand || res.bandScore)
-                  : (res.type === 'mock_full' 
+                  : (res.type === 'mock_full'
                     ? (res.overallBand || res.bandScore || (res.scores && (res.scores.overallBand || res.scores.bandScore)) || 0)
                     : res.score);
 
@@ -468,7 +483,7 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                           {isGraded ? (
                             <>
                               {Number(bandScore || 0).toFixed(1)}
-                              <span className="text-[10px] md:text-sm font-black text-warm-muted dark:text-warm-on-dark-soft uppercase ml-1">{t('myResults.bestBand')}</span>
+                              <span className="text-[10px] md:text-sm font-black text-warm-muted dark:text-warm-on-dark-soft uppercase ml-1">{t('myResults.lastBand')}</span>
                             </>
                           ) : (
                             <span className="text-[10px] md:text-sm font-medium text-warm-muted">{t('myResults.grading')}</span>
@@ -476,7 +491,9 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
                         </div>
                         {isGraded && (
                           <div className="text-[10px] md:text-[12px] text-warm-muted dark:text-warm-on-dark-soft mt-0.5 md:mt-1 font-bold uppercase tracking-wide">
-                            {res.bestScore !== undefined ? `${res.bestScore}/${res.totalQuestions || 40} ${t('myResults.bestScore')}` : t('myResults.evaluated')}
+                            {latestScore !== undefined && latestScore !== null
+                              ? `${latestScore}/${res.totalQuestions || 40} ${t('myResults.lastScore')}`
+                              : t('myResults.evaluated')}
                           </div>
                         )}
                       </div>

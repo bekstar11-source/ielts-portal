@@ -95,7 +95,7 @@ const BulkActionBar = ({
                         <ChevronUp size={11} className={`opacity-60 transition-transform duration-200 ${exportOpen ? '' : 'rotate-180'}`} />
                     </button>
                     {exportOpen && (
-                        <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 w-32 rounded-xl border border-white/10 bg-[#1e1e1e] shadow-xl p-1 space-y-0.5 animate-dropdown">
+                        <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 w-32 rounded-xl border border-white/10 bg-[#1f1e1b] shadow-xl p-1 space-y-0.5 animate-dropdown">
                             <button
                                 onClick={() => { onExportJSON(); setExportOpen(false); }}
                                 className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-bold text-zinc-300 hover:bg-white/10 hover:text-white transition-all text-left"

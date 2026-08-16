@@ -10,7 +10,7 @@ export default function AdminLayout() {
 
     return (
         <SidebarProvider
-            className={`h-[100dvh] overflow-hidden font-sans transition-colors duration-300 ${theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}
+            className={`h-[100dvh] overflow-hidden font-sans transition-colors duration-300 ${theme === 'dark' ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}
         >
             <AdminSidebar />
 

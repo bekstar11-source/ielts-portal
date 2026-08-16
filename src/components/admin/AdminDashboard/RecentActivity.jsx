@@ -18,8 +18,8 @@ const RecentActivity = ({ items = [], isDark }) => {
     if (!items.length) return null;
 
     return (
-        <div className={`rounded-2xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100'}`}>
-            <div className="px-5 pt-5 pb-1 text-gray-400 dark:text-gray-500 font-bold text-[10px] uppercase tracking-[0.2em]">
+        <div className={`rounded-2xl border ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100'}`}>
+            <div className="px-5 pt-5 pb-1 text-gray-400 dark:text-warm-muted font-bold text-[10px] uppercase tracking-[0.2em]">
                 So'nggi faoliyat
             </div>
             <div className="divide-y divide-gray-100 dark:divide-white/5">
@@ -39,7 +39,7 @@ const RecentActivity = ({ items = [], isDark }) => {
                                     : `${item.label} — ${item.detail || 'test'} topshirdi`}
                             </p>
                         </div>
-                        <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{timeAgo(item.date)}</span>
+                        <span className="text-[11px] text-gray-400 dark:text-warm-muted shrink-0">{timeAgo(item.date)}</span>
                     </div>
                 ))}
             </div>

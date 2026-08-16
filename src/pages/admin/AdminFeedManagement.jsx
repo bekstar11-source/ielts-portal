@@ -98,7 +98,7 @@ export default function AdminFeedManagement() {
 
     return (
         <div className={`min-h-full font-sans p-4 md:p-6 transition-colors duration-200 ${
-            isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'
+            isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'
         }`}>
             <div className="max-w-5xl mx-auto space-y-6">
                 
@@ -147,7 +147,7 @@ export default function AdminFeedManagement() {
                         className={`pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${
                             activeSubTab === 'posts' 
                                 ? 'text-blue-500' 
-                                : 'text-gray-400 dark:text-zinc-500 hover:text-gray-300'
+                                : 'text-gray-400 dark:text-warm-muted hover:text-gray-300'
                         }`}
                     >
                         Yangiliklar Tasmasi (Feed)
@@ -158,7 +158,7 @@ export default function AdminFeedManagement() {
                         className={`pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${
                             activeSubTab === 'stories' 
                                 ? 'text-pink-500' 
-                                : 'text-gray-400 dark:text-zinc-500 hover:text-gray-300'
+                                : 'text-gray-400 dark:text-warm-muted hover:text-gray-300'
                         }`}
                     >
                         Admin Stories
@@ -175,7 +175,7 @@ export default function AdminFeedManagement() {
                     /* FEED POSTS PANEL */
                     <div className="grid gap-4">
                         {posts.length === 0 ? (
-                            <div className="text-center py-20 bg-white dark:bg-zinc-900 border border-dashed border-gray-250 dark:border-white/5 rounded-3xl text-gray-400">
+                            <div className="text-center py-20 bg-white dark:bg-[#1f1e1b] border border-dashed border-gray-250 dark:border-white/5 rounded-3xl text-gray-400">
                                 Hozircha Feedda hech qanday postlar yaratilmagan.
                             </div>
                         ) : (
@@ -193,7 +193,7 @@ export default function AdminFeedManagement() {
                     /* STORIES PANEL */
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         {stories.length === 0 ? (
-                            <div className="col-span-full text-center py-20 bg-white dark:bg-zinc-900 border border-dashed border-gray-250 dark:border-white/5 rounded-3xl text-gray-400">
+                            <div className="col-span-full text-center py-20 bg-white dark:bg-[#1f1e1b] border border-dashed border-gray-250 dark:border-white/5 rounded-3xl text-gray-400">
                                 Hozircha hikoyalar yuklanmagan.
                             </div>
                         ) : (

@@ -1,29 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { db, storage } from '../../firebase/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateProfile } from 'firebase/auth'; // Import updateProfile
-import { FaUser, FaBullseye, FaCalendarAlt, FaSave, FaArrowLeft, FaCamera, FaPhone } from 'react-icons/fa';
-import { 
-    User, 
-    Target, 
-    Calendar, 
-    Save, 
-    ArrowLeft, 
-    Camera, 
-    Phone, 
-    CheckCircle2, 
-    AlertCircle, 
+import { updateProfile } from 'firebase/auth';
+import {
+    User,
+    Save,
+    ArrowLeft,
+    Camera,
+    CheckCircle2,
+    AlertCircle,
     LogOut,
-    ChevronRight,
-    Smartphone,
-    Mail,
-    Zap,
-    Sparkles,
+    Copy,
     Check,
-    Lock,
-    Shield
+    Sun,
+    Moon,
+    BarChart3
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
@@ -32,17 +25,134 @@ import BottomNav from '../../components/dashboard/BottomNav';
 import SiteFooter from '../../components/common/SiteFooter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../../context/LanguageContext';
+import { getTier, getSubscriptionEnd, isGrouped } from '../../utils/subscription';
+import { getSpeakingUsage, timeUntilReset } from '../../utils/aiUsage';
 
-import PlanetBackground from '../../components/dashboard/PlanetBackground'; // Import PlanetBackground
+/* ─────────────────────────────────────────────────────────────
+ * Yordamchi (pure) funksiyalar — komponentdan tashqarida, har
+ * renderda qayta yaratilmasligi uchun.
+ * ───────────────────────────────────────────────────────────── */
+
+/** userAgent dan brauzer + OS nomini chiqaradi ("Chrome · macOS"). */
+function describeDevice(ua = '') {
+    const browser =
+        /Edg\//.test(ua) ? 'Edge' :
+        /OPR\/|Opera/.test(ua) ? 'Opera' :
+        /Chrome\//.test(ua) ? 'Chrome' :
+        /Firefox\//.test(ua) ? 'Firefox' :
+        /Safari\//.test(ua) ? 'Safari' : 'Browser';
+
+    const os =
+        /Android/.test(ua) ? 'Android' :
+        /iPhone|iPad|iPod/.test(ua) ? 'iOS' :
+        /Mac OS X|Macintosh/.test(ua) ? 'macOS' :
+        /Windows/.test(ua) ? 'Windows' :
+        /Linux/.test(ua) ? 'Linux' : '—';
+
+    return `${browser} · ${os}`;
+}
+
+function formatDateTime(value, lang) {
+    if (!value) return '—';
+    const date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'uz-UZ', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(date);
+}
+
+function fill(template, values) {
+    return Object.entries(values).reduce(
+        (acc, [key, value]) => acc.replace(`{${key}}`, value),
+        String(template)
+    );
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * UI bloklari — render ichida emas (aks holda har bosishda
+ * remount bo'lib, input fokusi yo'qoladi).
+ *
+ * Dizayn qoidasi: yagona urg'u rangi — `warm-primary`. Kartalar
+ * faqat hairline chegara bilan ajraladi (soya, gradient, rangli
+ * ikonka fonlari yo'q), sarlavhalar bir xil o'lchamda.
+ * ───────────────────────────────────────────────────────────── */
+
+const Card = ({ isDark, className = '', children }) => (
+    <section
+        className={`rounded-2xl border ${
+            isDark ? 'bg-warm-dark-elevated border-white/[0.07]' : 'bg-white border-warm-hairline'
+        } ${className}`}
+    >
+        {children}
+    </section>
+);
+
+const CardHead = ({ title, desc }) => (
+    <header className="mb-lg">
+        <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
+        {desc && <p className="text-[13px] text-warm-muted mt-1">{desc}</p>}
+    </header>
+);
+
+const Field = ({ label, hint, children }) => (
+    <div className="space-y-1.5">
+        <label className="block text-[12px] font-medium text-warm-muted">{label}</label>
+        <div className="relative">{children}</div>
+        {hint && <p className="text-[11px] text-warm-muted-soft">{hint}</p>}
+    </div>
+);
+
+/** Nom — qiymat qatori (qurilma ma'lumotlari uchun). */
+const DataRow = ({ label, value, badge }) => (
+    <div className="flex items-center justify-between gap-md py-3">
+        <span className="text-[13px] text-warm-muted shrink-0">{label}</span>
+        <span className="flex items-center gap-xs min-w-0">
+            <span className="text-[13px] font-medium truncate">{value}</span>
+            {badge && (
+                <span className="shrink-0 text-[10px] font-medium text-warm-muted border border-current/20 rounded-full px-1.5 py-0.5">
+                    {badge}
+                </span>
+            )}
+        </span>
+    </div>
+);
+
+/** Limit ko'rsatkichi — sarlavha, ikki tomonlama izoh va yupqa chiziq. */
+const UsageMeter = ({ isDark, title, used, limit, unlimited, leftLabel, rightLabel }) => {
+    const pct = unlimited || !limit ? 100 : Math.min(100, Math.round((used / limit) * 100));
+    const exhausted = !unlimited && limit > 0 && used >= limit;
+
+    return (
+        <div className="space-y-2">
+            <div className="flex items-baseline justify-between gap-md">
+                <h3 className="text-[13px] font-medium">{title}</h3>
+                <span className={`text-[12px] ${exhausted ? 'text-warm-error' : 'text-warm-muted'}`}>{rightLabel}</span>
+            </div>
+            <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-warm-card-strong'}`}>
+                <div
+                    className={`h-full rounded-full transition-all duration-500 ${exhausted ? 'bg-warm-error' : 'bg-warm-primary'} ${unlimited ? 'opacity-30' : ''}`}
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+            <p className="text-[12px] text-warm-muted">{leftLabel}</p>
+        </div>
+    );
+};
 
 export default function Settings() {
     const { user, userData, logout } = useAuth();
-    const { t } = useTranslation();
-    const { theme } = useTheme();
+    const { t, lang, setLang } = useTranslation();
+    const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
-        fullName: '',
+        firstName: '',
+        lastName: '',
         targetBand: '7.0',
         examDate: '',
         phoneNumber: '',
@@ -52,33 +162,97 @@ export default function Settings() {
     const [imagePreview, setImagePreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
-    const [activeSection, setActiveSection] = useState('profile');
+    const [copied, setCopied] = useState(false);
+    const [activeTab, setActiveTab] = useState('profile');
+    const [speakingUsageDoc, setSpeakingUsageDoc] = useState(null);
+    const [usageLoading, setUsageLoading] = useState(true);
+
+    const tier = getTier(userData);
+    const isPremium = tier !== 'free';
+    const grouped = isGrouped(userData);
 
     const getRemainingDays = () => {
-        if (!userData?.subscriptionEnd) return 0;
-        const end = userData.subscriptionEnd.seconds 
-            ? new Date(userData.subscriptionEnd.seconds * 1000) 
-            : new Date(userData.subscriptionEnd);
-        const diffTime = end - new Date();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const end = getSubscriptionEnd(userData);
+        if (!end) return 0;
+        const diffDays = Math.ceil((end.getTime() - Date.now()) / 86400000);
         return diffDays > 0 ? diffDays : 0;
     };
 
-    const isPremium = userData?.isPremium || userData?.accountType === 'premium' || userData?.accountType === 'pro' || userData?.accountType === 'standard';
-    const activeTier = userData?.accountType || (userData?.isPremium ? 'premium' : 'free');
+    /** Imtihon sanasigacha qolgan kunlar (o'tib ketgan bo'lsa null). */
+    const examDaysLeft = useMemo(() => {
+        if (!formData.examDate) return null;
+        const exam = new Date(`${formData.examDate}T00:00:00`);
+        if (isNaN(exam.getTime())) return null;
+        const days = Math.ceil((exam.getTime() - Date.now()) / 86400000);
+        return days >= 0 ? days : null;
+    }, [formData.examDate]);
 
     useEffect(() => {
-        if (userData) {
-            setFormData({
-                fullName: userData.fullName || '',
-                targetBand: userData.targetBand || '7.0',
-                examDate: userData.examDate || '',
-                phoneNumber: userData.phoneNumber || '',
-                photoURL: userData.photoURL || ''
-            });
-            setImagePreview(userData.photoURL || null);
-        }
+        if (!userData) return;
+        // Eski hisoblarda faqat `fullName` bor — ism/familiyaga bo'lib ko'rsatamiz.
+        const parts = (userData.fullName || '').trim().split(/\s+/).filter(Boolean);
+        setFormData({
+            firstName: userData.firstName || parts[0] || '',
+            lastName: userData.lastName || parts.slice(1).join(' ') || '',
+            targetBand: String(userData.targetBand || '7.0'),
+            examDate: userData.examDate || '',
+            phoneNumber: userData.phoneNumber || '',
+            photoURL: userData.photoURL || ''
+        });
+        setImagePreview(userData.photoURL || null);
     }, [userData]);
+
+    // Speaking AI kunlik sarfi — server `users/{uid}/usage/speaking` da yuritadi.
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            if (!user?.uid) return;
+            setUsageLoading(true);
+            try {
+                const snap = await getDoc(doc(db, 'users', user.uid, 'usage', 'speaking'));
+                if (!cancelled) setSpeakingUsageDoc(snap.exists() ? snap.data() : null);
+            } catch (error) {
+                console.error('Speaking usage read error:', error);
+                if (!cancelled) setSpeakingUsageDoc(null);
+            } finally {
+                if (!cancelled) setUsageLoading(false);
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    }, [user?.uid]);
+
+    const speaking = useMemo(
+        () => getSpeakingUsage(speakingUsageDoc, userData),
+        [speakingUsageDoc, userData]
+    );
+
+    /**
+     * Mock urinishlari — `userData.mockTests` dagi tayinlovlar.
+     * `arrayUnion` bir xil kalitni takror qo'shishi mumkin, shuning uchun
+     * `useStudentMocks` kabi id bo'yicha dublikatlarni tashlab yuboramiz.
+     * Tugatilgan urinishni server `status: 'completed'` qilib belgilaydi.
+     */
+    const mockStats = useMemo(() => {
+        const seen = new Set();
+        const assignments = (userData?.mockTests || []).filter((m) => {
+            const key = m?.id || m?.mockKey;
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        const completed = assignments.filter(
+            (m) => m.status === 'completed' || Boolean(m.resultId)
+        ).length;
+        return {
+            total: assignments.length,
+            completed,
+            remaining: Math.max(assignments.length - completed, 0),
+        };
+    }, [userData?.mockTests]);
+
+    const reset = timeUntilReset();
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -88,19 +262,27 @@ export default function Settings() {
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Check file size (2MB limit)
             if (file.size > 2 * 1024 * 1024) {
                 setMessage(t('settings.imageSizeError'));
                 return;
             }
             setImageFile(file);
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result);
-            };
+            reader.onloadend = () => setImagePreview(reader.result);
             reader.readAsDataURL(file);
         }
     };
+
+    const copyEmail = useCallback(async () => {
+        if (!user?.email) return;
+        try {
+            await navigator.clipboard.writeText(user.email);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            /* clipboard yopiq bo'lsa — jim o'tamiz */
+        }
+    }, [user?.email]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -110,40 +292,67 @@ export default function Settings() {
         try {
             let photoURL = formData.photoURL;
 
-            // 1. Upload Image if Logic exists (agar yangi rasm tanlangan bo'lsa)
             if (imageFile) {
                 const storageRef = ref(storage, `profile_pictures/${user.uid}`);
                 await uploadBytes(storageRef, imageFile);
                 photoURL = await getDownloadURL(storageRef);
             }
 
-            // 2. Update Firestore
             await updateDoc(doc(db, 'users', user.uid), {
-                fullName: formData.fullName,
+                fullName,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
                 targetBand: parseFloat(formData.targetBand),
                 examDate: formData.examDate,
                 phoneNumber: formData.phoneNumber,
-                photoURL: photoURL
+                photoURL
             });
 
-            // 3. Update Auth Profile (Muhim: Headerda darhol o'zgarishi uchun)
-            await updateProfile(user, {
-                displayName: formData.fullName,
-                photoURL: photoURL
-            });
+            // Header darhol yangilanishi uchun Auth profilini ham yozamiz.
+            await updateProfile(user, { displayName: fullName, photoURL });
 
             setMessage(t('settings.saveSuccess'));
         } catch (error) {
-            console.error("Settings save error:", error);
+            console.error('Settings save error:', error);
             setMessage(t('settings.saveError'));
         } finally {
             setLoading(false);
         }
     };
 
+    /* ── Umumiy class'lar ── */
+    const inputClass = `w-full py-2.5 px-3.5 rounded-xl outline-none border text-[13px] transition-colors ${
+        isDark
+            ? 'bg-warm-dark-soft border-white/[0.07] focus:border-white/25 text-warm-on-dark placeholder:text-warm-on-dark-soft/60'
+            : 'bg-white border-warm-hairline focus:border-warm-muted-soft text-warm-ink placeholder:text-warm-muted-soft'
+    }`;
+
+    const subtleBtn = `px-4 py-2 rounded-xl text-[13px] font-medium border transition-colors ${
+        isDark ? 'border-white/[0.12] hover:bg-white/5' : 'border-warm-hairline hover:bg-warm-card/60'
+    }`;
+
+    const primaryBtn = 'px-4 py-2 rounded-xl text-[13px] font-medium bg-warm-primary text-white hover:bg-warm-primary-active transition-colors';
+
+    const dividerClass = isDark ? 'divide-white/[0.07]' : 'divide-warm-hairline';
+
+    const tabs = [
+        { id: 'profile', label: t('settings.profileInfo') },
+        { id: 'exam', label: t('settings.examPrep') },
+        { id: 'appearance', label: t('settings.appearance') },
+        { id: 'subscription', label: t('settings.subscription') },
+    ];
+
+    const showSaveBar = activeTab === 'profile' || activeTab === 'exam';
+    const tierLabel = tier === 'pro' ? 'PRO' : tier === 'standard' ? 'STANDARD' : 'FREE';
+
+    const optionBtn = (selected) => `flex items-center gap-sm px-4 py-3 rounded-xl border text-[13px] font-medium transition-colors ${
+        selected
+            ? 'border-warm-primary text-warm-primary'
+            : (isDark ? 'border-white/[0.07] text-warm-on-dark-soft hover:border-white/25' : 'border-warm-hairline text-warm-body hover:border-warm-muted-soft')
+    }`;
+
     return (
         <div className={`min-h-screen transition-colors duration-500 ${isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'} font-sans selection:bg-warm-primary/20`}>
-            {/* Show Header only for Students */}
             {userData?.role !== 'admin' && (
                 <DashboardHeader
                     user={user}
@@ -155,402 +364,547 @@ export default function Settings() {
                 />
             )}
 
-            <div className={`max-w-4xl mx-auto px-4 md:px-6 py-xl md:py-xxl relative z-10`}>
+            <div className="max-w-5xl mx-auto px-4 md:px-6 py-lg md:py-xl">
                 {userData?.role !== 'admin' && (
-                    <motion.button 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        onClick={() => navigate('/dashboard')} 
-                        className={`flex items-center gap-xs mb-xl transition-all group ${isDark ? 'text-warm-on-dark-soft hover:text-warm-on-dark' : 'text-warm-muted hover:text-warm-ink'}`}
+                    <button
+                        type="button"
+                        onClick={() => navigate('/dashboard')}
+                        className="flex items-center gap-xs mb-lg text-[13px] text-warm-muted hover:text-warm-primary transition-colors"
                     >
-                        <div className={`p-2 rounded-full transition-colors ${isDark ? 'group-hover:bg-white/10' : 'group-hover:bg-black/5'}`}>
-                            <ArrowLeft size={18} />
-                        </div>
-                        <span className="font-medium text-sm">{t('roadmap.backToDashboard')}</span>
-                    </motion.button>
+                        <ArrowLeft size={16} />
+                        {t('roadmap.backToDashboard')}
+                    </button>
                 )}
 
-                <div className="flex flex-col md:flex-row gap-10 items-start">
-                    {/* Left Sidebar Navigation */}
-                    <div className="w-full md:w-64 shrink-0 space-y-1">
-                        <h1 className="text-xl font-bold tracking-tight mb-md px-2">
-                            {t('settings.title')}
-                        </h1>
-                        
-                        {[
-                            { id: 'profile', label: t('settings.profileInfo'), icon: User },
-                            { id: 'exam', label: t('settings.examPrep'), icon: Target },
-                            { id: 'subscription', label: t('settings.subscription'), icon: Zap },
-                            { id: 'account', label: t('settings.account'), icon: Smartphone }
-                        ].map((item) => (
-                            <button
-                                key={item.id}
-                                onClick={() => setActiveSection(item.id)}
-                                className={`w-full flex items-center gap-sm px-md py-2.5 rounded-md transition-all duration-300 text-[13px] font-bold ${
-                                    activeSection === item.id
-                                        ? (isDark ? 'bg-warm-primary text-white shadow-sm' : 'bg-warm-primary text-white shadow-sm')
-                                        : (isDark ? 'text-warm-on-dark-soft hover:bg-white/5 hover:text-warm-on-dark' : 'text-warm-muted hover:bg-warm-primary/5 hover:text-warm-ink')
-                                }`}
-                            >
-                                <item.icon size={16} />
-                                {item.label}
-                                {activeSection === item.id && <motion.div layoutId="active-pill" className="ml-auto"><ChevronRight size={14} /></motion.div>}
-                            </button>
-                        ))}
-                        
-                        <div className="pt-md mt-md border-t border-warm-hairline dark:border-white/10 md:block hidden">
-                            <button
-                                onClick={logout}
-                                className="w-full flex items-center gap-sm px-md py-2.5 rounded-md text-[13px] font-bold text-warm-error hover:bg-warm-error/10 transition-all"
-                            >
-                                <LogOut size={16} />
-                                {t('dashboard.logout')}
-                            </button>
+                <div className="mb-lg">
+                    <h1 className="text-xl font-semibold tracking-tight">{t('settings.title')}</h1>
+                    <p className="text-[13px] text-warm-muted mt-1">{t('settings.subtitle')}</p>
+                </div>
+
+                <div className="flex flex-col lg:flex-row gap-lg items-start">
+                    {/* ── Asosiy ustun ── */}
+                    <div className="flex-1 w-full min-w-0 space-y-md">
+                        {/* Tab paneli — matn, ikonkasiz */}
+                        <div className={`flex gap-1 p-1 rounded-xl overflow-x-auto ${isDark ? 'bg-warm-dark-soft' : 'bg-warm-card/70'}`}>
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`relative flex-1 min-w-[92px] px-3 py-2 rounded-lg text-[13px] transition-colors ${
+                                        activeTab === tab.id
+                                            ? (isDark ? 'text-warm-on-dark font-medium' : 'text-warm-ink font-medium')
+                                            : 'text-warm-muted hover:text-warm-body'
+                                    }`}
+                                >
+                                    {activeTab === tab.id && (
+                                        <motion.span
+                                            layoutId="settings-tab-pill"
+                                            className={`absolute inset-0 rounded-lg ${isDark ? 'bg-warm-dark-elevated' : 'bg-white'}`}
+                                            transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                                        />
+                                    )}
+                                    <span className="relative whitespace-nowrap">{tab.label}</span>
+                                </button>
+                            ))}
                         </div>
-                    </div>
 
-                    {/* Main Content Area */}
-                    <div className="flex-1 w-full">
-                        <motion.div 
-                            key={activeSection}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4 }}
-                            className={`${isDark ? 'bg-warm-dark-elevated border-white/5' : 'bg-white border-warm-hairline'} rounded-lg p-lg md:p-xl border shadow-sm relative overflow-hidden max-w-2xl`}
-                        >
-                            <form onSubmit={handleSubmit} className="space-y-xl relative z-10">
-                                {activeSection === 'profile' && (
-                                    <div className="space-y-xl">
-                                        {/* Avatar Section */}
-                                        <div className="flex flex-col items-center">
-                                            <div className="relative group">
-                                                <div className={`w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 ${isDark ? 'border-white/10' : 'border-warm-hairline'} shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]`}>
-                                                    {imagePreview ? (
-                                                        <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className={`w-full h-full flex items-center justify-center text-5xl font-black ${isDark ? 'bg-warm-dark-soft text-white/20' : 'bg-warm-card text-warm-muted'}`}>
-                                                            {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : <User size={48} />}
-                                                        </div>
-                                                    )}
-                                                    {loading && (
-                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm">
-                                                            <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                        </div>
-                                                    )}
+                        <form onSubmit={handleSubmit} className="space-y-md">
+                            <motion.div
+                                key={activeTab}
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="space-y-md"
+                            >
+                                {/* ─────────── PROFIL ─────────── */}
+                                {activeTab === 'profile' && (
+                                    <>
+                                        <Card isDark={isDark} className="p-lg">
+                                            <CardHead title={t('settings.profileInfo')} desc={t('settings.profileDesc')} />
+
+                                            <div className="flex items-center gap-md mb-lg">
+                                                <div className="relative shrink-0">
+                                                    <div className={`w-16 h-16 rounded-full overflow-hidden ${isDark ? 'bg-warm-dark-soft' : 'bg-warm-card'}`}>
+                                                        {imagePreview ? (
+                                                            <img src={imagePreview} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-warm-muted-soft text-xl font-medium">
+                                                                {fullName ? fullName.charAt(0).toUpperCase() : <User size={22} />}
+                                                            </div>
+                                                        )}
+                                                        {loading && (
+                                                            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <label
+                                                        htmlFor="profile-upload"
+                                                        className={`absolute -bottom-0.5 -right-0.5 p-1.5 rounded-full cursor-pointer transition-colors border ${
+                                                            isDark ? 'bg-warm-dark-elevated border-white/[0.12] hover:bg-white/10' : 'bg-white border-warm-hairline hover:bg-warm-card'
+                                                        }`}
+                                                    >
+                                                        <Camera size={13} />
+                                                    </label>
+                                                    <input id="profile-upload" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                                                 </div>
-                                                <label htmlFor="profile-upload" className={`absolute bottom-1 right-1 p-3 shadow-xl cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95 rounded-full ${isDark ? 'bg-warm-primary text-white' : 'bg-warm-primary text-white'}`}>
-                                                    <Camera size={20} />
-                                                </label>
-                                                <input id="profile-upload" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                                                <div className="min-w-0">
+                                                    <p className="text-[14px] font-medium truncate">{fullName || t('settings.defaultUser')}</p>
+                                                    <p className="text-[12px] text-warm-muted mt-0.5">{t('settings.updatePhotoPrompt')}</p>
+                                                </div>
                                             </div>
-                                            <div className="mt-md text-center">
-                                                <h3 className="text-base font-bold">{formData.fullName || t('settings.defaultUser')}</h3>
-                                                <p className="text-warm-muted text-sm mt-1">{t('settings.updatePhotoPrompt')}</p>
-                                            </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-                                            <div className="space-y-xs">
-                                                <label className="text-xs font-bold text-warm-muted ml-1">{t('settings.fullName')}</label>
-                                                <div className="relative group">
-                                                    <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-muted-soft group-focus-within:text-warm-primary transition-colors" />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                                                <Field label={t('settings.firstName')}>
                                                     <input
                                                         type="text"
-                                                        name="fullName"
-                                                        value={formData.fullName}
+                                                        name="firstName"
+                                                        value={formData.firstName}
                                                         onChange={handleChange}
-                                                        className={`w-full py-2.5 pl-12 pr-4 rounded-md outline-none border transition-all duration-300 font-bold text-[13px] ${isDark ? 'bg-warm-dark-soft border-white/5 focus:border-white/20' : 'bg-warm-card border-transparent focus:border-warm-hairline focus:bg-white'}`}
-                                                        placeholder={t('settings.enterNamePlaceholder')}
+                                                        className={inputClass}
+                                                        placeholder={t('settings.firstNamePlaceholder')}
                                                     />
-                                                </div>
-                                            </div>
+                                                </Field>
 
-                                            <div className="space-y-xs">
-                                                <label className="text-xs font-bold text-warm-muted ml-1">{t('settings.phoneNumber')}</label>
-                                                <div className="relative group">
-                                                    <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-muted-soft group-focus-within:text-warm-primary transition-colors" />
+                                                <Field label={t('settings.lastName')}>
+                                                    <input
+                                                        type="text"
+                                                        name="lastName"
+                                                        value={formData.lastName}
+                                                        onChange={handleChange}
+                                                        className={inputClass}
+                                                        placeholder={t('settings.lastNamePlaceholder')}
+                                                    />
+                                                </Field>
+
+                                                <Field label={t('settings.phoneNumber')}>
                                                     <input
                                                         type="tel"
                                                         name="phoneNumber"
                                                         value={formData.phoneNumber}
                                                         onChange={handleChange}
-                                                        className={`w-full py-2.5 pl-12 pr-4 rounded-md outline-none border transition-all duration-300 font-bold text-[13px] ${isDark ? 'bg-warm-dark-soft border-white/5 focus:border-white/20' : 'bg-warm-card border-transparent focus:border-warm-hairline focus:bg-white'}`}
+                                                        className={inputClass}
                                                         placeholder="+998 90 123 45 67"
                                                     />
-                                                </div>
+                                                </Field>
+
+                                                <Field
+                                                    label={t('settings.emailAddress')}
+                                                    hint={copied ? t('settings.emailCopied') : t('settings.emailLocked')}
+                                                >
+                                                    <input
+                                                        type="email"
+                                                        value={user?.email || ''}
+                                                        readOnly
+                                                        className={`${inputClass} pr-10 text-warm-muted cursor-default`}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={copyEmail}
+                                                        aria-label={t('settings.emailAddress')}
+                                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-warm-muted-soft hover:text-warm-primary transition-colors"
+                                                    >
+                                                        {copied ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </Field>
                                             </div>
-                                        </div>
-                                    </div>
+                                        </Card>
+
+                                        {/* Qurilma va kirish — reference dizayndagi "Active sessions" o'rniga
+                                            haqiqiy ma'lumot: Firebase Auth metadata + joriy brauzer. */}
+                                        <Card isDark={isDark} className="p-lg">
+                                            <CardHead title={t('settings.deviceSession')} desc={t('settings.deviceSessionDesc')} />
+
+                                            <div className={`divide-y ${dividerClass} -mt-2`}>
+                                                <DataRow
+                                                    label={t('settings.currentDevice')}
+                                                    value={describeDevice(typeof navigator !== 'undefined' ? navigator.userAgent : '')}
+                                                    badge={t('settings.current')}
+                                                />
+                                                <DataRow
+                                                    label={t('settings.lastSignIn')}
+                                                    value={formatDateTime(user?.metadata?.lastSignInTime, lang)}
+                                                />
+                                                <DataRow
+                                                    label={t('settings.memberSince')}
+                                                    value={formatDateTime(user?.metadata?.creationTime, lang)}
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={logout}
+                                                className="mt-lg inline-flex items-center gap-xs text-[13px] font-medium text-warm-error hover:opacity-75 transition-opacity"
+                                            >
+                                                <LogOut size={15} />
+                                                {t('settings.signOut')}
+                                            </button>
+                                        </Card>
+                                    </>
                                 )}
 
-                                {activeSection === 'exam' && (
-                                    <div className="space-y-xl">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-xl">
-                                            <div className="space-y-md">
-                                                <label className="text-xs font-bold text-warm-muted ml-1">{t('settings.targetBand')}</label>
-                                                <div className="grid grid-cols-3 gap-xs">
+                                {/* ─────────── IMTIHON ─────────── */}
+                                {activeTab === 'exam' && (
+                                    <Card isDark={isDark} className="p-lg">
+                                        <CardHead title={t('settings.examPrep')} desc={t('settings.examDesc')} />
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+                                            <Field label={t('settings.targetBand')}>
+                                                <div className="grid grid-cols-3 gap-2">
                                                     {['6.0', '6.5', '7.0', '7.5', '8.0', '9.0'].map(band => (
                                                         <button
                                                             key={band}
                                                             type="button"
                                                             onClick={() => setFormData(prev => ({ ...prev, targetBand: band }))}
-                                                            className={`py-2 rounded-md font-bold text-[12px] transition-all duration-300 border-2 ${
+                                                            className={`py-2 rounded-xl text-[13px] border transition-colors ${
                                                                 formData.targetBand === band
-                                                                    ? (isDark ? 'bg-warm-primary text-white border-warm-primary shadow-sm' : 'bg-warm-primary text-white border-warm-primary shadow-sm')
-                                                                    : (isDark ? 'bg-warm-dark-soft text-warm-on-dark-soft border-white/5 hover:border-white/20' : 'bg-warm-card text-warm-muted border-transparent hover:bg-warm-card-strong')
+                                                                    ? 'border-warm-primary text-warm-primary font-medium'
+                                                                    : (isDark ? 'border-white/[0.07] text-warm-on-dark-soft hover:border-white/25' : 'border-warm-hairline text-warm-body hover:border-warm-muted-soft')
                                                             }`}
                                                         >
                                                             {band}
                                                         </button>
                                                     ))}
                                                 </div>
-                                            </div>
+                                            </Field>
 
                                             <div className="space-y-md">
-                                                <label className="text-xs font-bold text-warm-muted ml-1">{t('settings.examDate')}</label>
-                                                <div className="relative group">
-                                                    <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-muted-soft group-focus-within:text-warm-primary transition-colors pointer-events-none" />
+                                                <Field label={t('settings.examDate')}>
                                                     <input
                                                         type="date"
                                                         name="examDate"
                                                         value={formData.examDate}
                                                         onChange={handleChange}
-                                                        className={`w-full py-4 pl-12 pr-4 rounded-md outline-none border-2 transition-all duration-300 font-semibold [color-scheme:dark] ${isDark ? 'bg-warm-dark-soft border-white/5 focus:border-warm-primary/50' : 'bg-warm-card border-warm-hairline focus:border-warm-primary'}`}
+                                                        className={inputClass}
                                                     />
+                                                </Field>
+
+                                                {/* Imtihongacha qolgan kunlar — sana tanlanishi bilan yangilanadi. */}
+                                                <div className={`rounded-xl px-4 py-3 flex items-baseline justify-between ${isDark ? 'bg-warm-dark-soft' : 'bg-warm-card/60'}`}>
+                                                    <span className="text-[12px] text-warm-muted">{t('settings.examCountdown')}</span>
+                                                    {examDaysLeft === null ? (
+                                                        <span className="text-[12px] text-warm-muted-soft">{t('settings.examCountdownEmpty')}</span>
+                                                    ) : (
+                                                        <span className="text-[15px] font-medium">
+                                                            {examDaysLeft} <span className="text-[12px] text-warm-muted font-normal">{t('settings.days')}</span>
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </Card>
                                 )}
 
-                                {activeSection === 'subscription' && (
-                                    <div className="space-y-lg">
-                                        <div className={`relative overflow-hidden rounded-lg border ${isDark ? 'border-white/10 bg-warm-dark-soft' : 'border-warm-hairline bg-warm-card/50'} p-lg shadow-xl`}>
-                                            {/* Glow effect */}
-                                            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-warm-primary/10 blur-[80px]" />
-                                            <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-warm-accent-amber/10 blur-[80px]" />
+                                {/* ─────────── KO'RINISH ─────────── */}
+                                {activeTab === 'appearance' && (
+                                    <Card isDark={isDark} className="p-lg">
+                                        <CardHead title={t('settings.appearance')} desc={t('settings.appearanceDesc')} />
 
-                                            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-lg">
-                                                <div>
-                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                                                        isPremium
-                                                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black'
-                                                            : 'bg-warm-card-strong dark:bg-white/10 text-warm-muted dark:text-warm-on-dark-soft'
-                                                    }`}>
-                                                        <Zap size={12} fill="currentColor" />
-                                                        {isPremium ? t('settings.premiumPlan') : t('settings.freePlan')}
-                                                    </span>
-
-                                                    <h3 className="text-2xl font-black tracking-tight mt-sm">
-                                                        {isPremium
-                                                            ? `${(activeTier === 'pro' || userData?.isPro) ? 'PRO' : 'STANDARD'} PLAN`
-                                                            : 'FREE PLAN'
-                                                        }
-                                                    </h3>
-                                                    <p className="text-warm-muted dark:text-warm-on-dark-soft text-xs mt-1.5 leading-relaxed">
-                                                        {isPremium
-                                                            ? (userData?.groupId && userData?.groupId !== 'none'
-                                                                ? "Siz o'quv guruhi a'zosisiz. Obunangiz o'qituvchingiz tomonidan faollashtirilgan."
-                                                                : "Barcha premium va mock imtihonlardan cheksiz foydalanish huquqiga egasiz.")
-                                                            : "IELTS tayyorgarligi uchun cheklangan bepul rejimdagi hisob."
-                                                        }
-                                                    </p>
+                                        <div className="space-y-lg">
+                                            <Field label={t('settings.theme')}>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[
+                                                        { id: 'light', label: t('settings.themeLight'), icon: Sun },
+                                                        { id: 'dark', label: t('settings.themeDark'), icon: Moon },
+                                                    ].map((option) => (
+                                                        <button
+                                                            key={option.id}
+                                                            type="button"
+                                                            onClick={() => { if (theme !== option.id) toggleTheme(); }}
+                                                            className={optionBtn(theme === option.id)}
+                                                        >
+                                                            <option.icon size={15} />
+                                                            {option.label}
+                                                            {theme === option.id && <Check size={14} className="ml-auto" />}
+                                                        </button>
+                                                    ))}
                                                 </div>
+                                            </Field>
 
-                                                <div className="flex flex-col items-center justify-center bg-black/[0.03] dark:bg-white/5 border border-warm-hairline dark:border-white/5 backdrop-blur-md rounded-lg p-md min-w-[120px] text-center">
-                                                    <span className="text-[10px] font-bold text-warm-muted uppercase tracking-wider">{t('settings.daysRemaining')}</span>
-                                                    <span className="text-3xl font-black text-warm-primary mt-1">
-                                                        {userData?.groupId && userData?.groupId !== 'none'
-                                                            ? '∞'
-                                                            : (isPremium ? getRemainingDays() : '0')
-                                                        }
-                                                    </span>
-                                                    <span className="text-xs font-bold text-warm-muted mt-0.5">
-                                                        {userData?.groupId && userData?.groupId !== 'none'
-                                                            ? t('settings.unlimitedAccess')
-                                                            : `${t('settings.days')}`
-                                                        }
-                                                    </span>
+                                            <Field label={t('settings.language')} hint={t('settings.previewNote')}>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[
+                                                        { id: 'uz', label: "O'zbekcha" },
+                                                        { id: 'en', label: 'English' },
+                                                    ].map((option) => (
+                                                        <button
+                                                            key={option.id}
+                                                            type="button"
+                                                            onClick={() => setLang(option.id)}
+                                                            className={optionBtn(lang === option.id)}
+                                                        >
+                                                            {option.label}
+                                                            {lang === option.id && <Check size={14} className="ml-auto" />}
+                                                        </button>
+                                                    ))}
                                                 </div>
-                                            </div>
+                                            </Field>
                                         </div>
+                                    </Card>
+                                )}
 
-                                        {/* Upgrade Motivation Card */}
-                                        {!isPremium && (
-                                            <div className="space-y-lg">
-                                                {/* Visual indicator of limited usage */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-                                                    <div className={`p-md rounded-lg border ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-warm-hairline bg-warm-card/50'} flex items-start gap-sm`}>
-                                                        <div className="p-2 rounded-md bg-red-500/10 text-red-400 shrink-0">
-                                                            <Lock size={16} />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className={`text-xs font-bold ${isDark ? 'text-warm-on-dark' : 'text-warm-body-strong'}`}>Cheklangan Mock Imtihonlar</h4>
-                                                            <p className="text-[11px] text-warm-muted mt-1">Haqiqiy imtihon muhitidagi to'liq testlar bepul tarifda yopiq.</p>
-                                                        </div>
+                                {/* ─────────── OBUNA ─────────── */}
+                                {activeTab === 'subscription' && (
+                                    <>
+                                        {/* Joriy tarif */}
+                                        <Card isDark={isDark} className="p-lg">
+                                            <CardHead title={t('settings.currentPlan')} />
+
+                                            <div className="flex flex-wrap items-start justify-between gap-md">
+                                                <div className="max-w-md">
+                                                    <div className="flex items-center gap-xs">
+                                                        <span className="text-[17px] font-semibold tracking-tight">{tierLabel}</span>
+                                                        {isPremium && (
+                                                            <span className="text-[11px] font-medium text-warm-primary border border-warm-primary/30 rounded-full px-2 py-0.5">
+                                                                {t('settings.activeSubscription')}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    <div className={`p-md rounded-lg border ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-warm-hairline bg-warm-card/50'} flex items-start gap-sm`}>
-                                                        <div className="p-2 rounded-md bg-amber-500/10 text-amber-400 shrink-0">
-                                                            <Sparkles size={16} />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className={`text-xs font-bold ${isDark ? 'text-warm-on-dark' : 'text-warm-body-strong'}`}>Sun'iy Intellekt Tahlili</h4>
-                                                            <p className="text-[11px] text-warm-muted mt-1">Writing va Speaking insholaringizni AI orqali baholash cheklangan.</p>
-                                                        </div>
-                                                    </div>
+                                                    <p className="text-[13px] text-warm-muted mt-1.5 leading-relaxed">
+                                                        {isPremium
+                                                            ? (grouped
+                                                                ? "Siz o'quv guruhi a'zosisiz — obunangiz o'qituvchingiz tomonidan faollashtirilgan."
+                                                                : "Barcha premium testlar va mock imtihonlar ochiq.")
+                                                            : "IELTS tayyorgarligi uchun cheklangan bepul hisob."}
+                                                    </p>
                                                 </div>
 
-                                                {/* Premium details / comparison table */}
-                                                <div className={`p-5 rounded-lg border ${isDark ? 'border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-indigo-500/5' : 'border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50'} relative overflow-hidden`}>
-                                                    <div className="absolute right-0 bottom-0 translate-x-1/4 translate-y-1/4 opacity-10">
-                                                        <Sparkles size={150} className="text-violet-400" />
-                                                    </div>
-                                                    <h4 className="text-sm font-bold text-violet-600 dark:text-violet-300 flex items-center gap-1.5">
-                                                        <Sparkles size={16} />
-                                                        Nega premiumga o'tishingiz kerak?
-                                                    </h4>
-                                                    <p className={`text-xs ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-body'} mt-xs leading-relaxed`}>
-                                                        Englev Premium orqali IELTS ballingizni tezroq va samaraliroq oshiring. Har bir testdan so'ng xatolaringiz ustida ishlang, batafsil tushuntirishlarni o'qing va sun'iy intellektdan tavsiyalar oling.
+                                                <div className="text-right">
+                                                    <p className="text-[12px] text-warm-muted">{t('settings.daysRemaining')}</p>
+                                                    <p className="text-[20px] font-semibold mt-0.5">
+                                                        {grouped ? '∞' : (isPremium ? getRemainingDays() : 0)}
                                                     </p>
-
-                                                    <div className={`mt-md pt-sm border-t ${isDark ? 'border-white/5' : 'border-warm-hairline'} space-y-xs`}>
-                                                        {[
-                                                            "50+ dan ortiq to'liq Listening & Reading amaliyot testlari",
-                                                            "Writing insholaringizni soniyalar ichida grammatik, leksik va umumiy ball bo'yicha tahlil qilish",
-                                                            "Speaking simulator: AI imtihon oluvchi bilan og'zaki nutq mashg'uloti",
-                                                            "Siz yo'l qo'ygan xatolarning batafsil tushuntirishlari (explanations)"
-                                                        ].map((benefit, i) => (
-                                                            <div key={i} className="flex items-start gap-xs text-[11px] text-warm-muted dark:text-warm-on-dark-soft">
-                                                                <Check size={12} className="text-emerald-500 mt-0.5 shrink-0" />
-                                                                <span>{benefit}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    {/* CTA button */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate('/pricing')}
-                                                        className="w-full mt-5 py-3 rounded-md font-bold text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-xs shadow-lg shadow-indigo-600/20"
-                                                    >
-                                                        <Zap size={14} fill="currentColor" />
-                                                        Premiumga O'tish & Tariflarni Ko'rish
-                                                    </button>
-
-                                                    <div className="text-center mt-sm text-[10px] text-warm-muted-soft dark:text-warm-on-dark-soft">
-                                                        IELTS 7.5+ band natijaga erishgan o'quvchilarimizning 92% premium tariflardan foydalangan!
-                                                    </div>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        {/* Standard user upgrading to Pro motivation */}
-                                        {isPremium && activeTier === 'standard' && (
-                                            <div className={`p-5 rounded-lg border ${isDark ? 'border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-orange-500/5' : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50'} relative overflow-hidden`}>
-                                                <h4 className="text-sm font-bold text-amber-600 dark:text-amber-300 flex items-center gap-1.5">
-                                                    <Zap size={16} fill="currentColor" />
-                                                    PRO tarifiga yangilang!
-                                                </h4>
-                                                <p className={`text-xs ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-body'} mt-xs leading-relaxed`}>
-                                                    Sizda joriy "Standard" obunasi mavjud. "PRO" rejimiga o'tish orqali siz to'liq shaxsiy Roadmap, ko'proq Mock testlar va ilg'or AI tahlillariga ega bo'lasiz.
-                                                </p>
+                                            <div className="flex flex-wrap gap-2 mt-lg">
+                                                <button type="button" onClick={() => navigate('/pricing')} className={subtleBtn}>
+                                                    {t('settings.viewPlans')}
+                                                </button>
+                                                {tier !== 'pro' && (
+                                                    <button type="button" onClick={() => navigate('/pricing')} className={primaryBtn}>
+                                                        {t('settings.upgradeNow')}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </Card>
 
+                                        {/* AI limitlari */}
+                                        <Card isDark={isDark} className="p-lg">
+                                            <CardHead title={t('settings.aiUsage')} desc={t('settings.aiUsageDesc')} />
+
+                                            {usageLoading ? (
+                                                <p className="text-[13px] text-warm-muted">{t('settings.loading')}</p>
+                                            ) : (
+                                                <div className="space-y-lg">
+                                                    <UsageMeter
+                                                        isDark={isDark}
+                                                        title={t('settings.speakingCheck')}
+                                                        used={speaking.used}
+                                                        limit={speaking.limit}
+                                                        leftLabel={fill(t('settings.usedOf'), { used: speaking.used, limit: speaking.limit })}
+                                                        rightLabel={
+                                                            speaking.remaining === 0
+                                                                ? fill(t('settings.resetsIn'), { hours: reset.hours, minutes: reset.minutes })
+                                                                : fill(t('settings.remainingCount'), { count: speaking.remaining })
+                                                        }
+                                                    />
+
+                                                    <UsageMeter
+                                                        isDark={isDark}
+                                                        title={t('settings.writingCheck')}
+                                                        used={0}
+                                                        limit={0}
+                                                        unlimited
+                                                        leftLabel={t('settings.noLimit')}
+                                                        rightLabel={t('settings.unlimited')}
+                                                    />
+
+                                                    {speaking.total > 0 && (
+                                                        <p className="text-[12px] text-warm-muted-soft">
+                                                            {fill(t('settings.totalChecks'), { count: speaking.total })}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </Card>
+
+                                        {/* Mock urinishlari — `mockTests` tayinlovlaridan hisoblanadi */}
+                                        <Card isDark={isDark} className="p-lg">
+                                            <CardHead title={t('settings.mockAttempts')} desc={t('settings.mockAttemptsDesc')} />
+
+                                            {mockStats.total === 0 ? (
+                                                <div className="flex flex-wrap items-center justify-between gap-md">
+                                                    <p className="text-[13px] text-warm-muted">{t('settings.mockNone')}</p>
+                                                    <button type="button" onClick={() => navigate('/mock-buy')} className={primaryBtn}>
+                                                        {t('settings.buyMock')}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-lg">
+                                                    <UsageMeter
+                                                        isDark={isDark}
+                                                        title={t('settings.mockShort')}
+                                                        used={mockStats.completed}
+                                                        limit={mockStats.total}
+                                                        leftLabel={fill(t('settings.mockUsed'), { used: mockStats.completed, total: mockStats.total })}
+                                                        rightLabel={
+                                                            mockStats.remaining === 0
+                                                                ? t('settings.mockAllUsed')
+                                                                : fill(t('settings.mockRemaining'), { count: mockStats.remaining })
+                                                        }
+                                                    />
+
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button type="button" onClick={() => navigate('/mock')} className={subtleBtn}>
+                                                            {t('settings.openMocks')}
+                                                        </button>
+                                                        <button type="button" onClick={() => navigate('/mock-buy')} className={subtleBtn}>
+                                                            {t('settings.buyMock')}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </Card>
+
+                                        {/* Bepul tarif uchun bitta, sokin taklif bloki */}
+                                        {!isPremium && (
+                                            <Card isDark={isDark} className="p-lg">
+                                                <CardHead
+                                                    title="Premium nima beradi?"
+                                                    desc="Bepul tarifda mock imtihonlar va AI tahlili cheklangan."
+                                                />
+                                                <ul className={`divide-y ${dividerClass} -mt-2`}>
+                                                    {[
+                                                        "50+ to'liq Listening & Reading amaliyot testlari",
+                                                        "Writing insholaringizni soniyalar ichida tahlil qilish",
+                                                        "Speaking simulator: AI imtihon oluvchi bilan mashg'ulot",
+                                                        "Xatolaringizning batafsil tushuntirishlari",
+                                                    ].map((benefit) => (
+                                                        <li key={benefit} className="flex items-start gap-sm py-3 text-[13px] text-warm-muted">
+                                                            <Check size={14} className="mt-0.5 shrink-0 text-warm-primary" />
+                                                            <span>{benefit}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
                                                 <button
                                                     type="button"
                                                     onClick={() => navigate('/pricing')}
-                                                    className="w-full mt-md py-3 rounded-md font-bold text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black dark:text-white transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-xs shadow-lg"
+                                                    className={`${primaryBtn} mt-lg`}
                                                 >
-                                                    <Sparkles size={14} fill="currentColor" />
-                                                    PRO Tarifga Yangilash
+                                                    {t('settings.viewPlans')}
                                                 </button>
-                                            </div>
+                                            </Card>
                                         )}
 
-                                        {/* Pro active */}
-                                        {isPremium && (activeTier === 'pro' || userData?.isPro) && (
-                                            <div className={`p-5 rounded-lg border ${isDark ? 'border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-teal-500/5' : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'} text-center`}>
-                                                <Sparkles className="mx-auto text-emerald-500 dark:text-emerald-400 mb-xs" size={24} />
-                                                <h4 className="text-sm font-bold text-emerald-600 dark:text-emerald-300">Sizda PRO tarif faol!</h4>
-                                                <p className={`text-xs ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-muted'} mt-1`}>
-                                                    IELTS imtihonidan eng yuqori ballni egallashingiz uchun platformamizning barcha premium imkoniyatlari ochiq. Har kuni mashq qiling va muvaffaqiyatga erishing!
+                                        {tier === 'standard' && (
+                                            <Card isDark={isDark} className="p-lg">
+                                                <p className="text-[13px] text-warm-muted leading-relaxed">
+                                                    PRO tarifida to'liq shaxsiy Roadmap, ko'proq Mock testlar va kuniga 50 tagacha
+                                                    Speaking AI baholashi ochiladi.
                                                 </p>
-                                            </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate('/pricing')}
+                                                    className={`${primaryBtn} mt-md`}
+                                                >
+                                                    {t('settings.upgradeNow')}
+                                                </button>
+                                            </Card>
                                         )}
-                                    </div>
+                                    </>
                                 )}
+                            </motion.div>
 
-                                {activeSection === 'account' && (
-                                    <div className="space-y-sm">
-                                        <div className={`py-3 px-4 rounded-lg ${isDark ? 'bg-warm-dark-soft' : 'bg-warm-card'} border ${isDark ? 'border-white/10' : 'border-warm-hairline'}`}>
-                                            <div className="flex items-center gap-md">
-                                                <div className={`p-2 rounded-md ${isDark ? 'bg-warm-primary/10 text-warm-primary' : 'bg-warm-primary/10 text-warm-primary'}`}>
-                                                    <Mail size={18} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] font-bold text-warm-muted">{t('settings.emailAddress')}</p>
-                                                    <p className="font-bold text-[14px] leading-tight">{user?.email}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className={`py-3 px-4 rounded-lg ${isDark ? 'bg-warm-dark-soft' : 'bg-warm-card'} border ${isDark ? 'border-white/10' : 'border-warm-hairline'}`}>
-                                            <div className="flex items-center gap-md">
-                                                <div className={`p-2 rounded-md ${isDark ? 'bg-orange-500/10 text-orange-500' : 'bg-orange-50 text-orange-600'}`}>
-                                                    <Target size={18} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] font-bold text-warm-muted">{t('settings.accountStatus')}</p>
-                                                    <p className="font-bold text-[14px] leading-tight flex items-center gap-xs">
-                                                        {userData?.isPremium ? t('settings.premiumPlan') : t('settings.freePlan')}
-                                                        {userData?.isPremium && <CheckCircle2 size={14} className="text-warm-success" />}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Bottom Action Bar */}
-                                <div className="pt-xl flex flex-col md:flex-row items-center justify-between gap-lg border-t border-warm-hairline dark:border-white/10">
+                            {/* Saqlash paneli — faqat tahrirlanadigan tablarda */}
+                            {showSaveBar && (
+                                <div className="flex items-center justify-end gap-md pt-1">
                                     <AnimatePresence>
                                         {message && (
-                                            <motion.div
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: -20 }}
-                                                className={`flex items-center gap-xs text-sm font-bold ${message.includes('❌') ? 'text-warm-error' : 'text-warm-success'}`}
+                                            <motion.span
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className={`flex items-center gap-xs text-[13px] ${message.includes('❌') ? 'text-warm-error' : 'text-warm-success'}`}
                                             >
-                                                {message.includes('❌') ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+                                                {message.includes('❌') ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
                                                 {message}
-                                            </motion.div>
+                                            </motion.span>
                                         )}
                                     </AnimatePresence>
 
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className={`w-full md:w-auto px-lg py-2.5 rounded-md font-bold transition-all duration-300 flex items-center justify-center gap-xs shadow-lg ${
-                                            loading
-                                                ? 'bg-warm-muted cursor-not-allowed opacity-70'
-                                                : (isDark ? 'bg-warm-primary text-white hover:scale-[1.02] active:scale-95' : 'bg-warm-primary text-white hover:scale-[1.02] active:scale-95')
-                                        }`}
+                                        className={`${primaryBtn} flex items-center gap-xs ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                                     >
                                         {loading ? (
                                             <>
-                                                <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
+                                                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                                                 {t('settings.saving')}
                                             </>
                                         ) : (
                                             <>
-                                                <Save size={20} />
-                                                {t('common.save')}
+                                                <Save size={15} />
+                                                {t('settings.saveChanges')}
                                             </>
                                         )}
                                     </button>
                                 </div>
-                            </form>
-                        </motion.div>
+                            )}
+                        </form>
                     </div>
+
+                    {/* ── O'ng ustun: profil kartasi + qisqa ko'rsatkichlar ── */}
+                    <aside className="w-full lg:w-[280px] shrink-0 lg:sticky lg:top-24">
+                        <Card isDark={isDark} className="p-lg">
+                            <div className="flex flex-col items-center text-center">
+                                <div className={`w-16 h-16 rounded-full overflow-hidden ${isDark ? 'bg-warm-dark-soft' : 'bg-warm-card'}`}>
+                                    {imagePreview ? (
+                                        <img src={imagePreview} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-warm-muted-soft text-xl font-medium">
+                                            {fullName ? fullName.charAt(0).toUpperCase() : <User size={22} />}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <p className="mt-sm text-[14px] font-medium">{fullName || t('settings.defaultUser')}</p>
+                                <p className="text-[12px] text-warm-muted mt-0.5 truncate max-w-full">{user?.email}</p>
+                                <span className="mt-2 text-[11px] font-medium text-warm-muted border border-current/20 rounded-full px-2 py-0.5">
+                                    {tierLabel}
+                                </span>
+                            </div>
+
+                            <div className={`divide-y ${dividerClass} mt-lg`}>
+                                <DataRow label={t('settings.targetBandShort')} value={formData.targetBand} />
+                                <DataRow
+                                    label={t('settings.examCountdown')}
+                                    value={examDaysLeft === null ? '—' : `${examDaysLeft} ${t('settings.days')}`}
+                                />
+                                <DataRow
+                                    label={t('settings.mockShort')}
+                                    value={`${mockStats.completed} / ${mockStats.total}`}
+                                />
+                                {!usageLoading && (
+                                    <DataRow
+                                        label={t('settings.speakingCheck')}
+                                        value={`${speaking.used} / ${speaking.limit}`}
+                                    />
+                                )}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => navigate('/statistics')}
+                                className={`${subtleBtn} mt-lg w-full flex items-center justify-center gap-xs`}
+                            >
+                                <BarChart3 size={15} />
+                                {t('settings.viewStatistics')}
+                            </button>
+                        </Card>
+                    </aside>
                 </div>
             </div>
 

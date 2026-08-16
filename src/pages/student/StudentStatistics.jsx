@@ -166,6 +166,12 @@ export default function StudentStatistics() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/analytics')}
+                            className="h-[52px] px-5 rounded-xl border border-warm-hairline dark:border-white/10 bg-white dark:bg-warm-dark-elevated text-sm font-semibold text-warm-body dark:text-warm-on-dark-soft hover:bg-warm-surface dark:hover:bg-white/5 transition-colors"
+                        >
+                            {t('analytics.title')}
+                        </button>
                         {/* <button
                             onClick={() => navigate('/leaderboard')}
                             className="bg-warm-primary text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-warm-primary-active hover:scale-105 active:scale-95 transition-all shadow-[0_8px_20px_rgba(0,122,255,0.25)] h-[52px]"

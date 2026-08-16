@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Headphones } from 'lucide-react';
+import Logo from '../common/Logo';
 
 export default function PodcastSplash() {
   return (
@@ -43,9 +44,9 @@ export default function PodcastSplash() {
             initial={{ y: 50 }}
             animate={{ y: 0 }}
             transition={{ delay: 0.3, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-white text-4xl font-black uppercase tracking-tighter"
+            className="text-white"
           >
-            Englev Podcast
+            <Logo size="xl" tone="light" suffix="Podcast" />
           </motion.h1>
         </div>
         

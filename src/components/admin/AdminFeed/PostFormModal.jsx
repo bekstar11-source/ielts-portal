@@ -256,7 +256,7 @@ export default function PostFormModal({
     return (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto overscroll-contain">
             <div className={`w-full max-w-5xl max-h-[90dvh] overflow-y-auto rounded-3xl p-4 sm:p-6 border relative transition-colors grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 my-4 sm:my-8 ${
-                isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
+                isDark ? 'bg-[#1f1e1b] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
             }`}>
                 <button 
                     onClick={onClose} 
@@ -453,15 +453,15 @@ export default function PostFormModal({
 
                 {/* Right Side: iPhone Live Preview */}
                 <div className="hidden lg:col-span-5 lg:flex flex-col items-center justify-center bg-gray-100 dark:bg-black/40 rounded-3xl p-4 sm:p-6 border border-dashed border-gray-250 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-4">LIVE PREVIEW</span>
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-warm-muted uppercase tracking-widest mb-4">LIVE PREVIEW</span>
                     
                     {/* iPhone Shell */}
-                    <div className="w-[280px] h-[560px] rounded-[40px] border-[8px] border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xl relative overflow-hidden flex flex-col justify-between select-none">
+                    <div className="w-[280px] h-[560px] rounded-[40px] border-[8px] border-zinc-800 bg-white dark:bg-[#181715] shadow-2xl relative overflow-hidden flex flex-col justify-between select-none">
                         {/* Dynamic Island / Notch */}
                         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-zinc-800 rounded-full z-30" />
                         
                         {/* Status bar */}
-                        <div className="h-6 px-6 pt-1 flex justify-between items-center text-[9px] font-bold text-gray-500 dark:text-gray-400 z-20">
+                        <div className="h-6 px-6 pt-1 flex justify-between items-center text-[9px] font-bold text-gray-500 dark:text-warm-on-dark-soft z-20">
                             <span>09:41</span>
                             <div className="flex items-center gap-1">
                                 <span>📶</span>
@@ -470,10 +470,10 @@ export default function PostFormModal({
                         </div>
 
                         {/* Mock App Screen */}
-                        <div className="flex-1 flex flex-col bg-white dark:bg-[#18181b] overflow-y-auto overflow-x-hidden p-3 relative scrollbar-none text-left">
+                        <div className="flex-1 flex flex-col bg-white dark:bg-[#1f1e1b] overflow-y-auto overflow-x-hidden p-3 relative scrollbar-none text-left">
                             
                             {/* Mock Post Card */}
-                            <div className="w-full border border-gray-150 dark:border-white/5 rounded-2xl p-3 bg-white dark:bg-zinc-900/60 shadow-sm flex flex-col gap-2.5">
+                            <div className="w-full border border-gray-150 dark:border-white/5 rounded-2xl p-3 bg-white dark:bg-[#1f1e1b]/60 shadow-sm flex flex-col gap-2.5">
                                 
                                 {/* Mock Header */}
                                 <div className="flex items-center justify-between">
@@ -537,7 +537,7 @@ export default function PostFormModal({
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="w-full aspect-[4/3] rounded-xl bg-gray-100 dark:bg-zinc-800 border border-dashed flex flex-col items-center justify-center text-gray-400">
+                                            <div className="w-full aspect-[4/3] rounded-xl bg-gray-100 dark:bg-[#252320] border border-dashed flex flex-col items-center justify-center text-gray-400">
                                                 <FaImage size={18} />
                                                 <span className="text-[8px] mt-1">Rasm biriktirilmagan</span>
                                             </div>
@@ -552,11 +552,11 @@ export default function PostFormModal({
 
                                 {/* Mock Material Selector CTA card */}
                                 {postForm.attachedTests && postForm.attachedTests.length > 0 && postForm.type !== 'announcement' ? (
-                                    <div className="w-full flex flex-col gap-1 bg-gray-55/50 dark:bg-zinc-900/40 p-2 rounded-xl border border-gray-150 dark:border-white/5">
+                                    <div className="w-full flex flex-col gap-1 bg-gray-55/50 dark:bg-[#1f1e1b]/40 p-2 rounded-xl border border-gray-150 dark:border-white/5">
                                         <span className="text-[7px] font-black uppercase text-gray-400 block tracking-wider text-left">Testlar Karuseli ({postForm.attachedTests.length})</span>
                                         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory text-left">
                                             {postForm.attachedTests.map((test) => (
-                                                <div key={test.id} className="min-w-[130px] max-w-[130px] p-2 rounded-lg border bg-white dark:bg-zinc-950 border-gray-200 dark:border-white/5 text-[8px] flex flex-col justify-between gap-1.5 snap-center">
+                                                <div key={test.id} className="min-w-[130px] max-w-[130px] p-2 rounded-lg border bg-white dark:bg-[#181715] border-gray-200 dark:border-white/5 text-[8px] flex flex-col justify-between gap-1.5 snap-center">
                                                     <div>
                                                         <span className="font-extrabold text-blue-500 dark:text-blue-400 block tracking-wider text-[6px] uppercase">{test.type}</span>
                                                         <div className="font-bold line-clamp-2 leading-snug">{test.title}</div>
@@ -572,7 +572,7 @@ export default function PostFormModal({
                                         </div>
                                     </div>
                                 ) : postForm.ctaUrl && postForm.type !== 'announcement' ? (
-                                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-55 dark:bg-zinc-800 border border-gray-150 text-[9px]">
+                                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-55 dark:bg-[#252320] border border-gray-150 text-[9px]">
                                         <div className="flex items-center gap-2">
                                             <FaBookOpen className="text-blue-500 shrink-0" size={10} />
                                             <div className="font-bold line-clamp-1 w-[110px]">

@@ -833,7 +833,7 @@ export default function KeyManager() {
   return (
     <div
       className={`min-h-full font-sans transition-colors duration-200 p-3 sm:p-6 md:p-8 ${
-        isDark ? "bg-[#18181b] text-zinc-100" : "bg-[#fafafa] text-zinc-800"
+        isDark ? "bg-[#1f1e1b] text-zinc-100" : "bg-[#fafafa] text-zinc-800"
       }`}
     >
       {/* HEADER */}

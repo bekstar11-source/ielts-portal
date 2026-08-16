@@ -92,10 +92,17 @@ export function detectViolation(result) {
 export function getBandValue(result) {
   if (!result) return null;
 
-  const explicit = result.bandScore ?? result.writingBand;
+  const type = String(result.type || '').toLowerCase();
+  const explicit = result.bandScore ?? result.overallBand ?? result.writingBand ?? result.speakingBand;
   if (explicit !== undefined && explicit !== null && explicit !== '') {
     const n = parseFloat(explicit);
     if (!isNaN(n) && n > 0 && n <= 9) return n;
+
+    // Band 0 — faqat BAHOLANGAN reading/listening da haqiqiy natija (hamma javob xato).
+    // Qolgan turlarda 0 "hali baholanmagan" degani: `submitTestAnswers` writing/speaking
+    // uchun ham `bandScore: 0` yozadi, va u o'rtachaga qo'shilsa guruh statistikasi
+    // asossiz ravishda pasayib ketardi.
+    if (n === 0 && isGraded(result) && (type === 'reading' || type === 'listening')) return 0;
   }
 
   // `score` faqat band ko'rinishida bo'lsagina qabul qilinadi ("6.5"),

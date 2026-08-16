@@ -185,3 +185,30 @@ exports.verifyTelegramOTP = verifyTelegramOTP;
 exports.claimTelegramLogin = functions
     .runWith({ timeoutSeconds: 30, memory: "256MB" })
     .https.onCall(claimTelegramLogin);
+
+// Landing page'dagi bepul trial. `getTrialTest` va `submitTrial` anonim
+// sessiyaga ham ochiq (maqsad shu), `claimTrialReward` esa faqat ro'yxatdan
+// o'tgan hisobga — batafsil izoh functions/trial.js da.
+const { getTrialTest, submitTrial, claimTrialReward } = require("./trial");
+exports.getTrialTest = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(getTrialTest);
+exports.submitTrial = functions
+    .runWith({ timeoutSeconds: 90, memory: "256MB" })
+    .https.onCall(submitTrial);
+exports.claimTrialReward = functions
+    .runWith({ timeoutSeconds: 30, memory: "256MB" })
+    .https.onCall(claimTrialReward);
+
+// Ro'yxatdan o'tish chegirmasini qo'lda berish (faqat admin).
+// Chegirma oqimining boshqa qismlari — narx hisobi va reyestr — telegramBot.js da.
+const { grantSignupDiscountCallable } = require("./signupDiscount");
+exports.grantSignupDiscount = functions
+    .runWith({ timeoutSeconds: 30, memory: "256MB" })
+    .https.onCall(grantSignupDiscountCallable);
+
+// Chegirma zanjirini tirik saqlaydigan kunlik eslatma (10:00, Toshkent).
+// Chegirma 3 oyni qoplaydi, lekin to'lov qo'lda — 2- va 3-oy o'z-o'zidan
+// kelmaydi. Batafsil: functions/discountReminders.js.
+const { discountReminders } = require("./discountReminders");
+exports.discountReminders = discountReminders;

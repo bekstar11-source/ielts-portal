@@ -3,7 +3,7 @@ import { Medal, Search, Plus, Minus } from 'lucide-react';
 import { calculateLevel } from '../../../utils/scoreUtils';
 
 export const LeaderboardTable = ({ users, loading, searchTerm, setSearchTerm, onUpdatePoints, isDark }) => (
-    <div className={`lg:col-span-2 rounded-2xl sm:rounded-[24px] border overflow-hidden flex flex-col h-[460px] sm:h-[600px] min-w-0 transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+    <div className={`lg:col-span-2 rounded-2xl sm:rounded-[24px] border overflow-hidden flex flex-col h-[460px] sm:h-[600px] min-w-0 transition-colors ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
         <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
             <h3 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider opacity-70"><Medal size={16} /> Top Students</h3>
             <div className={`flex items-center px-3 sm:px-4 py-2 rounded-xl border transition-all w-full sm:w-auto ${isDark ? 'bg-black/20 border-white/5 focus-within:bg-black/40' : 'bg-gray-50 border-gray-200 focus-within:bg-white focus-within:border-blue-400'}`}>
@@ -25,7 +25,7 @@ export const LeaderboardTable = ({ users, loading, searchTerm, setSearchTerm, on
                 </div>
             ) : (
                 <table className="w-full min-w-[420px] text-left">
-                    <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
+                    <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#1f1e1b]' : 'bg-white'}`}>
                         <tr>
                             <th className="p-4 text-[10px] font-black uppercase tracking-widest opacity-40">Rank</th>
                             <th className="p-4 text-[10px] font-black uppercase tracking-widest opacity-40">Student</th>

@@ -12,6 +12,7 @@ import { ProtectedRoute, DashboardRouter, LoadingScreen } from './components/com
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import SpotlightToast from './components/dashboard/SpotlightToast';
+import { FEATURES } from './config/features';
 
 // STATIC PAGES (Immediate access)
 import LandingPage from './pages/public/LandingPage';
@@ -19,6 +20,13 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 
 // LAZY PAGES (Code Splitting)
+// Trial sahifalari ataylab lazy: ular landing trafigining bir qismigagina
+// kerak, lekin ReadingInterface/ListeningInterface ni tortib keladi — statik
+// import qilinsa landing bundle'i sezilarli kattalashardi.
+const AdminTrial = lazy(() => import('./pages/admin/AdminTrial'));
+const TrialIntro = lazy(() => import('./pages/public/TrialIntro'));
+const TrialSolving = lazy(() => import('./pages/public/TrialSolving'));
+const TrialResult = lazy(() => import('./pages/public/TrialResult'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
@@ -62,6 +70,7 @@ const SpotifyAlbum = lazy(() => import('./pages/podcasts/SpotifyAlbum'));
 const SpotifyEpisodeDetails = lazy(() => import('./pages/podcasts/SpotifyEpisodeDetails'));
 const SharePodcastRedirect = lazy(() => import('./pages/podcasts/SharePodcastRedirect'));
 const StudentStatistics = lazy(() => import('./pages/student/StudentStatistics'));
+const StudentAnalytics = lazy(() => import('./pages/student/StudentAnalytics'));
 const StudentLeaderboard = lazy(() => import('./pages/student/StudentLeaderboard'));
 const SpeakingPractice = lazy(() => import('./pages/test/SpeakingPractice'));
 const ArticleReading = lazy(() => import('./pages/articles/ArticleReading'));
@@ -78,6 +87,7 @@ const Pricing = lazy(() => import('./pages/public/Pricing'));
 const Library = lazy(() => import('./pages/student/Library'));
 const MockEntry = lazy(() => import('./pages/student/MockEntry'));
 const SpeakingAi = lazy(() => import('./pages/student/SpeakingAi'));
+const SpeakingAiUnavailable = lazy(() => import('./pages/student/SpeakingAiUnavailable'));
 const MockPurchase = lazy(() => import('./pages/student/MockPurchase'));
 const AdminMocks = lazy(() => import('./pages/admin/AdminMocks'));
 
@@ -88,7 +98,14 @@ const AdminLayout = lazy(() => import('./components/common/AdminLayout'));
 const PageLoading = () => <LoadingScreen />;
 
 function App() {
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, isGuest } = useAuth();
+
+  // ⚠️ Anonim (trial) sessiyada ham `user` to'ldirilgan bo'ladi. Quyidagi
+  // ommaviy marshrutlar "kirgan foydalanuvchini dashboard'ga yubor" qoidasiga
+  // tayanadi — `isGuest` ni hisobga olmasak, bepul testni yechayotgan mehmon
+  // landing yoki register sahifasiga qaytolmay, `/dashboard` ga uloqtirilardi
+  // (u yerda esa profili yo'qligi uchun xato ekrani chiqardi).
+  const isAuthed = Boolean(user) && !isGuest;
 
   if (loading) return <PageLoading />;
 
@@ -116,24 +133,30 @@ function App() {
             <Routes>
             {/* PUBLIC ROUTES */}
             <Route path="/" element={
-              user ? (
-                userData?.role === 'admin' ? <Navigate to="/admin" /> 
-                : userData?.role === 'teacher' ? <Navigate to="/teacher" /> 
+              isAuthed ? (
+                userData?.role === 'admin' ? <Navigate to="/admin" />
+                : userData?.role === 'teacher' ? <Navigate to="/teacher" />
                 : <Navigate to="/dashboard" />
               ) : <LandingPage />
             } />
             <Route path="/register" element={
-              user ? <Navigate to="/dashboard" /> : <Register />
+              isAuthed ? <Navigate to="/dashboard" /> : <Register />
             } />
             <Route path="/login" element={
-              user ? <Navigate to="/dashboard" /> : <Login />
+              isAuthed ? <Navigate to="/dashboard" /> : <Login />
             } />
+
+            {/* BEPUL TRIAL (mehmonlar uchun — anonim sessiyada ishlaydi) */}
+            <Route path="/trial" element={isAuthed ? <Navigate to="/dashboard" /> : <TrialIntro />} />
+            <Route path="/trial/result" element={<TrialResult />} />
+            <Route path="/trial/:stage" element={<TrialSolving />} />
 
             {/* SHARED PROTECTED ROUTES */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
             <Route path="/test/:testId" element={<ProtectedRoute><TestSolving /></ProtectedRoute>} />
             <Route path="/review/:id" element={<ProtectedRoute><TestReview /></ProtectedRoute>} />
             <Route path="/statistics" element={<ProtectedRoute><StudentStatistics /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><StudentAnalytics /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><StudentLeaderboard /></ProtectedRoute>} />
             <Route path="/my-results" element={<ProtectedRoute><MyResults /></ProtectedRoute>} />
             <Route path="/vocabulary" element={<ProtectedRoute><WordBank /></ProtectedRoute>} />
@@ -151,7 +174,8 @@ function App() {
             <Route path="/settings" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><Settings /></ProtectedRoute>} />
             <Route path="/mock" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockEntry /></ProtectedRoute>} />
             <Route path="/mock-buy" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockPurchase /></ProtectedRoute>} />
-            <Route path="/speaking-ai" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><SpeakingAi /></ProtectedRoute>} />
+            {/* Speaking AI vaqtincha o'chirilgan — flag src/config/features.js da. */}
+            <Route path="/speaking-ai" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}>{FEATURES.speakingAi ? <SpeakingAi /> : <SpeakingAiUnavailable />}</ProtectedRoute>} />
             <Route path="/test-results" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><TestResults /></ProtectedRoute>} />
             <Route path="/mock-exam" element={<ProtectedRoute allowedRoles={['student', 'admin', 'teacher']}><MockExam /></ProtectedRoute>} />
             
@@ -213,6 +237,7 @@ function App() {
               <Route path="edit-spotify-podcast/:id" element={<CreateSpotifyPodcast />} />
               <Route path="key-manager" element={<KeyManager />} />
               <Route path="mocks" element={<AdminMocks />} />
+              <Route path="trial" element={<AdminTrial />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 

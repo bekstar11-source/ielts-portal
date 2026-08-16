@@ -90,7 +90,7 @@ const ArticleVocabularyEditor = ({ level, value, onChange }) => {
             <textarea
                 rows={7}
                 spellCheck={false}
-                className={`w-full bg-white dark:bg-[#252525] rounded-xl px-4 py-3 text-xs font-mono min-h-[110px] text-gray-900 dark:text-gray-100 outline-none border ${
+                className={`w-full bg-white dark:bg-[#252320] rounded-xl px-4 py-3 text-xs font-mono min-h-[110px] text-gray-900 dark:text-warm-on-dark outline-none border ${
                     error
                         ? 'border-red-500/50 ring-1 ring-red-500/30'
                         : 'border-black/[0.05] dark:border-white/[0.06] focus:ring-2 focus:ring-blue-500/40'
@@ -117,7 +117,7 @@ const ArticleVocabularyEditor = ({ level, value, onChange }) => {
                                 <span
                                     key={`${w.word}-${i}`}
                                     title={[w.partOfSpeech, w.translation].filter(Boolean).join(' · ')}
-                                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.06] text-[11px] font-semibold text-gray-700 dark:text-gray-200"
+                                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.06] text-[11px] font-semibold text-gray-700 dark:text-warm-on-dark"
                                 >
                                     {w.word}
                                     {w.translation && (

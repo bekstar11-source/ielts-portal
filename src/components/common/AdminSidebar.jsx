@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Users, BookOpen, Settings,
     ChevronLeft, FileText, Megaphone,
-    BarChart2, PenTool, Trophy, ScrollText, Headphones, Key, Newspaper, Layers, Sparkles
+    BarChart2, PenTool, Trophy, ScrollText, Headphones, Key, Newspaper, Layers, Sparkles, Gift
 } from 'lucide-react';
 import {
     Sidebar,
@@ -17,6 +17,7 @@ import {
     SidebarMenuLabel,
     useSidebar,
 } from '../ui/sidebar';
+import { LogoMark } from './Logo';
 
 const menuGroups = [
     {
@@ -44,7 +45,8 @@ const menuGroups = [
             { name: "Mock Keys", path: "/admin/key-manager", icon: Key },
             { name: "Results", path: "/admin/results", icon: BookOpen },
             { name: "Articles", path: "/admin/articles", icon: Newspaper },
-            { name: "Podcast Mastery", path: "/admin/podcasts", icon: Headphones }
+            { name: "Podcast Mastery", path: "/admin/podcasts", icon: Headphones },
+            { name: "Bepul trial", path: "/admin/trial", icon: Gift }
         ]
     },
     {
@@ -65,7 +67,7 @@ export default function AdminSidebar() {
         <Sidebar collapsible="icon">
             <SidebarHeader className={`h-14 flex items-center relative flex-shrink-0 pt-[env(safe-area-inset-top)] ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
                 <div className="font-bold text-lg tracking-tighter flex items-center gap-3 text-gray-900 dark:text-white">
-                    <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white flex-shrink-0 text-xs font-black">A</div>
+                    <LogoMark size={28} />
                     {!collapsed && <SidebarMenuLabel>Control</SidebarMenuLabel>}
                 </div>
 

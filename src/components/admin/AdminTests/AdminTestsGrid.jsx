@@ -200,7 +200,7 @@ const AdminTestsGrid = ({
                             </div>
 
                             <div className={`mt-auto pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-white/5' : 'border-zinc-100'}`}>
-                                <span className="text-[10px] text-zinc-450 dark:text-zinc-500 font-bold">
+                                <span className="text-[10px] text-zinc-450 dark:text-warm-muted font-bold">
                                     {test.createdAt ? new Date(test.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                                 </span>
                                 <div className="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">

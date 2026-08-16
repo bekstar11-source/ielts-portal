@@ -108,7 +108,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
 
     return (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <div className={`px-4 sm:px-8 py-3.5 flex items-center gap-3 border-b ${isDark ? 'bg-[#161616] border-white/5' : 'bg-white border-gray-100'}`}>
+            <div className={`px-4 sm:px-8 py-3.5 flex items-center gap-3 border-b ${isDark ? 'bg-[#181715] border-white/5' : 'bg-white border-gray-100'}`}>
                 <button
                     onClick={onBack}
                     className={`lg:hidden shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${isDark ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-gray-100 text-slate-600'}`}
@@ -143,7 +143,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
                             </h4>
                             <span className="text-[11px] text-gray-400">{task1Content.trim().split(/\s+/).filter(Boolean).length} {wordCountLabel}</span>
                         </div>
-                        <div className="text-[15px] leading-[1.8] font-serif whitespace-pre-wrap text-slate-700 dark:text-gray-300">
+                        <div className="text-[15px] leading-[1.8] font-serif whitespace-pre-wrap text-slate-700 dark:text-warm-on-dark-soft">
                             {task1Content || <span className="italic opacity-30">{t('teacher.writingReview.workspace.notSubmitted') || (lang === 'uz' ? 'Topshirilmagan' : 'Not submitted')}</span>}
                         </div>
                         <AIReviewPanel review={aiReview?.task1} isDark={isDark} t={t} lang={lang} />
@@ -157,7 +157,7 @@ const WritingReviewWorkspace = ({ activeWriting, studentName, isDark, onBack }) 
                             </h4>
                             <span className="text-[11px] text-gray-400">{task2Content.trim().split(/\s+/).filter(Boolean).length} {wordCountLabel}</span>
                         </div>
-                        <div className="text-[15px] leading-[1.8] font-serif whitespace-pre-wrap text-slate-700 dark:text-gray-300">
+                        <div className="text-[15px] leading-[1.8] font-serif whitespace-pre-wrap text-slate-700 dark:text-warm-on-dark-soft">
                             {task2Content || <span className="italic opacity-30">{t('teacher.writingReview.workspace.notSubmitted') || (lang === 'uz' ? 'Topshirilmagan' : 'Not submitted')}</span>}
                         </div>
                         <AIReviewPanel review={aiReview?.task2} isDark={isDark} t={t} lang={lang} />

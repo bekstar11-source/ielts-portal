@@ -51,171 +51,400 @@ export const deriveQuestionTypesForCard = (test) => {
   return [];
 };
 
-export const mergeTestsLogic = (selectedTestObjects, mergeTitle) => {
-    const testType = selectedTestObjects[0]?.type || "reading";
+// ---------------------------------------------------------------------------
+// Testlarni birlashtirish (merge)
+// ---------------------------------------------------------------------------
 
-    let passageGroups = [];
-    let taskGroups = [];
+// Sarlavha/id ichidan tartib raqamini ajratib olish (e.g. "Passage 2" -> 2)
+const extractSortNumber = (title, id, parentTitle) => {
+    // Avval aniq ko'rsatkichlar (e.g. "passage 1", "part 2", "task 3")
+    const specificRegex = /(?:passage|part|task|section|pt|p|t)\s*(\d+)/i;
 
-    // Helper to extract a number from string/object to sort by
-    const extractSortNumber = (title, id, parentTitle) => {
-        // Try specific indicators first (e.g. "passage 1", "part 2", "task 3")
-        const specificRegex = /(?:passage|part|task|section|pt|p|t)\s*(\d+)/i;
-        
-        let match = String(title || "").match(specificRegex);
-        if (match) return parseInt(match[1], 10);
+    let match = String(title || "").match(specificRegex);
+    if (match) return parseInt(match[1], 10);
 
-        match = String(id || "").match(specificRegex);
-        if (match) return parseInt(match[1], 10);
+    match = String(id || "").match(specificRegex);
+    if (match) return parseInt(match[1], 10);
 
-        match = String(parentTitle || "").match(specificRegex);
-        if (match) return parseInt(match[1], 10);
+    match = String(parentTitle || "").match(specificRegex);
+    if (match) return parseInt(match[1], 10);
 
-        // Try any number
-        match = String(title || "").match(/\d+/);
-        if (match) return parseInt(match[0], 10);
+    // Aks holda — istalgan raqam
+    match = String(title || "").match(/\d+/);
+    if (match) return parseInt(match[0], 10);
 
-        match = String(id || "").match(/\d+/);
-        if (match) return parseInt(match[0], 10);
+    match = String(id || "").match(/\d+/);
+    if (match) return parseInt(match[0], 10);
 
-        match = String(parentTitle || "").match(/\d+/);
-        if (match) return parseInt(match[0], 10);
+    match = String(parentTitle || "").match(/\d+/);
+    if (match) return parseInt(match[0], 10);
 
-        return 999;
+    return 999;
+};
+
+const RANGE_ID_RE = /^\d+\s*[-–—_]\s*\d+$/;
+const LIST_ID_RE = /^(\d+\s*,\s*)+\d+$/;
+
+// Savol id'sidagi eng kichik raqam — guruhlarni asl tartibida saralash uchun
+const firstQuestionNumber = (node) => {
+    let min = Infinity;
+    const walk = (obj) => {
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) { obj.forEach(walk); return; }
+        const idStr = String(obj.id ?? "");
+        const nums = idStr.match(/\d+/g);
+        if (nums) nums.forEach(n => { const v = parseInt(n, 10); if (v < min) min = v; });
+        ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts'].forEach(k => {
+            if (obj[k]) walk(obj[k]);
+        });
     };
+    walk(node);
+    return min === Infinity ? 9999 : min;
+};
 
-    selectedTestObjects.forEach((test) => {
+// Guruh ichidagi eski raqamlarni yangisiga almashtirish (instruction matni uchun).
+// Faqat shu guruhga tegishli raqamlar almashadi — sana/yil kabi begona
+// raqamlarga tegilmaydi.
+const renumberText = (text, numberMap) => {
+    if (!text || typeof text !== 'string' || numberMap.size === 0) return text;
+    return text.replace(/\d+/g, (m) => {
+        const mapped = numberMap.get(parseInt(m, 10));
+        return mapped != null ? String(mapped) : m;
+    });
+};
+
+const spanLabel = (numbers) => {
+    if (!numbers.length) return null;
+    const min = Math.min(...numbers);
+    const max = Math.max(...numbers);
+    return min === max ? String(min) : `${min}–${max}`;
+};
+
+// Bitta test ichidagi passage'larni o'z tartibida qaytaradi
+const orderPassagesWithinTest = (test) => {
+    const passages = (test.passages || []).map((passage, passageIndex) => ({
+        passage,
+        passageIndex,
+        sortOrder: extractSortNumber(passage.title, passage.id, test.title)
+    }));
+
+    const partNums = passages.map(p => Number(p.passage.partNumber));
+    const allValid = partNums.every(n => Number.isFinite(n) && n > 0);
+    const allUnique = new Set(partNums).size === partNums.length;
+    if (allValid && allUnique) {
+        return [...passages].sort(
+            (a, b) => Number(a.passage.partNumber) - Number(b.passage.partNumber)
+        );
+    }
+    return passages;
+};
+
+/**
+ * Birlashtirishdan oldingi "reja": qaysi passage/task qaysi tartibda ketadi.
+ * Admin UI shu ro'yxatni ko'rsatadi va tartibni o'zgartira oladi.
+ */
+export const buildMergePlan = (selectedTestObjects = []) => {
+    const types = Array.from(
+        new Set(selectedTestObjects.map(t => t?.type).filter(Boolean))
+    );
+    const testType = types[0] || "reading";
+    const warnings = [];
+
+    if (types.length > 1) {
+        warnings.push(`Turli xil test turlari tanlangan (${types.join(", ")}). Faqat bir xil turdagi testlarni birlashtiring.`);
+    }
+
+    const units = [];
+
+    selectedTestObjects.forEach((test, testIndex) => {
+        if (!test) return;
         if (testType === 'writing') {
-            const writingTasks = test.writingTasks || [];
-            writingTasks.forEach((task) => {
-                const sortOrder = extractSortNumber(task.title, task.id, test.title);
-                taskGroups.push({ task, sortOrder });
+            (test.writingTasks || []).forEach((task, taskIndex) => {
+                units.push({
+                    key: `t${testIndex}:u${taskIndex}`,
+                    testIndex,
+                    unitIndex: taskIndex,
+                    testTitle: test.title || "Untitled",
+                    title: task.title || `Task ${taskIndex + 1}`,
+                    questionCount: 1,
+                    sortOrder: extractSortNumber(task.title, task.id, test.title)
+                });
             });
         } else {
-            const passages = test.passages || [];
             const questions = test.questions || [];
-            const keywords = test.keywordTable || [];
-
-            passages.forEach((passage) => {
+            orderPassagesWithinTest(test).forEach(({ passage, passageIndex, sortOrder }) => {
                 const passageQuestions = questions.filter(
                     q => String(q.passageId) === String(passage.id)
                 );
-                const passageKeywords = keywords.filter(
-                    kw => String(kw.passageId) === String(passage.id)
-                );
-
-                const sortOrder = extractSortNumber(passage.title, passage.id, test.title);
-                passageGroups.push({
-                    passage,
-                    questions: passageQuestions,
-                    keywords: passageKeywords,
+                units.push({
+                    key: `t${testIndex}:u${passageIndex}`,
+                    testIndex,
+                    unitIndex: passageIndex,
+                    testTitle: test.title || "Untitled",
+                    title: passage.title || `Passage ${passageIndex + 1}`,
+                    questionCount: passageQuestions.reduce(
+                        (sum, g) => sum + countQuestionSlots(g), 0
+                    ),
+                    hasQuestions: passageQuestions.length > 0,
                     sortOrder
                 });
             });
         }
     });
 
-    // Sort the groups based on sortOrder
-    if (testType === 'writing') {
-        taskGroups.sort((a, b) => a.sortOrder - b.sortOrder);
-    } else {
-        passageGroups.sort((a, b) => a.sortOrder - b.sortOrder);
+    // Testlar orasidagi tartib: har bir testning eng kichik sortOrder'i bo'yicha.
+    // Shu bilan "Passage 1 / Passage 2 / Passage 3" alohida testlari to'g'ri
+    // tartibda ketadi, ko'p passageli testlar esa BO'LINMAYDI —
+    // ilgari ular bir-birining ichiga aralashib ketardi (A1, B1, A2, B2...).
+    const minSortByTest = new Map();
+    units.forEach(u => {
+        const cur = minSortByTest.get(u.testIndex);
+        if (cur == null || u.sortOrder < cur) minSortByTest.set(u.testIndex, u.sortOrder);
+    });
+
+    const testOrder = Array.from(minSortByTest.keys()).sort((a, b) => {
+        const diff = minSortByTest.get(a) - minSortByTest.get(b);
+        return diff !== 0 ? diff : a - b;
+    });
+
+    const ordered = [];
+    testOrder.forEach(testIndex => {
+        units.filter(u => u.testIndex === testIndex).forEach(u => ordered.push(u));
+    });
+
+    if (testType === 'reading' && ordered.length > 3) {
+        warnings.push(`${ordered.length} ta passage birlashtirilmoqda — standart IELTS Reading testida 3 ta bo'ladi.`);
+    }
+    if (testType === 'listening' && ordered.length > 4) {
+        warnings.push(`${ordered.length} ta part birlashtirilmoqda — standart IELTS Listening testida 4 ta bo'ladi.`);
+    }
+    const emptyUnits = ordered.filter(u => u.questionCount === 0);
+    if (emptyUnits.length) {
+        warnings.push(`Savolsiz bo'lim(lar): ${emptyUnits.map(u => u.title).join(", ")}.`);
     }
 
-    // Reconstruct combined data and apply new IDs
-    let combinedPassages = [];
-    let combinedQuestions = [];
-    let combinedKeywords = [];
-    let combinedWritingTasks = [];
+    return { type: testType, types, units: ordered, warnings };
+};
 
-    let questionIdCounter = 1;
+// Guruh ichidagi haqiqiy savollar sonini hisoblash
+export const countQuestionSlots = (group) => {
+    let count = 0;
+    const walk = (obj) => {
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) { obj.forEach(walk); return; }
+        const nested = ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts']
+            .filter(k => Array.isArray(obj[k]));
+        if (nested.length === 0) {
+            const idStr = String(obj.id ?? "");
+            if (RANGE_ID_RE.test(idStr)) {
+                const [a, b] = idStr.split(/[-–—_]/).map(s => parseInt(s, 10));
+                if (!isNaN(a) && !isNaN(b)) count += Math.abs(b - a) + 1;
+            } else if (LIST_ID_RE.test(idStr)) {
+                count += idStr.split(',').length;
+            } else if (/^\d+$/.test(idStr)) {
+                count += 1;
+            }
+            return;
+        }
+        nested.forEach(k => walk(obj[k]));
+    };
+    walk(group);
+    return count;
+};
+
+export const mergeTestsLogic = (selectedTestObjects, mergeTitle, options = {}) => {
+    const plan = buildMergePlan(selectedTestObjects);
+    const testType = plan.type;
+
+    // Admin UI'dan kelgan qo'lda tartib (key'lar ro'yxati) — bo'lmasa avtomatik reja
+    let units = plan.units;
+    if (Array.isArray(options.order) && options.order.length) {
+        const byKey = new Map(plan.units.map(u => [u.key, u]));
+        const picked = options.order.map(k => byKey.get(k)).filter(Boolean);
+        // Rejada bor, lekin tartibda tushib qolganlari oxiriga qo'shiladi
+        const pickedKeys = new Set(picked.map(u => u.key));
+        units = [...picked, ...plan.units.filter(u => !pickedKeys.has(u.key))];
+    }
+
+    const combinedPassages = [];
+    let combinedQuestions = [];
+    const combinedKeywords = [];
+    const combinedWritingTasks = [];
 
     if (testType === 'writing') {
-        taskGroups.forEach((group, idx) => {
+        units.forEach((unit, idx) => {
+            const task = (selectedTestObjects[unit.testIndex]?.writingTasks || [])[unit.unitIndex];
+            if (!task) return;
             const newId = idx + 1;
             combinedWritingTasks.push({
-                ...group.task,
+                ...task,
                 id: String(newId),
                 title: `Task ${newId}`
             });
         });
     } else {
-        passageGroups.forEach((group, idx) => {
-            const newPassageId = String(idx + 1);
+        let questionIdCounter = 1;
+        // `${eskiPassageId}::${eskiSavolRaqami}` -> yangi savol raqami
+        const keywordNumberMap = new Map();
 
-            // Re-index passage
+        units.forEach((unit, idx) => {
+            const sourceTest = selectedTestObjects[unit.testIndex];
+            if (!sourceTest) return;
+            const passage = (sourceTest.passages || [])[unit.unitIndex];
+            if (!passage) return;
+
+            const newPassageId = String(idx + 1);
+            const oldPassageId = String(passage.id);
+
             combinedPassages.push({
-                ...group.passage,
+                ...passage,
                 id: newPassageId,
-                partNumber: idx + 1
+                partNumber: idx + 1,
+                originalId: passage.originalId ?? passage.id,
+                sourceTestId: sourceTest.id || null
             });
 
-            // Re-index questions and update their passageId
-            const mappedQuestions = group.questions.map(questionGroup => {
+            // Savol guruhlarini asl raqamlanishi bo'yicha saralaymiz —
+            // Firestore massivdagi tartib har doim ham to'g'ri bo'lavermaydi.
+            const passageQuestions = (sourceTest.questions || [])
+                .filter(q => String(q.passageId) === oldPassageId)
+                .map((group, i) => ({ group, i, order: firstQuestionNumber(group) }))
+                .sort((a, b) => (a.order - b.order) || (a.i - b.i))
+                .map(x => x.group);
+
+            const mappedQuestions = passageQuestions.map(questionGroup => {
+                // Shu guruhdagi eski raqam -> yangi raqam
+                const numberMap = new Map();
+                const assignedNumbers = [];
+
+                const assign = (oldNum) => {
+                    const newNum = questionIdCounter++;
+                    if (Number.isFinite(oldNum)) numberMap.set(oldNum, newNum);
+                    assignedNumbers.push(newNum);
+                    return newNum;
+                };
+
                 const walkAndReindex = (obj) => {
                     if (!obj || typeof obj !== 'object') return obj;
                     if (Array.isArray(obj)) return obj.map(walkAndReindex);
-                    let updated = { ...obj };
-                    if (updated.passageId) {
-                        updated.passageId = newPassageId;
-                    }
-                    
-                    if (updated.id && !Array.isArray(updated.items) && !Array.isArray(updated.questions)) {
+                    const updated = { ...obj };
+                    if (updated.passageId) updated.passageId = newPassageId;
+
+                    const hasChildren = ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts']
+                        .some(k => Array.isArray(updated[k]));
+
+                    if (updated.id != null && !hasChildren) {
                         const idStr = String(updated.id);
                         if (/^\d+$/.test(idStr)) {
-                            updated.id = String(questionIdCounter++);
-                        } else if (/^\d+\s*[\-–_]\s*\d+$/.test(idStr)) {
-                            const parts = idStr.split(/[\-–_]/);
+                            updated.id = String(assign(parseInt(idStr, 10)));
+                        } else if (RANGE_ID_RE.test(idStr)) {
+                            const parts = idStr.split(/[-–—_]/);
                             const start = parseInt(parts[0], 10);
                             const end = parseInt(parts[1], 10);
                             if (!isNaN(start) && !isNaN(end)) {
-                                const count = Math.abs(end - start) + 1;
-                                const newStart = questionIdCounter;
-                                const newEnd = questionIdCounter + count - 1;
-                                updated.id = `${newStart}-${newEnd}`;
-                                questionIdCounter += count;
+                                const lo = Math.min(start, end);
+                                const hi = Math.max(start, end);
+                                const newIds = [];
+                                for (let n = lo; n <= hi; n++) newIds.push(assign(n));
+                                const sep = idStr.includes('–') ? '–' : (idStr.includes('—') ? '—' : '-');
+                                updated.id = `${newIds[0]}${sep}${newIds[newIds.length - 1]}`;
                             }
-                        } else if (/^(\d+\s*,\s*)+\d+$/.test(idStr)) {
-                            const parts = idStr.split(',');
-                            const newIds = parts.map(() => String(questionIdCounter++));
-                            updated.id = newIds.join(',');
+                        } else if (LIST_ID_RE.test(idStr)) {
+                            updated.id = idStr
+                                .split(',')
+                                .map(part => String(assign(parseInt(part.trim(), 10))))
+                                .join(',');
                         }
                     }
-                    
+
                     for (const key of ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts']) {
                         if (updated[key]) updated[key] = walkAndReindex(updated[key]);
                     }
                     return updated;
                 };
 
-                return walkAndReindex({
+                const result = walkAndReindex({
                     ...questionGroup,
                     passageId: newPassageId
                 });
+
+                // Guruh sarlavhasi/id'si ("Questions 1–6") ham yangi raqamlarga
+                // moslashtiriladi — ilgari eski raqamlar qolib ketardi.
+                const label = spanLabel(assignedNumbers);
+                if (label) {
+                    const oldGroupId = String(questionGroup.id ?? "");
+                    if (!oldGroupId || /^\d+$/.test(oldGroupId) || RANGE_ID_RE.test(oldGroupId) || LIST_ID_RE.test(oldGroupId)) {
+                        result.id = label;
+                    }
+                    // instruction ichidagi eski raqamlar ("Questions 1–6",
+                    // "in boxes 1–6 on your answer sheet") ham yangilanadi
+                    const oldGroupNums = (oldGroupId.match(/\d+/g) || []).map(n => parseInt(n, 10));
+                    if (oldGroupNums.length === 2 && !numberMap.has(oldGroupNums[0])) {
+                        // Guruh id oralig'i item'lar bilan mos kelmasa ham,
+                        // chetki raqamlarni yangi oraliqqa bog'laymiz
+                        numberMap.set(oldGroupNums[0], Math.min(...assignedNumbers));
+                        numberMap.set(oldGroupNums[1], Math.max(...assignedNumbers));
+                    }
+                    ['instruction', 'instructions'].forEach(field => {
+                        if (typeof result[field] === 'string') {
+                            result[field] = renumberText(result[field], numberMap);
+                        }
+                    });
+                }
+
+                // keywordTable savol raqamlariga bog'langan — mapping'ni saqlaymiz
+                numberMap.forEach((newNum, oldNum) => {
+                    keywordNumberMap.set(`${oldPassageId}::${oldNum}`, newNum);
+                });
+
+                return result;
             });
 
             combinedQuestions = [...combinedQuestions, ...mappedQuestions];
 
-            // Re-index keywords and update their passageId
-            const mappedKeywords = group.keywords.map(kw => ({
-                ...kw,
-                passageId: newPassageId
-            }));
-            combinedKeywords = [...combinedKeywords, ...mappedKeywords];
+            // Keyword jadvali: passageId va questionId yangilanadi
+            (sourceTest.keywordTable || [])
+                .filter(kw => String(kw.passageId) === oldPassageId)
+                .forEach(kw => {
+                    const mapped = { ...kw, passageId: newPassageId };
+                    const oldQid = parseInt(String(kw.questionId ?? ""), 10);
+                    if (Number.isFinite(oldQid)) {
+                        const newQid = keywordNumberMap.get(`${oldPassageId}::${oldQid}`);
+                        if (newQid != null) mapped.questionId = String(newQid);
+                    }
+                    combinedKeywords.push(mapped);
+                });
         });
     }
 
-    return {
+    // Manba testlardan saqlanib qoladigan maydonlar
+    const difficulties = Array.from(
+        new Set(selectedTestObjects.map(t => t?.difficulty).filter(Boolean))
+    );
+
+    const merged = {
         title: mergeTitle,
         type: testType,
-        difficulty: "medium",
+        difficulty: difficulties.length === 1 ? difficulties[0] : "medium",
         passages: combinedPassages,
         questions: combinedQuestions,
         keywordTable: combinedKeywords,
         writingTasks: combinedWritingTasks,
+        isExclusive: selectedTestObjects.some(t => t?.isExclusive) || false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
+
+    if (testType === 'listening') {
+        // Har bir part o'z audiosini olib qoladi; umumiy audio faqat bitta
+        // manba bo'lganda mos keladi.
+        const audios = Array.from(
+            new Set(selectedTestObjects.map(t => t?.audioUrl || t?.audio_url).filter(Boolean))
+        );
+        if (audios.length === 1) merged.audioUrl = audios[0];
+    }
+
+    return merged;
 };
 
 export const MAX_TEST_PARTS = 10;

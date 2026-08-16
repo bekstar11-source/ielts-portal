@@ -71,7 +71,7 @@ const AdminTestsToolbar = ({
             case 'Writing': return <PenTool size={12} className="text-blue-500" />;
             case 'Speaking': return <Mic2 size={12} className="text-purple-500" />;
             case 'Mock': return <Award size={12} className="text-rose-500" />;
-            default: return <Layers size={12} className="text-zinc-500 dark:text-zinc-400" />;
+            default: return <Layers size={12} className="text-zinc-500 dark:text-warm-on-dark-soft" />;
         }
     };
 
@@ -108,7 +108,7 @@ const AdminTestsToolbar = ({
     };
 
     const dropdownBase = `absolute top-full mt-1 left-0 z-50 rounded-xl border shadow-xl p-1 animate-dropdown ${
-        isDark ? 'bg-[#1e1e1e] border-white/10 text-white' : 'bg-white border-zinc-150 text-zinc-850'
+        isDark ? 'bg-[#1f1e1b] border-white/10 text-white' : 'bg-white border-zinc-150 text-zinc-850'
     }`;
     const dropdownItemBase = `w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-left`;
     const dropdownItemActive = isDark ? 'bg-white/10 text-white' : 'bg-zinc-100 text-zinc-950';
@@ -127,7 +127,7 @@ const AdminTestsToolbar = ({
     }`;
 
     return (
-        <header className={`border-b flex flex-col px-3 sm:px-6 py-3 sm:py-3.5 shrink-0 transition-colors z-45 gap-3 sm:gap-4 ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-white border-zinc-200'}`}>
+        <header className={`border-b flex flex-col px-3 sm:px-6 py-3 sm:py-3.5 shrink-0 transition-colors z-45 gap-3 sm:gap-4 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-zinc-200'}`}>
             {/* Top Row: Search & Actions */}
             <div className="flex items-end justify-between gap-3 sm:gap-4 flex-wrap lg:flex-nowrap">
                 <div className="flex items-end gap-2 sm:gap-3 flex-1 min-w-0 flex-wrap">

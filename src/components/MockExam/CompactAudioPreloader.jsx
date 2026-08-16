@@ -1,13 +1,22 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { getCdnUrl } from '../../utils/cdnUtils';
+import { getCdnUrl, getOriginUrl } from '../../utils/cdnUtils';
+import { registerAudioBlob } from '../../utils/audioBlobRegistry';
+
+const AUDIO_CACHE = 'ielts-audio-cache';
 
 /**
  * Compact audio preloader for IELTS Listening tests.
  * Fetches the audio to Cache API and generates Blob URLs for offline resilience.
+ *
+ * @param {(report: {total:number, ok:number, failed:string[]}) => void} onReady
+ *        Yuklash tugaganda CHAQIRILADI — hisobot bilan. Chaqiruvchi hisobotni
+ *        tekshirib, imtihonni boshlashga ruxsat bermasligi mumkin.
  */
 export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
     const [loadedCount, setLoadedCount] = useState(0);
     const [isDone, setIsDone] = useState(false);
+    const [report, setReport] = useState(null);
+    const [attempt, setAttempt] = useState(0);
     const hasCalledReady = useRef(false);
 
     // Callbacklar ref orqali chaqiriladi: parent ularni har renderda YANGI inline arrow
@@ -35,65 +44,78 @@ export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
     useEffect(() => {
         let isMounted = true;
         const newUrls = {};
+        const failed = [];
         const uniqueSrcs = new Set(sourcesKey ? sourcesKey.split('|') : []);
 
         const totalCount = uniqueSrcs.size;
+        hasCalledReady.current = false;
+        setIsDone(false);
+        setLoadedCount(0);
+
+        const finish = () => {
+            hasCalledReady.current = true;
+            const result = { total: totalCount, ok: totalCount - failed.length, failed: [...failed] };
+            setReport(result);
+            setIsDone(true);
+            onBlobsReadyRef.current?.(newUrls);
+            onReadyRef.current?.(result);
+        };
 
         if (totalCount === 0) {
-            setIsDone(true);
-            hasCalledReady.current = true;
-            onBlobsReadyRef.current?.({});
-            onReadyRef.current?.();
+            finish();
             return;
         }
 
-        let loaded = 0;
+        let settled = 0;
 
         const checkLoaded = () => {
             if (!isMounted) return;
-            loaded++;
-            setLoadedCount(loaded);
-            if (loaded >= totalCount && !hasCalledReady.current) {
-                hasCalledReady.current = true;
-                setIsDone(true);
-                onBlobsReadyRef.current?.(newUrls);
-                onReadyRef.current?.();
+            settled++;
+            setLoadedCount(settled);
+            if (settled >= totalCount && !hasCalledReady.current) finish();
+        };
+
+        // Bitta manzilni oladi. CDN yiqilsa xom Firebase Storage manziliga qaytadi —
+        // Worker yagona nuqta bo'lgani uchun bu fallback SHART.
+        const fetchWithFallback = async (src) => {
+            const candidates = [getCdnUrl(src)];
+            const origin = getOriginUrl(getCdnUrl(src));
+            if (origin !== candidates[0]) candidates.push(origin);
+
+            const cache = await caches.open(AUDIO_CACHE).catch(() => null);
+
+            for (const url of candidates) {
+                try {
+                    let response = cache ? await cache.match(url) : null;
+                    if (!response) {
+                        response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        if (cache) cache.put(url, response.clone()).catch(() => {});
+                    }
+                    return await response.blob();
+                } catch (e) {
+                    console.warn(`Audio fetch failed for ${url}:`, e?.message || e);
+                }
             }
+            return null;
         };
 
         const fetchAudio = async (src) => {
-            try {
-                // Ignore if it's already a blob URL
-                if (src.startsWith('blob:')) {
-                    newUrls[src] = src;
-                    checkLoaded();
-                    return;
-                }
+            // Ignore if it's already a blob URL
+            if (src.startsWith('blob:')) {
+                newUrls[src] = src;
+                checkLoaded();
+                return;
+            }
 
-                // Tarmoqqa Cloudflare CDN orqali chiqiladi (bandwidth tejash), ammo
-                // `newUrls` kalitlari ORIGINAL `src` bo'lib qoladi — VolumeCheckScreen
-                // blob xaritasini xom Firebase manzili bo'yicha qidiradi.
-                const fetchUrl = getCdnUrl(src);
-
-                // Check Cache API first
-                const cache = await caches.open('ielts-audio-cache');
-                let response = await cache.match(fetchUrl);
-
-                if (!response) {
-                    // Fetch the audio and store it in cache
-                    response = await fetch(fetchUrl);
-                    if (response.ok) {
-                        cache.put(fetchUrl, response.clone());
-                    } else {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                }
-                
-                const blob = await response.blob();
-                newUrls[src] = URL.createObjectURL(blob);
-            } catch (e) {
-                console.warn('Failed to fetch/cache audio:', e);
-                newUrls[src] = src; // Fallback to original URL
+            const blob = await fetchWithFallback(src);
+            if (blob) {
+                newUrls[src] = registerAudioBlob(URL.createObjectURL(blob));
+            } else {
+                // Fallback: tarmoq manzilini beramiz — <audio> o'zi progressiv
+                // yuklashga urinib ko'radi. Lekin buni MUVAFFAQIYAT deb sanamaymiz.
+                newUrls[src] = src;
+                failed.push(src);
             }
             checkLoaded();
         };
@@ -103,10 +125,16 @@ export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
         const timeout = setTimeout(() => {
             if (!hasCalledReady.current) {
                 console.warn('Audio preloading timed out, falling back to network URLs');
-                hasCalledReady.current = true;
-                setIsDone(true);
-                onBlobsReadyRef.current?.(newUrls);
-                onReadyRef.current?.();
+                // Hali kelmagan manbalar ham muvaffaqiyatsiz hisoblanadi — ilgari
+                // timeout jimgina "tayyor" deb e'lon qilardi va talaba audiosiz
+                // imtihonga kirib ketardi.
+                uniqueSrcs.forEach(src => {
+                    if (!newUrls[src]) {
+                        newUrls[src] = src;
+                        failed.push(src);
+                    }
+                });
+                finish();
             }
         }, 30000); // 30s timeout
 
@@ -114,13 +142,35 @@ export default function CompactAudioPreloader({ test, onReady, onBlobsReady }) {
             isMounted = false;
             clearTimeout(timeout);
             // Blob URL'lar bu yerda revoke QILINMAYDI — ular test obyektiga berilgan
-            // va audio hali ijro etilishi kerak. Effekt endi manbalar o'zgargandagina
-            // qayta ishga tushadi, shuning uchun ortiqcha blob ham yaratilmaydi.
+            // va audio hali ijro etilishi kerak. Tozalash `revokeMockAudioBlobs()`
+            // orqali listening tugagach amalga oshiriladi.
         };
-    }, [sourcesKey]);
+    }, [sourcesKey, attempt]);
 
     const totalCount = sources.length;
     const pct = totalCount > 0 ? Math.min(100, Math.round((loadedCount / totalCount) * 100)) : 100;
+    const failedCount = report?.failed?.length || 0;
+
+    if (isDone && failedCount > 0) {
+        return (
+            <div className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left">
+                <p className="text-[11px] font-bold text-red-700">
+                    {report.ok === 0
+                        ? 'Audio yuklanmadi'
+                        : `${failedCount} ta audio fayl yuklanmadi (${report.ok}/${report.total} tayyor)`}
+                </p>
+                <p className="text-[10px] text-red-600 mt-0.5 leading-snug">
+                    Internetni tekshiring va qayta urinib ko'ring. Muammo takrorlansa nazoratchini chaqiring.
+                </p>
+                <button
+                    onClick={() => setAttempt(a => a + 1)}
+                    className="mt-2 px-3 py-1 bg-red-600 text-white rounded font-bold text-[10px] hover:bg-red-700 active:scale-[0.98] transition-all"
+                >
+                    Qayta urinish
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full">

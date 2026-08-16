@@ -32,7 +32,7 @@ const ResultsFilters = ({
         : 'bg-white text-gray-800 placeholder-gray-400 border border-gray-200 hover:border-gray-300 focus:border-gray-300';
 
     return (
-        <div className={`rounded-2xl border p-4 mb-6 transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`rounded-2xl border p-4 mb-6 transition-colors ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
             <div className="flex flex-col lg:flex-row lg:items-center gap-3">
                 {/* Qidiruv */}
                 <div className="relative flex-1 min-w-0 group">

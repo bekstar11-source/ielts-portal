@@ -42,7 +42,7 @@ export const getMatchSnippet = (content, term) => {
     const parts = snippet.split(regex);
 
     return (
-        <span className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 inline-flex items-center gap-1 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 px-2 py-1 rounded max-w-xl break-all">
+        <span className="text-[11px] text-zinc-500 dark:text-warm-on-dark-soft mt-1.5 inline-flex items-center gap-1 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 px-2 py-1 rounded max-w-xl break-all">
             <span className="font-semibold text-amber-600 dark:text-amber-400 shrink-0 text-[10px] uppercase tracking-wider">Matnda:</span>
             <span>
                 {parts.map((part, i) =>
@@ -114,7 +114,7 @@ const TYPE_META = {
 
 const DEFAULT_TYPE_META = {
     Icon: Layers,
-    iconClass: 'text-zinc-500 dark:text-zinc-400',
+    iconClass: 'text-zinc-500 dark:text-warm-on-dark-soft',
     tile: { dark: 'bg-purple-500/10 border-purple-500/20 text-purple-400', light: 'bg-purple-50 border-purple-100 text-purple-600' },
 };
 

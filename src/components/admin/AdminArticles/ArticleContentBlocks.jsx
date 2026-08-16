@@ -57,7 +57,7 @@ const ArticleContentBlocks = ({ blocks = [], onChange }) => {
                     <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                         Maqola matni
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-[10px] font-bold text-gray-500 dark:text-warm-on-dark-soft">
                         {blocks.length} blok · {totalWords} so&apos;z
                     </span>
                 </div>
@@ -89,7 +89,7 @@ const ArticleContentBlocks = ({ blocks = [], onChange }) => {
                             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                                 {block.type === 'heading' ? <Heading1 size={11} /> : <Pilcrow size={11} />}
                                 {block.type === 'heading' ? 'Sarlavha' : 'Paragraf'}
-                                <span className="text-gray-300 dark:text-gray-600">·</span>
+                                <span className="text-gray-300 dark:text-warm-muted">·</span>
                                 <span className="font-medium normal-case tracking-normal">
                                     {countWords(block.text)} so&apos;z
                                 </span>
@@ -137,12 +137,12 @@ const ArticleContentBlocks = ({ blocks = [], onChange }) => {
                                 <input
                                     type="text"
                                     placeholder="Bo'lim sarlavhasi..."
-                                    className="w-full bg-white dark:bg-[#252525] border border-black/[0.05] dark:border-white/[0.06] rounded-lg px-3 py-2.5 text-base font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 outline-none"
+                                    className="w-full bg-white dark:bg-[#252320] border border-black/[0.05] dark:border-white/[0.06] rounded-lg px-3 py-2.5 text-base font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 outline-none"
                                     value={block.text}
                                     onChange={(e) => updateBlock(idx, e.target.value)}
                                 />
                             ) : (
-                                <div className="bg-white dark:bg-[#252525] rounded-lg overflow-hidden border border-black/[0.05] dark:border-white/[0.06] article-quill">
+                                <div className="bg-white dark:bg-[#252320] rounded-lg overflow-hidden border border-black/[0.05] dark:border-white/[0.06] article-quill">
                                     <ReactQuill
                                         theme="snow"
                                         value={block.text}

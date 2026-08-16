@@ -47,7 +47,7 @@ export default function AdminHeader() {
 
 
     return (
-        <header className={`h-14 md:h-16 shrink-0 px-2 sm:px-4 md:px-6 flex items-center justify-between gap-2 border-b transition-all duration-200 relative ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <header className={`h-14 md:h-16 shrink-0 px-2 sm:px-4 md:px-6 flex items-center justify-between gap-2 border-b transition-all duration-200 relative ${theme === 'dark' ? 'bg-[#181715] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
 
 
 
@@ -79,7 +79,7 @@ export default function AdminHeader() {
             <div className="flex items-center gap-1 sm:gap-3 md:gap-4 shrink-0">
 
                 {/* Search (Desktop) */}
-                <div className={`hidden md:flex items-center px-3 py-1.5 rounded-full border transition-all ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/10' : 'bg-gray-100 border-transparent'}`}>
+                <div className={`hidden md:flex items-center px-3 py-1.5 rounded-full border transition-all ${theme === 'dark' ? 'bg-[#1f1e1b] border-white/10' : 'bg-gray-100 border-transparent'}`}>
 
                     <Search size={16} className="text-gray-400" />
                     <input
@@ -118,7 +118,7 @@ export default function AdminHeader() {
                     </div>
                     <div className="flex items-center gap-1 sm:gap-2">
                         <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px] shrink-0">
-                            <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${theme === 'dark' ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
+                            <div className={`w-full h-full rounded-full flex items-center justify-center overflow-hidden ${theme === 'dark' ? 'bg-[#1f1e1b]' : 'bg-white'}`}>
 
                                 {userData?.photoURL ? (
                                     <img src={userData.photoURL} alt="Admin" className="w-full h-full object-cover" />
@@ -139,7 +139,7 @@ export default function AdminHeader() {
                     {/* Logout Confirmation Modal */}
                     {showLogoutConfirm && (
                         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                            <div className={`w-full max-w-sm rounded-2xl p-5 sm:p-6 shadow-2xl transition-all scale-100 opacity-100 ${theme === 'dark' ? 'bg-[#1E1E1E] border border-white/10 text-white' : 'bg-white text-gray-900'}`}>
+                            <div className={`w-full max-w-sm rounded-2xl p-5 sm:p-6 shadow-2xl transition-all scale-100 opacity-100 ${theme === 'dark' ? 'bg-[#1f1e1b] border border-white/10 text-white' : 'bg-white text-gray-900'}`}>
 
                                 <h3 className="text-lg font-bold mb-2">Are you sure?</h3>
                                 <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>

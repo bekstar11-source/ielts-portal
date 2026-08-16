@@ -1,7 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ArrowRightLeft, X, Minimize2, BookOpen, Save, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { saveSynonymPairs, getSynonymPairs, deleteSynonymPair, batchAddWordsToBank } from "../../utils/wordbankUtils";
+
+// Belgilangan matnni tozalaydi: ortiqcha bo'shliq/qator uzilishi va chekka tinish belgilari
+function normalizeWord(raw) {
+    return (raw || "")
+        .replace(/\s+/g, " ")
+        .replace(/[.,!?;:()"“”„«»]/g, "")
+        .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+        .trim();
+}
 
 /**
  * VocabSynonymCanvas
@@ -26,18 +35,32 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
     const [savedFlash, setSavedFlash] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
 
+    // unsavedIds ning eng so'nggi qiymati async callback'lar uchun
+    const unsavedIdsRef = useRef(unsavedIds);
+    useEffect(() => { unsavedIdsRef.current = unsavedIds; }, [unsavedIds]);
+
+    const localIdSeq = useRef(0);
+    const flashTimerRef = useRef(null);
+    useEffect(() => () => clearTimeout(flashTimerRef.current), []);
+
     // Load saved pairs from Firestore on mount
     useEffect(() => {
         if (!userId || !testId) return;
+        let cancelled = false;
         setIsLoading(true);
         getSynonymPairs(userId, testId)
             .then((data) => {
-                // Fetch returns them in descending order now, so no need to reverse
-                setPairs(data);
-                setUnsavedIds(new Set());
+                if (cancelled) return;
+                // Yuklash paytida qo'shilgan (hali saqlanmagan) juftlarni yo'qotmaymiz
+                setPairs((prev) => {
+                    const pending = prev.filter((p) => unsavedIdsRef.current.has(p.id));
+                    const pendingIds = new Set(pending.map((p) => p.id));
+                    return [...pending, ...data.filter((p) => !pendingIds.has(p.id))];
+                });
             })
             .catch(console.error)
-            .finally(() => setIsLoading(false));
+            .finally(() => { if (!cancelled) setIsLoading(false); });
+        return () => { cancelled = true; };
     }, [userId, testId]);
 
     // Warn before leaving if there are unsaved pairs
@@ -55,63 +78,71 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
     // Handle incoming capture data
     useEffect(() => {
         if (!captureData) return;
-        setIsOpen(true);
-        
-        // Clean word from punctuation and spaces
-        const cleanWord = captureData.word ? captureData.word.trim().replace(/[.,!?;:()]/g, '') : "";
-        const cData = { ...captureData, word: cleanWord };
 
-        if (!passageData && !questionData) {
-            if (cData.source === "passage") {
-                setPassageData(cData);
-            } else {
-                setQuestionData(cData);
-            }
-            setStep(1);
-        } else if (passageData && !questionData) {
-            if (cData.source === "question") {
-                setQuestionData(cData);
-                setStep(2);
-            } else {
-                setPassageData(cData);
-            }
-        } else if (!passageData && questionData) {
-            if (cData.source === "passage") {
-                setPassageData(cData);
-                setStep(2);
-            } else {
-                setQuestionData(cData);
-            }
+        // Clean word from punctuation and spaces
+        const cleanWord = normalizeWord(captureData.word);
+        if (!cleanWord) {
+            onClearCapture();
+            return;
         }
-        
+
+        setIsOpen(true);
+        const cData = { ...captureData, word: cleanWord };
+        const isPassage = cData.source === "passage";
+
+        // Manba bo'yicha tegishli tomonni to'ldiramiz/almashtiramiz.
+        // (Ilgari ikkala tomon to'lganda yangi tanlov jimgina yo'qolar edi)
+        const nextPassage = isPassage ? cData : passageData;
+        const nextQuestion = isPassage ? questionData : cData;
+
+        setPassageData(nextPassage);
+        setQuestionData(nextQuestion);
+        setStep(nextPassage && nextQuestion ? 2 : 1);
+
         onClearCapture();
     }, [captureData]); // eslint-disable-line
 
     const handleAddPair = (relation) => {
-        const isDuplicate = pairs.some(p => 
-            p.passageWord?.toLowerCase() === passageData?.word?.toLowerCase() && 
-            p.questionWord?.toLowerCase() === questionData?.word?.toLowerCase()
-        );
-        
-        if (isDuplicate) {
+        const pWord = passageData?.word?.trim();
+        const qWord = questionData?.word?.trim();
+
+        const reset = () => {
             setPassageData(null);
             setQuestionData(null);
             setStep(0);
+        };
+
+        if (!pWord || !qWord) { reset(); return; }
+
+        const existing = pairs.find(p =>
+            p.passageWord?.trim().toLowerCase() === pWord.toLowerCase() &&
+            p.questionWord?.trim().toLowerCase() === qWord.toLowerCase()
+        );
+
+        if (existing) {
+            // Bir xil juft — faqat bog'lanish turi o'zgargan bo'lsa yangilaymiz
+            if (existing.type !== relation) {
+                setPairs((prev) => prev.map((p) => (p.id === existing.id ? { ...p, type: relation } : p)));
+                setUnsavedIds((prev) => new Set(prev).add(existing.id));
+            }
+            reset();
             return;
         }
 
+        const localId = `local_${Date.now()}_${localIdSeq.current++}`;
         const newPair = {
-            id: `local_${Date.now()}`,
-            passageWord: passageData?.word,
-            questionWord: questionData?.word,
+            id: localId,
+            // Saqlashda id Firestore id'siga almashadi — React key esa o'zgarmasligi kerak,
+            // aks holda qator unmount/mount bo'lib "sakraydi"
+            _k: localId,
+            passageWord: pWord,
+            questionWord: qWord,
             type: relation,
             createdAt: Date.now(),
         };
         setPairs((prev) => [newPair, ...prev]);
         setUnsavedIds((prev) => new Set([...prev, newPair.id]));
-        setPassageData(null);
-        setQuestionData(null);
-        setStep(0);
+        reset();
     };
 
     const handleCancelCapture = () => {
@@ -125,7 +156,7 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
         if (isSaving) return;
         
         if (!userId || !testId) {
-            alert('userId yoki testId topilmadi!');
+            console.error('VocabSynonymCanvas: userId yoki testId topilmadi, saqlash o‘tkazib yuborildi');
             return;
         }
         const toSave = pairs.filter((p) => unsavedIds.has(p.id));
@@ -171,9 +202,17 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                 if (idMap[p.id]) return { ...p, id: idMap[p.id] };
                 return p;
             }));
-            setUnsavedIds(new Set());
+            // Faqat shu partiyada saqlanganlarini olib tashlaymiz —
+            // saqlash davomida qo'shilganlar keyingi avtosaqlashda ketadi
+            const savedIds = new Set(toSave.map((p) => p.id));
+            setUnsavedIds((prev) => {
+                const next = new Set();
+                prev.forEach((id) => { if (!savedIds.has(id)) next.add(id); });
+                return next;
+            });
             setSavedFlash(true);
-            setTimeout(() => setSavedFlash(false), 2500);
+            clearTimeout(flashTimerRef.current);
+            flashTimerRef.current = setTimeout(() => setSavedFlash(false), 2500);
         } catch (err) {
             console.error('Saqlashda xato:', err);
             alert('Saqlashda xatolik: ' + (err?.message || err));
@@ -209,191 +248,246 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
         }
     }, [userId, testId, unsavedIds]);
 
-    // High-contrast type styles for dark background
+    // Bir joyda saqlanadigan rang tokenlari — qator, nishon va tugmalar shu yerdan rang oladi
     const typeConfig = {
         synonym: {
             label: "SYN",
-            badgeClass: "bg-emerald-400/20 text-emerald-300 border-emerald-400/40",
-            wordClass: "text-emerald-300 font-bold",
-            rowBg: "rgba(4,120,87,0.18)",
-            rowBorder: "rgba(52,211,153,0.25)",
+            full: "Sinonim",
+            accent: "#34d399",       // emerald-400
+            accentSoft: "#a7f3d0",   // emerald-200
+            tint: "rgba(16,185,129,0.10)",
+            line: "rgba(52,211,153,0.28)",
         },
         antonym: {
             label: "ANT",
-            badgeClass: "bg-rose-400/20 text-rose-300 border-rose-400/40",
-            wordClass: "text-rose-300 font-bold",
-            rowBg: "rgba(136,19,55,0.22)",
-            rowBorder: "rgba(251,113,133,0.25)",
+            full: "Antonim",
+            accent: "#fb7185",       // rose-400
+            accentSoft: "#fecdd3",   // rose-200
+            tint: "rgba(244,63,94,0.10)",
+            line: "rgba(251,113,133,0.28)",
         },
         phrase: {
             label: "PHR",
-            badgeClass: "bg-amber-400/20 text-amber-300 border-amber-400/40",
-            wordClass: "text-amber-300 font-bold",
-            rowBg: "rgba(120,53,15,0.22)",
-            rowBorder: "rgba(251,191,36,0.25)",
+            full: "Ibora",
+            accent: "#fbbf24",       // amber-400
+            accentSoft: "#fde68a",   // amber-200
+            tint: "rgba(245,158,11,0.10)",
+            line: "rgba(251,191,36,0.28)",
         },
     };
 
     const hasActivity = step > 0 || pairs.length > 0;
     if (!isOpen && !hasActivity) return null;
 
+    const lockedWord = passageData ? passageData.word : questionData?.word;
+
     return (
         <AnimatePresence mode="wait">
             {!isOpen ? (
                 <motion.div
                     key="mini"
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.85, y: 16 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                    exit={{ opacity: 0, scale: 0.85, y: 16 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed bottom-16 right-6 z-[2000]"
+                    className="fixed bottom-4 right-4 sm:bottom-16 sm:right-6 z-[2000]"
                 >
                     <button
                         onClick={() => setIsOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-full text-white font-semibold shadow-2xl hover:opacity-90 transition-all text-sm"
-                        style={{ background: '#0f172a', border: '1px solid rgba(100,116,139,0.5)' }}
+                        aria-label="Sinonimlar panelini ochish"
+                        className="vsc-focus group flex items-center gap-2.5 pl-3.5 pr-4 py-2.5 rounded-full text-sm font-semibold text-slate-100 transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(30,41,59,0.97) 0%, rgba(15,23,42,0.97) 100%)',
+                            border: '1px solid rgba(139,92,246,0.35)',
+                            boxShadow: '0 10px 30px -8px rgba(2,6,23,0.85), 0 0 0 1px rgba(255,255,255,0.03) inset',
+                            backdropFilter: 'blur(12px)',
+                        }}
                     >
-                        <BookOpen className="w-4 h-4 text-violet-400" />
-                        Sinonimlar
+                        <BookOpen className="w-4 h-4 text-violet-300 transition-colors group-hover:text-violet-200" />
+                        <span className="tracking-[0.01em]">Sinonimlar</span>
                         {pairs.length > 0 && (
-                            <span className="ml-1 px-1.5 py-0.5 bg-violet-500/30 rounded-full text-violet-300 text-xs font-bold">
+                            <span
+                                className="px-1.5 min-w-[20px] text-center rounded-full text-[11px] font-bold tabular-nums leading-5"
+                                style={{ background: 'rgba(139,92,246,0.22)', color: '#ddd6fe' }}
+                            >
                                 {pairs.length}
                             </span>
                         )}
-                        {unsavedIds.size > 0 && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+                        {unsavedIds.size > 0 && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" title="Saqlanmagan o'zgarishlar bor" />
+                        )}
                     </button>
                 </motion.div>
             ) : (
                 <motion.div
                     key="max"
-                    initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 24, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 40, scale: 0.95 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
-                    className="fixed bottom-16 right-6 z-[2000] w-[480px] flex flex-col rounded-2xl shadow-2xl overflow-hidden"
-                    style={{ background: '#0d1526', border: '1px solid rgba(100,116,139,0.35)' }}
+                    exit={{ opacity: 0, y: 24, scale: 0.97 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    role="complementary"
+                    aria-label="Sinonimlar paneli"
+                    className="fixed bottom-4 right-4 sm:bottom-16 sm:right-6 z-[2000] w-[min(440px,calc(100vw-2rem))] flex flex-col rounded-2xl overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(180deg, rgba(17,25,43,0.98) 0%, rgba(11,17,31,0.98) 100%)',
+                        border: '1px solid rgba(148,163,184,0.16)',
+                        boxShadow: '0 24px 60px -18px rgba(2,6,23,0.9), 0 0 0 1px rgba(255,255,255,0.02) inset',
+                        backdropFilter: 'blur(16px)',
+                    }}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(100,116,139,0.25)', background: 'rgba(15,23,42,0.9)' }}>
-                        <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.35)' }}>
-                                <BookOpen className="w-3.5 h-3.5 text-violet-400" />
+                    <div
+                        className="flex items-center justify-between gap-3 px-4 py-3 shrink-0"
+                        style={{ borderBottom: '1px solid rgba(148,163,184,0.12)' }}
+                    >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                                style={{ background: 'rgba(139,92,246,0.16)', border: '1px solid rgba(139,92,246,0.3)' }}
+                            >
+                                <BookOpen className="w-3.5 h-3.5 text-violet-300" />
                             </div>
-                            <span className="text-sm font-bold text-white tracking-wide">Sinonimlar</span>
-                            {isLoading && <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />}
+                            <span className="text-[13px] font-semibold text-slate-100 tracking-[0.01em] truncate">Sinonimlar</span>
+                            {isLoading && <Loader2 className="w-3.5 h-3.5 text-slate-500 animate-spin shrink-0" />}
                             {pairs.length > 0 && !isLoading && (
-                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(139,92,246,0.2)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.3)' }}>
+                                <span
+                                    className="px-1.5 min-w-[20px] text-center rounded-full text-[11px] font-semibold tabular-nums leading-5 shrink-0"
+                                    style={{ background: 'rgba(139,92,246,0.16)', color: '#c4b5fd' }}
+                                >
                                     {pairs.length}
                                 </span>
                             )}
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}
-                            className="p-1.5 rounded-lg transition-colors"
-                            style={{ color: '#94a3b8', background: 'rgba(100,116,139,0.15)' }}
+                            aria-label="Panelni yig'ish"
+                            title="Yig'ish"
+                            className="vsc-focus vsc-icon-btn shrink-0 p-1.5 rounded-lg"
                         >
                             <Minimize2 className="w-3.5 h-3.5" />
                         </button>
                     </div>
 
-                    {/* Body — shows ~4 rows then scrolls */}
-                    <div className="overflow-y-auto p-3 space-y-2 vocab-syn-scroll" style={{ maxHeight: '320px' }}>
-                        <AnimatePresence mode="popLayout">
-
-                            {/* Step 1 — Passage word locked */}
-                            {step === 1 && (
+                    {/* Tanlov kartasi — ro'yxatdan tashqarida, shunda paydo bo'lib/yo'qolganda
+                        pastdagi qatorlar qayta tartiblanmaydi */}
+                    <div className={step > 0 ? "px-2.5 pt-2.5" : ""}>
+                        <AnimatePresence initial={false}>
+                            {/* Bitta doimiy karta: 1-qadamdan 2-qadamga o'tganda unmount bo'lmaydi,
+                                shuning uchun balandlik nolga tushib qaytmaydi */}
+                            {step > 0 && (
                                 <motion.div
-                                    key="step1"
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    className="p-3 rounded-xl relative"
-                                    style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(96,165,250,0.35)' }}
-                                >
-                                    <button onClick={handleCancelCapture} className="absolute top-2 right-2 transition-colors" style={{ color: 'rgba(96,165,250,0.5)' }}>
-                                        <X className="w-3.5 h-3.5" />
-                                    </button>
-                                    <div className="flex items-center gap-1.5 mb-1.5">
-                                        <span className="relative flex h-2 w-2">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400" />
-                                        </span>
-                                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Qulflandi</span>
-                                    </div>
-                                    <p className="text-base font-bold text-white mb-2 underline decoration-blue-500/30 underline-offset-4">
-                                        {passageData ? passageData.word : questionData?.word}
-                                    </p>
-                                    <p className="text-xs mt-1" style={{ color: 'rgba(147,197,253,0.75)' }}>
-                                        {passageData 
-                                            ? "Savoldagi sinonim · antonimni belgilang →"
-                                            : "Matndagi sinonim · antonimni belgilang →"
-                                        }
-                                    </p>
-                                </motion.div>
-                            )}
-
-                            {/* Step 2 — Pick relation */}
-                            {step === 2 && (
-                                <motion.div
-                                    key="step2"
-                                    initial={{ opacity: 0, y: 16 }}
+                                    key="capture"
+                                    initial={{ opacity: 0, y: -6 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    className="p-3 rounded-xl relative"
-                                    style={{ background: 'rgba(100,116,139,0.15)', border: '1px solid rgba(100,116,139,0.35)' }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.16, ease: "easeOut" }}
+                                    className="relative p-3.5 rounded-xl"
+                                    style={
+                                        step === 1
+                                            ? { background: 'rgba(59,130,246,0.09)', border: '1px solid rgba(96,165,250,0.28)' }
+                                            : { background: 'rgba(148,163,184,0.07)', border: '1px solid rgba(148,163,184,0.2)' }
+                                    }
                                 >
-                                    <button onClick={handleCancelCapture} className="absolute top-2 right-2 text-slate-500 hover:text-white transition-colors">
+                                    <button
+                                        onClick={handleCancelCapture}
+                                        aria-label="Tanlovni bekor qilish"
+                                        title="Bekor qilish"
+                                        className="vsc-focus vsc-icon-btn absolute top-2 right-2 p-1 rounded-md z-10"
+                                    >
                                         <X className="w-3.5 h-3.5" />
                                     </button>
-                                    <div className="flex flex-col items-center gap-2 mb-4 py-1">
-                                        <div className="text-base font-bold text-white text-center w-full px-2 leading-tight">
-                                            {passageData?.word}
-                                        </div>
-                                        <div className="flex items-center justify-center w-full gap-2">
-                                            <div className="h-px flex-1 bg-slate-700/50"></div>
-                                            <ArrowRightLeft className="w-4 h-4 text-violet-400 shrink-0 opacity-80" />
-                                            <div className="h-px flex-1 bg-slate-700/50"></div>
-                                        </div>
-                                        <div className="text-base font-bold text-white text-center w-full px-2 leading-tight">
-                                            {questionData?.word}
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] text-center uppercase tracking-wider mb-2.5 font-semibold" style={{ color: '#64748b' }}>Bog'lanishni tanlang</p>
-                                    <div className="grid grid-cols-3 gap-1.5">
-                                        {[
-                                            { key: "synonym", label: "Sinonim", bg: "rgba(4,120,87,0.2)", border: "rgba(52,211,153,0.35)", color: "#6ee7b7" },
-                                            { key: "antonym", label: "Antonim", bg: "rgba(136,19,55,0.2)", border: "rgba(251,113,133,0.35)", color: "#fda4af" },
-                                            { key: "phrase", label: "Ibora", bg: "rgba(120,53,15,0.2)", border: "rgba(251,191,36,0.35)", color: "#fcd34d" },
-                                        ].map(({ key, label, bg, border, color }) => (
-                                            <button
-                                                key={key}
-                                                onClick={() => handleAddPair(key)}
-                                                className="py-2 rounded-xl text-xs font-bold transition-all"
-                                                style={{ background: bg, border: `1px solid ${border}`, color }}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
+
+                                    {step === 1 ? (
+                                        <>
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                <span className="relative flex h-1.5 w-1.5">
+                                                    <span className="vsc-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-400" />
+                                                </span>
+                                                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-300/90">Qulflandi</span>
+                                            </div>
+                                            <p className="text-[17px] font-semibold text-white leading-snug break-words pr-5">
+                                                {lockedWord}
+                                            </p>
+                                            <p className="text-[12px] mt-2 leading-relaxed" style={{ color: 'rgba(191,219,254,0.7)' }}>
+                                                {passageData
+                                                    ? "Endi savoldagi mos so'zni belgilang"
+                                                    : "Endi matndagi mos so'zni belgilang"}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="flex flex-col items-center gap-2 mb-4 pt-1">
+                                                <div className="w-full px-5 text-center text-[16px] font-semibold text-white leading-snug break-words">
+                                                    {passageData?.word}
+                                                </div>
+                                                <div className="flex items-center justify-center w-full gap-2.5 py-0.5">
+                                                    <span className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(148,163,184,0.28))' }} />
+                                                    <ArrowRightLeft className="w-3.5 h-3.5 text-violet-300/80 shrink-0" />
+                                                    <span className="h-px flex-1" style={{ background: 'linear-gradient(90deg, rgba(148,163,184,0.28), transparent)' }} />
+                                                </div>
+                                                <div className="w-full px-5 text-center text-[16px] font-semibold text-white leading-snug break-words">
+                                                    {questionData?.word}
+                                                </div>
+                                            </div>
+
+                                            <p className="text-[10px] text-center uppercase tracking-[0.14em] mb-2 font-semibold text-slate-500">
+                                                Bog'lanishni tanlang
+                                            </p>
+                                            <div className="grid grid-cols-3 gap-1.5">
+                                                {["synonym", "antonym", "phrase"].map((key) => {
+                                                    const cfg = typeConfig[key];
+                                                    return (
+                                                        <button
+                                                            key={key}
+                                                            onClick={() => handleAddPair(key)}
+                                                            className="vsc-focus vsc-choice py-2.5 rounded-lg text-[12px] font-semibold"
+                                                            style={{
+                                                                background: cfg.tint,
+                                                                border: `1px solid ${cfg.line}`,
+                                                                color: cfg.accentSoft,
+                                                                '--vsc-accent': cfg.accent,
+                                                            }}
+                                                        >
+                                                            {cfg.full}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    )}
                                 </motion.div>
                             )}
+                        </AnimatePresence>
+                    </div>
 
-                            {/* Empty state */}
+                    {/* Body — ~4 qator ko'rinadi, keyin scroll */}
+                    <div className="overflow-y-auto overscroll-contain p-2.5 space-y-1.5 vocab-syn-scroll" style={{ maxHeight: '340px' }}>
+                        <AnimatePresence initial={false} mode="popLayout">
+
+                            {/* Bo'sh holat */}
                             {pairs.length === 0 && step === 0 && !isLoading && (
                                 <motion.div
                                     key="empty"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="flex flex-col items-center justify-center py-10 text-center"
+                                    className="flex flex-col items-center justify-center py-11 px-6 text-center"
                                 >
-                                    <BookOpen className="w-8 h-8 mb-2" style={{ color: '#334155' }} />
-                                    <p className="text-sm font-medium" style={{ color: '#64748b' }}>So'z belgilang</p>
-                                    <p className="text-[11px] mt-1" style={{ color: '#475569' }}>Matndan so'z qulflang, keyin<br />savoldagi sinonimini tanlang</p>
+                                    <div
+                                        className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
+                                        style={{ background: 'rgba(148,163,184,0.07)', border: '1px solid rgba(148,163,184,0.14)' }}
+                                    >
+                                        <BookOpen className="w-5 h-5 text-slate-600" />
+                                    </div>
+                                    <p className="text-[13px] font-semibold text-slate-300">Hali juftlik yo'q</p>
+                                    <p className="text-[12px] mt-1.5 leading-relaxed text-slate-500 max-w-[240px]">
+                                        Matndan so'zni belgilang, so'ng savoldagi sinonimini tanlang — juftlik shu yerda paydo bo'ladi.
+                                    </p>
                                 </motion.div>
                             )}
 
-                            {/* Pair rows */}
+                            {/* Juftliklar */}
                             {pairs.map((pair) => {
                                 const cfg = typeConfig[pair.type] || typeConfig.synonym;
                                 const isUnsaved = unsavedIds.has(pair.id);
@@ -401,48 +495,72 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
 
                                 return (
                                     <motion.div
-                                        layout
-                                        key={pair.id}
-                                        initial={{ opacity: 0, x: 16 }}
-                                        animate={{ opacity: isDeleting ? 0.3 : 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -16 }}
-                                        className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl group"
+                                        layout="position"
+                                        // _k saqlashdan keyin ham o'zgarmaydi — id almashsa ham qator remount bo'lmaydi
+                                        key={pair._k || pair.id}
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: isDeleting ? 0.4 : 1, y: 0 }}
+                                        exit={{ opacity: 0, x: -12 }}
+                                        transition={{ duration: 0.18, ease: "easeOut" }}
+                                        className="vsc-row group relative flex items-center gap-2 pl-3 pr-1.5 py-2 rounded-xl"
                                         style={{
-                                            background: cfg.rowBg,
-                                            border: `1px solid ${cfg.rowBorder}`,
+                                            background: cfg.tint,
+                                            border: `1px solid ${cfg.line}`,
+                                            '--vsc-accent': cfg.accent,
                                         }}
                                     >
-                                        <div className="flex items-center gap-2 min-w-0 flex-1 py-0.5">
-                                            <button 
+                                        <span
+                                            className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full opacity-70"
+                                            style={{ background: cfg.accent }}
+                                            aria-hidden="true"
+                                        />
+
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <button
                                                 onClick={() => onWordClick && onWordClick(pair.passageWord, 'passage')}
-                                                className="text-[13px] font-bold text-white leading-snug break-words flex-1 text-right hover:text-blue-300 transition-colors cursor-pointer"
+                                                className="vsc-focus vsc-word flex-1 min-w-0 text-right text-[13px] font-medium text-slate-100 leading-snug break-words rounded-md px-0.5"
                                                 title="Matndan izlash"
                                             >
                                                 {pair.passageWord}
                                             </button>
-                                            <div className="shrink-0 flex flex-col items-center gap-1 mx-1">
-                                                <div className="h-2 w-[1px] bg-white/10 group-hover:bg-white/20 transition-colors"></div>
-                                                <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider border ${cfg.badgeClass}`}>
-                                                    {cfg.label}
-                                                </span>
-                                                <div className="h-2 w-[1px] bg-white/10 group-hover:bg-white/20 transition-colors"></div>
-                                            </div>
-                                            <button 
+
+                                            <span
+                                                className="shrink-0 px-1.5 py-[3px] rounded-md text-[9px] font-bold uppercase tracking-[0.08em] leading-none"
+                                                style={{ background: 'rgba(255,255,255,0.06)', color: cfg.accent }}
+                                                title={cfg.full}
+                                            >
+                                                {cfg.label}
+                                            </span>
+
+                                            <button
                                                 onClick={() => onWordClick && onWordClick(pair.questionWord, 'question')}
-                                                className={`text-[13px] leading-snug break-words flex-1 text-left ${cfg.wordClass} hover:opacity-75 transition-opacity cursor-pointer`}
+                                                className="vsc-focus vsc-word flex-1 min-w-0 text-left text-[13px] font-semibold leading-snug break-words rounded-md px-0.5"
+                                                style={{ color: cfg.accentSoft }}
                                                 title="Savoldan izlash"
                                             >
                                                 {pair.questionWord}
                                             </button>
-                                            {isUnsaved && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" title="Saqlanmagan" />}
+
+                                            {/* Joyi doim band — saqlanganda nuqta yo'qolsa so'zlar siljib ketmasin */}
+                                            <span
+                                                className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-400 transition-opacity duration-300"
+                                                style={{
+                                                    opacity: isUnsaved ? 1 : 0,
+                                                    boxShadow: isUnsaved ? '0 0 8px rgba(251,191,36,0.6)' : 'none',
+                                                }}
+                                                title={isUnsaved ? "Saqlanmagan" : undefined}
+                                                aria-hidden={!isUnsaved}
+                                            />
                                         </div>
+
                                         <button
                                             onClick={() => handleRemovePair(pair)}
                                             disabled={isDeleting}
-                                            className="shrink-0 p-1 opacity-0 group-hover:opacity-100 transition-all rounded-md disabled:cursor-wait"
-                                            style={{ color: '#475569' }}
+                                            aria-label="Juftlikni o'chirish"
+                                            title="O'chirish"
+                                            className="vsc-focus vsc-del shrink-0 p-1.5 rounded-lg disabled:cursor-wait"
                                         >
-                                            {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                            {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                                         </button>
                                     </motion.div>
                                 );
@@ -450,34 +568,99 @@ export default function VocabSynonymCanvas({ captureData, onClearCapture, userId
                         </AnimatePresence>
                     </div>
 
-                    {/* Footer: auto-save status (no manual click needed) */}
-                    {unsavedIds.size > 0 && (
-                        <div className="px-3 pb-3 pt-2 shrink-0" style={{ borderTop: '1px solid rgba(100,116,139,0.25)', background: 'rgba(15,23,42,0.85)' }}>
-                            <div
-                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white"
-                                style={{ background: '#5b21b6', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}
-                            >
-                                {isSaving
-                                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Saqlanmoqda...</>
-                                    : <><Save className="w-4 h-4" /> Avtomatik saqlash kutilmoqda...</>
-                                }
-                            </div>
-                        </div>
-                    )}
-
-                    {savedFlash && unsavedIds.size === 0 && (
-                        <div className="px-3 pb-3 pt-2 shrink-0" style={{ borderTop: '1px solid rgba(100,116,139,0.25)', background: 'rgba(15,23,42,0.85)' }}>
-                            <div className="flex items-center justify-center gap-2 py-1.5 text-sm font-bold" style={{ color: '#34d399' }}>
-                                <CheckCircle2 className="w-4 h-4" /> Wordbank'ga ham saqlandi!
-                            </div>
+                    {/* Footer — avtosaqlash holati.
+                        Juftlik bor ekan doim ko'rinadi: paydo bo'lib/yo'qolsa panel balandligi
+                        o'zgarib, pastdan biriktirilgani uchun butun ro'yxat sakrardi. */}
+                    {pairs.length > 0 && (
+                        <div
+                            className="px-4 h-9 flex items-center shrink-0"
+                            style={{ borderTop: '1px solid rgba(148,163,184,0.12)', background: 'rgba(15,23,42,0.6)' }}
+                            aria-live="polite"
+                        >
+                            {unsavedIds.size > 0 ? (
+                                <div className="flex items-center gap-2 w-full text-[12px] font-medium text-slate-400">
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-300 shrink-0" />
+                                            <span className="text-slate-300">Saqlanmoqda…</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                            <span>Avtomatik saqlanadi</span>
+                                            <span className="ml-auto tabular-nums text-slate-500">{unsavedIds.size} ta kutilmoqda</span>
+                                        </>
+                                    )}
+                                </div>
+                            ) : savedFlash ? (
+                                <div className="flex items-center gap-2 w-full text-[12px] font-medium" style={{ color: '#6ee7b7' }}>
+                                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Saqlandi · Wordbank'ga qo'shildi</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 w-full text-[12px] font-medium text-slate-500">
+                                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-slate-600" />
+                                    <span>Hammasi saqlangan</span>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     <style>{`
-                        .vocab-syn-scroll::-webkit-scrollbar { width: 3px; }
+                        .vocab-syn-scroll::-webkit-scrollbar { width: 6px; }
                         .vocab-syn-scroll::-webkit-scrollbar-track { background: transparent; }
-                        .vocab-syn-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.2); border-radius: 10px; }
-                        .vocab-syn-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.4); }
+                        .vocab-syn-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.18); border-radius: 999px; }
+                        .vocab-syn-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.35); }
+                        .vocab-syn-scroll { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.22) transparent; }
+
+                        .vsc-focus { outline: none; }
+                        .vsc-focus:focus-visible {
+                            outline: 2px solid rgba(167,139,250,0.85);
+                            outline-offset: 2px;
+                        }
+
+                        .vsc-icon-btn {
+                            color: #94a3b8;
+                            background: rgba(148,163,184,0.08);
+                            transition: color .15s ease, background-color .15s ease;
+                        }
+                        .vsc-icon-btn:hover { color: #e2e8f0; background: rgba(148,163,184,0.18); }
+
+                        .vsc-choice {
+                            transition: background-color .15s ease, border-color .15s ease, transform .12s ease, color .15s ease;
+                        }
+                        .vsc-choice:hover {
+                            border-color: var(--vsc-accent);
+                            color: #fff;
+                            background: color-mix(in srgb, var(--vsc-accent) 22%, transparent);
+                        }
+                        .vsc-choice:active { transform: scale(0.97); }
+
+                        .vsc-row { transition: background-color .15s ease, border-color .15s ease; }
+                        .vsc-row:hover { border-color: color-mix(in srgb, var(--vsc-accent) 55%, transparent); }
+
+                        .vsc-word { transition: color .15s ease, background-color .15s ease; }
+                        .vsc-word:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+                        .vsc-del {
+                            color: #64748b;
+                            opacity: 1;
+                            transition: opacity .15s ease, color .15s ease, background-color .15s ease;
+                        }
+                        .vsc-del:hover { color: #fda4af; background: rgba(244,63,94,0.14); }
+                        @media (hover: hover) and (pointer: fine) {
+                            .vsc-del { opacity: 0; }
+                            .vsc-row:hover .vsc-del,
+                            .vsc-del:focus-visible { opacity: 1; }
+                        }
+
+                        .vsc-ping { animation: vsc-ping 1.6s cubic-bezier(0,0,0.2,1) infinite; }
+                        @keyframes vsc-ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+
+                        @media (prefers-reduced-motion: reduce) {
+                            .vsc-ping, .vocab-syn-scroll * { animation: none !important; }
+                            .vsc-choice:active { transform: none; }
+                        }
                     `}</style>
                 </motion.div>
             )}

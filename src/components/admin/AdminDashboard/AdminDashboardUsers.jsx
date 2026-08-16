@@ -18,11 +18,11 @@ const AdminDashboardUsers = ({
                 </h3>
                 <div className="flex gap-2 w-full md:w-auto min-w-0">
                     <div className="relative group shrink-0">
-                        <button className="flex items-center gap-2 bg-gray-100 dark:bg-[#303030] px-3 py-2 rounded-xl text-xs text-gray-700 dark:text-white border border-transparent dark:border-white/5 hover:bg-gray-200 dark:hover:bg-[#383838] transition">
+                        <button className="flex items-center gap-2 bg-gray-100 dark:bg-[#2f2c27] px-3 py-2 rounded-xl text-xs text-gray-700 dark:text-white border border-transparent dark:border-white/5 hover:bg-gray-200 dark:hover:bg-[#383838] transition">
                             <Filter className="w-4 h-4 text-gray-500 dark:text-white/50" />
                             <span>{sortOption === "fullName" ? "Alifbo" : "Sana"}</span>
                         </button>
-                        <div className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-[#2C2C2C] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-10">
+                        <div className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-[#252320] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-10">
                             <button onClick={() => setSortOption("fullName")} className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5">Alifbo bo'yicha</button>
                             <button onClick={() => setSortOption("createdAt")} className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5">Ro'yxat sanasi</button>
                         </div>
@@ -33,7 +33,7 @@ const AdminDashboardUsers = ({
                         <input
                             type="text"
                             placeholder="Ism bo'yicha qidirish..."
-                            className="w-full bg-gray-100 dark:bg-[#303030] border border-transparent dark:border-white/5 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition placeholder:text-gray-500 dark:placeholder:text-white/20"
+                            className="w-full bg-gray-100 dark:bg-[#2f2c27] border border-transparent dark:border-white/5 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition placeholder:text-gray-500 dark:placeholder:text-white/20"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -48,17 +48,17 @@ const AdminDashboardUsers = ({
                     const isOnline = status === 'online';
 
                     return (
-                        <div key={user.id} className={`flex items-center justify-between p-2.5 bg-gray-50 dark:bg-[#303030] rounded-xl hover:bg-gray-100 dark:hover:bg-[#383838] transition border border-gray-200 dark:border-white/5 gap-3 group ${user.isBlocked ? 'opacity-50 grayscale' : ''}`}>
+                        <div key={user.id} className={`flex items-center justify-between p-2.5 bg-gray-50 dark:bg-[#2f2c27] rounded-xl hover:bg-gray-100 dark:hover:bg-[#383838] transition border border-gray-200 dark:border-white/5 gap-3 group ${user.isBlocked ? 'opacity-50 grayscale' : ''}`}>
                             <div className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer" onClick={() => onSelectUser(user)}>
                                 <div className="relative shrink-0">
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-gray-700 dark:text-white font-bold text-xs shadow-sm">
                                         {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
                                     </div>
-                                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#303030] ${isOnline ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-500'}`}></div>
+                                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#2f2c27] ${isOnline ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-500'}`}></div>
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                        <p className="text-xs font-bold text-gray-900 dark:text-gray-200 leading-tight hover:underline truncate max-w-[110px] sm:max-w-[180px] md:max-w-none">{user.fullName || "Ismsiz"}</p>
+                                        <p className="text-xs font-bold text-gray-900 dark:text-warm-on-dark leading-tight hover:underline truncate max-w-[110px] sm:max-w-[180px] md:max-w-none">{user.fullName || "Ismsiz"}</p>
                                         {user.isBlocked && <Lock className="w-3 h-3 text-red-500 shrink-0" />}
                                     </div>
                                     <p className="text-[10px] text-gray-500 truncate">{isOnline ? "Online" : timeText}</p>

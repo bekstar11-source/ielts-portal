@@ -6,6 +6,11 @@ import { BrowserRouter } from 'react-router-dom' // 🔥 MUHIM: Routerni import 
 import { AuthProvider } from './context/AuthContext'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LanguageProvider } from './context/LanguageContext'
+import { captureAttribution } from './lib/analytics'
+
+// Reklama parametrlarini (utm_*, gclid, fbclid) BIRINCHI renderdan oldin
+// ushlaymiz — React Router URL'ni almashtirib ulgurmasin.
+captureAttribution()
 
 // Handle chunk loading errors (usually happens after a new deployment)
 window.addEventListener('vite:preloadError', (event) => {

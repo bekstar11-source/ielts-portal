@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getCurrentServerTime } from "../../utils/timeSync";
 
 // Hooks & Components
 import { useMockExam, getListeningDuration, TEST_ENDED_AUTO_ADVANCE_SEC } from "../../hooks/useMockExam";
 import { useExamSecurity, isFullscreenActive } from "../../hooks/useExamSecurity";
+import useConnectionStatus from "../../hooks/useConnectionStatus";
+import ConnectionStatusBanner from "../../components/MockExam/ConnectionStatusBanner";
 import MockExamIntro from "../../components/MockExam/MockExamIntro";
 import MockExamResult from "../../components/MockExam/MockExamResult";
 import MockExamSectionIntro from "../../components/MockExam/MockExamSectionIntro";
@@ -51,7 +54,7 @@ export default function MockExam() {
         finalResults, submitError, completedModules, autoStartDeadline,
         resumeAudioTime, resumeActivePart, updateAudioProgress,
         tabSwitchCount, mockId, clearExamSession,
-        updateListeningDuration
+        updateListeningDuration, deviceConflict, recordOfflineDuration
     } = useMockExam(mockData, user, userData, navigate);
 
     // UI States
@@ -95,6 +98,20 @@ export default function MockExam() {
                 setShowExitModal(true);
             }
         }
+    });
+
+    // ─── Aloqa / audio holati kuzatuvi ───────────────────────────────────────
+    // Talaba interneti uzilganda audio jimgina to'xtardi va sabab noma'lum qolardi.
+    const isListeningStage = stage === 'listening' || stage === 'listening_volume_check';
+    const {
+        isOnline, justReconnected, audioIssue,
+        audioDeviceChanged, dismissDeviceChange,
+        retryAudio, retrying,
+    } = useConnectionStatus({
+        enabled: SECURITY_ACTIVE_STAGES.includes(stage),
+        watchAudio: isListeningStage,
+        activePart,
+        onOfflineEnded: recordOfflineDuration,
     });
 
     // Enforcement on mount/stage change
@@ -168,7 +185,8 @@ export default function MockExam() {
     useEffect(() => {
         if (stage === 'test_ended' && autoStartDeadline) {
             const interval = setInterval(() => {
-                const remaining = Math.max(0, Math.round((autoStartDeadline - Date.now()) / 1000));
+                // Deadline server vaqtida o'rnatiladi — hisob ham shunda bo'lishi shart.
+                const remaining = Math.max(0, Math.round((autoStartDeadline - getCurrentServerTime()) / 1000));
                 setRedirectCountdown(remaining);
                 
                 if (remaining <= 0) {
@@ -194,6 +212,21 @@ export default function MockExam() {
     // qoplamaydi — ular yuqorida, klaviaturani band qilmaydigan banner sifatida
     // chiqadi (pointer-events yo'q, faqat tugmasi bosiladi).
     const isWritingStage = stage === 'writing';
+
+    // ─── Aloqa holati banneri (barcha bosqichlarda bir xil) ───
+    const connectionBanner = (
+        <ConnectionStatusBanner
+            isOnline={isOnline}
+            justReconnected={justReconnected}
+            audioIssue={audioIssue}
+            audioDeviceChanged={audioDeviceChanged}
+            onDismissDeviceChange={dismissDeviceChange}
+            deviceConflict={deviceConflict}
+            onRetryAudio={retryAudio}
+            retrying={retrying}
+            showAudioState={isListeningStage}
+        />
+    );
 
     // ─── Cheat Warning (Writing'da bloklamaydigan banner) ───
     const cheatWarningBanner = showCheatWarning && tabSwitchCount < 3 && isWritingStage && (
@@ -373,6 +406,7 @@ export default function MockExam() {
 
         return (
             <div className="h-screen flex items-center justify-center bg-[#f1f2f4] font-['Plus_Jakarta_Sans'] p-4">
+                {connectionBanner}
                 <div className="w-full max-w-[600px] bg-white rounded border border-gray-300 shadow-sm overflow-hidden animate-in fade-in zoom-in duration-300">
                     <div className="px-8 py-5 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-zinc-800">
@@ -436,12 +470,17 @@ export default function MockExam() {
     }
 
     if (stage === 'intro') {
-        return <MockExamIntro 
-            onStartModule={startModule} 
-            completedModules={completedModules}
-            onFinish={finishExam}
-            userName={userData?.fullName || user?.email || 'Candidate'}
-        />;
+        return (
+            <>
+                {connectionBanner}
+                <MockExamIntro
+                    onStartModule={startModule}
+                    completedModules={completedModules}
+                    onFinish={finishExam}
+                    userName={userData?.fullName || user?.email || 'Candidate'}
+                />
+            </>
+        );
     }
     
     
@@ -455,6 +494,7 @@ export default function MockExam() {
 
     return (
         <>
+        {connectionBanner}
         {cheatWarningOverlay}
         {cheatWarningBanner}
         {cheatTerminationOverlay}

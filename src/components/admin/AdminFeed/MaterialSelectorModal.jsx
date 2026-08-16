@@ -104,7 +104,7 @@ export default function MaterialSelectorModal({
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
             <div className={`w-full max-w-lg rounded-3xl p-4 sm:p-6 border relative flex flex-col max-h-[85dvh] transition-colors ${
-                isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
+                isDark ? 'bg-[#1f1e1b] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
             }`}>
                 <button 
                     type="button"
@@ -131,7 +131,7 @@ export default function MaterialSelectorModal({
                             type="button"
                             onClick={() => { setMaterialTab(tab.id); setSelectorSearchTerm(''); }}
                             className={`pb-2 transition relative ${
-                                materialTab === tab.id ? tab.color : 'text-gray-400 dark:text-zinc-500 hover:text-gray-350'
+                                materialTab === tab.id ? tab.color : 'text-gray-400 dark:text-warm-muted hover:text-gray-350'
                             }`}
                         >
                             {tab.label}

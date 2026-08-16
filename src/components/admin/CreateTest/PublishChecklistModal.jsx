@@ -38,7 +38,7 @@ export default function PublishChecklistModal({
         ? null
         : (audioMode === 'single' ? !!singleAudioUrl : Object.values(partAudios || {}).some(Boolean));
 
-    const card = isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200';
+    const card = isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-200';
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

@@ -368,7 +368,7 @@ export default function AdminMocks() {
 
   return (
     <div className={`min-h-full font-sans transition-colors duration-200 p-3 sm:p-6 md:p-8 ${
-      isDark ? "bg-[#18181b] text-zinc-150" : "bg-[#fafafa] text-zinc-800"
+      isDark ? "bg-[#1f1e1b] text-zinc-150" : "bg-[#fafafa] text-zinc-800"
     }`}>
       
       {/* HEADER */}
@@ -734,7 +734,7 @@ export default function AdminMocks() {
                 ))}
               </div>
             ) : (
-              <div className="border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl py-20 text-center bg-gray-50/50 dark:bg-zinc-950/20">
+              <div className="border border-dashed border-zinc-300 dark:border-white/10 rounded-xl py-20 text-center bg-gray-50/50 dark:bg-[#181715]/20">
                 <Layers size={36} className="mx-auto mb-3 text-zinc-400 opacity-20" />
                 <p className="text-zinc-500 text-xs italic">Siz yaratgan premium mocklar hali mavjud emas.</p>
               </div>

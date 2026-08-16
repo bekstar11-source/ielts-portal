@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
-import { Check, X, Zap, Shield, ChevronDown, BookOpen, Headphones, BarChart3, Sparkles } from 'lucide-react';
+import { Check, X, Zap, Shield, ChevronDown, BookOpen, Headphones, BarChart3, Sparkles, Gift } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardModals from '../../components/dashboard/DashboardModals';
 import SiteFooter from '../../components/common/SiteFooter';
 import { useTranslation } from '../../context/LanguageContext';
 import Navbar from '../../components/common/Navbar';
+import {
+  getSignupDiscount,
+  discountAppliesTo,
+  applySignupDiscount,
+  formatSom,
+} from '../../utils/subscription';
 
 // ─── COMPONENTS ───────────────────────────────────────────────────────────────
 
@@ -22,10 +29,42 @@ const FeatureValue = ({ value }) => {
 
 export default function PricingPage() {
   const { user, logout, userData } = useAuth();
+  const navigate = useNavigate();
   const [billing, setBilling] = useState('monthly');
+
+  // Ilgari uid o'rniga `'guest'` yuborilardi: o'quvchi to'lovni qilib bo'lgach
+  // bot `users/guest` hujjatini topolmay xato berardi. Endi avval login.
+  const openPaymentBot = (planId) => {
+    if (!user?.uid) {
+      navigate('/login', { state: { redirectTo: '/pricing', reason: 'subscription' } });
+      return;
+    }
+    const params = `${user.uid}_${planId}_${billing}`;
+    window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
+  };
   const [openFaq, setOpenFaq] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { t } = useTranslation();
+
+  // ─── Ro'yxatdan o'tish chegirmasi ────────────────────────────────────────
+  //
+  // `discount` — taklif umuman bormi. `discountActive` — u AYNAN hozir
+  // tanlangan to'lov davriga tegishlimi. Yangi takliflarda ikkala davr ham
+  // haqli, ya'ni odatda ikkisi teng; ajratilgan holat ESKI takliflar uchun
+  // qoladi (ular faqat 3 oylikda ishlaydi) va "1 oy qoldi, 3 oylik tanlandi"
+  // holati uchun — u yerda narxni o'zgartirmay, boshqa davrni taklif qilamiz.
+  const discount = getSignupDiscount(userData);
+  const discountActive = discountAppliesTo(discount, billing);
+  const discountBilling = discount?.eligibleBillings?.[0] || 'tri';
+  const altBilling = billing === 'monthly' ? 'tri' : 'monthly';
+  const discountAltActive = discountAppliesTo(discount, altBilling);
+
+  /** Kartada ko'rsatiladigan narx (chegirma hisobga olingan holda). */
+  const getDisplayPrice = (plan) => {
+    const base = billing === 'monthly' ? plan.monthlyPrice : plan.triPrice;
+    if (!discountActive || plan.id === 'free') return { base, final: base, discounted: false };
+    return { base, final: applySignupDiscount(base, discount.percent), discounted: true };
+  };
 
   const FEATURES = [
     {
@@ -81,8 +120,8 @@ export default function PricingPage() {
     {
       id: 'free',
       name: t('common.free'),
-      monthlyPrice: '0',
-      triPrice: '0',
+      monthlyPrice: 0,
+      triPrice: 0,
       period: t('pricing.som'),
       desc: t('pricing.freeDesc'),
       cta: t('pricing.freeCTA'),
@@ -93,8 +132,11 @@ export default function PricingPage() {
     {
       id: 'standard',
       name: t('common.standard'),
-      monthlyPrice: '35 000',
-      triPrice: '89 000',
+      // ⚠️ Narxlar `functions/pricing.js` dagi `PLAN_PRICES` bilan QO'LDA
+      // sinxron. Bu yerdagi raqam faqat ko'rsatish uchun; to'lanadigan
+      // summani bot hisoblaydi.
+      monthlyPrice: 35000,
+      triPrice: 89000,
       period: t('pricing.som'),
       desc: t('pricing.standardDesc'),
       cta: t('pricing.standardCTA'),
@@ -105,8 +147,8 @@ export default function PricingPage() {
     {
       id: 'pro',
       name: t('common.pro'),
-      monthlyPrice: '49 000',
-      triPrice: '129 000',
+      monthlyPrice: 49000,
+      triPrice: 129000,
       period: t('pricing.som'),
       desc: t('pricing.proDesc'),
       cta: t('pricing.proCTA'),
@@ -169,6 +211,44 @@ export default function PricingPage() {
               <span className="text-[10px] bg-warm-success/15 text-warm-success font-black px-1.5 py-0.5 rounded-full">−20%</span>
             </button>
           </div>
+
+          {/* ── Chegirma banneri ──
+              Ikki holat: chegirma qo'llangan, yoki chegirma bor-u shu davrga
+              tegishli emas. Ikkinchisida o'quvchini quruq qaytarmaymiz —
+              bitta bosishda ishlaydigan davrga o'tkazamiz. */}
+          {discount && (
+            <div className="mt-5 flex flex-col items-center gap-2">
+              {discountActive ? (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-warm-success/10 border border-warm-success/25 text-[13px] font-bold text-warm-success">
+                  <Gift size={14} />
+                  {discount.percent}% chegirmangiz qo'llandi
+                  <span className="opacity-70 font-semibold">
+                    · {discount.daysLeft} kun qoldi
+                  </span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setBilling(discountAltActive ? altBilling : discountBilling)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-warm-success/10 border border-warm-success/25 text-[13px] font-bold text-warm-success hover:bg-warm-success/20 transition-colors"
+                >
+                  <Gift size={14} />
+                  Sizda {discount.percent}% chegirma bor — {(discountAltActive ? altBilling : discountBilling) === 'tri' ? '3 oylik' : '1 oylik'} paketda amal qiladi
+                  <span className="opacity-70">→</span>
+                </button>
+              )}
+
+              {/* Chegirma 3 oyga tarqalgan — buni AYTISH shart. Aks holda
+                  o'quvchi uni bir martalik deb o'ylaydi va 2-oyda to'liq narx
+                  ko'rib, obunani uzaytirmay ketadi. */}
+              {discount.cyclesTotal > 1 && (
+                <p className="text-[12px] font-semibold text-warm-muted dark:text-warm-on-dark-soft text-center">
+                  {discount.started
+                    ? `Chegirmangizdan yana ${discount.cyclesRemaining} oy qoldi — to'lovlar ketma-ket bo'lsa ${discount.percent}% saqlanadi.`
+                    : `Chegirma dastlabki ${discount.cyclesTotal} oyga amal qiladi — har oylik to'lovingiz ${discount.percent}% arzon bo'ladi.`}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -195,17 +275,34 @@ export default function PricingPage() {
                 <h3 className={`text-[13px] font-black uppercase tracking-widest mb-4 ${plan.highlight ? 'text-warm-primary' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}>
                   {plan.name}
                 </h3>
-                <div className="flex items-end gap-1">
-                  <span className={`text-[42px] font-bold leading-none tracking-tighter ${plan.highlight ? 'text-warm-on-dark' : 'text-warm-ink dark:text-warm-on-dark'}`}>
-                    {billing === 'monthly' ? plan.monthlyPrice : plan.triPrice}
-                  </span>
-                  <div className="mb-1.5">
-                    <span className={`text-[14px] font-bold ${plan.highlight ? 'text-warm-on-dark-soft' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}> {plan.period}</span>
-                    <p className={`text-[11px] font-bold ${plan.highlight ? 'text-warm-on-dark-soft' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}>
-                      {billing === 'monthly' ? t('pricing.perMonth') : t('pricing.perTriMonth')}
-                    </p>
-                  </div>
-                </div>
+                {(() => {
+                  const { base, final, discounted } = getDisplayPrice(plan);
+                  return (
+                    <>
+                      {discounted && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-[15px] font-bold line-through ${plan.highlight ? 'text-warm-on-dark-soft' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}>
+                            {formatSom(base)}
+                          </span>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-warm-success/15 text-warm-success uppercase tracking-wider">
+                            −{discount.percent}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-end gap-1">
+                        <span className={`text-[42px] font-bold leading-none tracking-tighter ${plan.highlight ? 'text-warm-on-dark' : 'text-warm-ink dark:text-warm-on-dark'}`}>
+                          {formatSom(final)}
+                        </span>
+                        <div className="mb-1.5">
+                          <span className={`text-[14px] font-bold ${plan.highlight ? 'text-warm-on-dark-soft' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}> {plan.period}</span>
+                          <p className={`text-[11px] font-bold ${plan.highlight ? 'text-warm-on-dark-soft' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}>
+                            {billing === 'monthly' ? t('pricing.perMonth') : t('pricing.perTriMonth')}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <p className={`text-[13px] leading-relaxed mb-6 ${plan.highlight ? 'text-warm-on-dark-soft' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}>
@@ -233,8 +330,7 @@ export default function PricingPage() {
                     disabled={isDisabled}
                     onClick={() => {
                       if (plan.id !== 'free') {
-                        const params = `${user?.uid || 'guest'}_${plan.id}_${billing}`;
-                        window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
+                        openPaymentBot(plan.id);
                       }
                     }}
                     className={`w-full py-3 rounded-xl font-bold text-[14px] transition-all mt-auto ${
@@ -370,10 +466,7 @@ export default function PricingPage() {
           </div>
           <div className="relative z-10 flex flex-col items-center gap-3">
             <button
-              onClick={() => {
-                const params = `${user?.uid || 'guest'}_pro_${billing}`;
-                window.open(`https://t.me/ielts_portal_auth_bot?start=${params}`, '_blank');
-              }}
+              onClick={() => openPaymentBot('pro')}
               className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-warm-primary hover:bg-warm-primary-active text-warm-on-primary font-bold text-[15px] shadow-xl shadow-black/20 hover:scale-[1.03] active:scale-[0.97] transition-all whitespace-nowrap"
             >
               <Zap size={16} fill="currentColor" className="animate-pulse" />

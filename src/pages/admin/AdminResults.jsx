@@ -13,7 +13,7 @@ import ConfirmDialog from "../../components/admin/CreateTest/ConfirmDialog";
 import Pagination from "../../components/common/Pagination";
 
 const TableSkeleton = ({ isDark }) => (
-    <div className={`border rounded-2xl overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+    <div className={`border rounded-2xl overflow-hidden ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
         {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className={`flex items-center gap-4 px-4 py-4 ${i > 0 ? (isDark ? 'border-t border-white/5' : 'border-t border-gray-100') : ''}`}>
                 <div className={`h-8 w-8 rounded-full animate-pulse ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
@@ -70,7 +70,7 @@ export default function AdminResults() {
     const selectedCount = selectedIds.size;
 
     return (
-        <div className={`h-full overflow-y-auto custom-scrollbar p-3 sm:p-4 md:p-6 font-sans transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-slate-800'}`}>
+        <div className={`h-full overflow-y-auto custom-scrollbar p-3 sm:p-4 md:p-6 font-sans transition-colors duration-200 ${isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-slate-800'}`}>
             <div className="max-w-7xl mx-auto pb-28">
                 {/* Sarlavha */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -78,7 +78,7 @@ export default function AdminResults() {
                         <button
                             onClick={() => navigate('/admin')}
                             aria-label="Bosh sahifaga qaytish"
-                            className="w-9 h-9 bg-white dark:bg-[#1E1E1E] rounded-xl flex items-center justify-center border border-gray-200 dark:border-white/5 shadow-sm text-gray-500 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 transition-all"
+                            className="w-9 h-9 bg-white dark:bg-[#1f1e1b] rounded-xl flex items-center justify-center border border-gray-200 dark:border-white/5 shadow-sm text-gray-500 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 transition-all"
                         >
                             <Icons.ArrowLeft className="w-4 h-4" />
                         </button>
@@ -174,7 +174,7 @@ export default function AdminResults() {
             {selectedCount > 0 && (
                 <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 px-3 sm:px-4 w-full max-w-lg animate-content-in">
                     <div className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 rounded-2xl shadow-2xl border backdrop-blur-md ${
-                        isDark ? 'bg-[#1E1E1E]/95 border-white/10' : 'bg-white/95 border-gray-200'
+                        isDark ? 'bg-[#1f1e1b]/95 border-white/10' : 'bg-white/95 border-gray-200'
                     }`}>
                         <span className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-lg bg-blue-600 text-white text-[12px] font-bold tabular-nums">
                             {selectedCount}
@@ -216,7 +216,7 @@ export default function AdminResults() {
                     className={`fixed top-4 right-3 left-3 sm:left-auto sm:top-6 sm:right-6 z-[210] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-[13px] font-semibold animate-content-in ${
                         toast.type === 'error'
                             ? 'bg-red-600 border-red-500 text-white'
-                            : isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'
+                            : isDark ? 'bg-[#1f1e1b] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'
                     }`}
                 >
                     {toast.type !== 'error' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}

@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 export const ChartsRowTwo = ({ scoreDist, atRiskStudents, isDark }) => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* SCORE DISTRIBUTION */}
-        <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
             <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-6">Score Distribution</h3>
             <div className="w-full h-[220px] sm:h-[250px]">
                 <ResponsiveContainer>
@@ -21,7 +21,7 @@ export const ChartsRowTwo = ({ scoreDist, atRiskStudents, isDark }) => (
         </div>
 
         {/* AT-RISK STUDENTS */}
-        <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
             <h3 className="text-base sm:text-lg font-bold mb-4 sm:mb-6 flex items-center gap-2">
                 <AlertTriangle className="text-orange-500" size={20} /> At-Risk Students
             </h3>

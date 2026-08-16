@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import IELTSVideoPlayer from './IELTSVideoPlayer';
+import Logo from '../common/Logo';
 
 const BigCheckmark = () => (
     <svg className="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +118,7 @@ const MockExamIntro = ({ onStartModule, completedModules = [], onFinish, userNam
             <header className="w-full border-b border-gray-300 px-6 py-3 bg-white sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
                     <span className="font-bold text-sm text-zinc-900">{userName}</span>
-                    <span className="font-bold tracking-[0.2em] text-xs text-gray-400 uppercase">ENGLEV MOCK</span>
+                    <Logo size="xs" tone="ink" suffix="Mock" />
                 </div>
             </header>
 

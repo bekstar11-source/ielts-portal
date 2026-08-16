@@ -23,7 +23,7 @@ export default function AnswerImportModal({ show, jsonInput, onApply, onClose, i
 
     if (!show) return null;
 
-    const card = isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200';
+    const card = isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-200';
     const applied = preview?.applied || [];
     const skipped = preview?.skipped || [];
 
@@ -43,7 +43,7 @@ export default function AnswerImportModal({ show, jsonInput, onApply, onClose, i
                         autoFocus
                         spellCheck="false"
                         placeholder={"1. TRUE\n2. FALSE\n3. NOT GIVEN\n4. glass bottle"}
-                        className={`w-full h-44 p-3 rounded-xl border outline-none font-mono text-[11px] leading-relaxed resize-y transition ${isDark ? 'bg-[#121212] border-white/5 focus:border-blue-500/50' : 'bg-gray-50 border-gray-200 focus:border-blue-400'}`}
+                        className={`w-full h-44 p-3 rounded-xl border outline-none font-mono text-[11px] leading-relaxed resize-y transition ${isDark ? 'bg-[#181715] border-white/5 focus:border-blue-500/50' : 'bg-gray-50 border-gray-200 focus:border-blue-400'}`}
                     />
 
                     {preview?.error ? (

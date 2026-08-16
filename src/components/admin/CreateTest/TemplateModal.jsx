@@ -89,7 +89,7 @@ export default function TemplateModal({ show, onSelect, onBlank, isDark }) {
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className={`w-full max-w-lg max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+            <div className={`w-full max-w-lg max-h-[90dvh] rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-200'}`}>
                 <div className="p-4 sm:p-6">
                     <div className="mb-6">
                         <h3 className="text-base font-black tracking-tight">Shablon tanlang</h3>

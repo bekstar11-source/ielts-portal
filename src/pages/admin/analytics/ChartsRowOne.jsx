@@ -34,7 +34,7 @@ export const ChartsRowOne = ({ activityData, skillRadar, isDark }) => {
             />
 
             {/* SKILL RADAR */}
-            <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+            <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
                 <h3 className="text-base sm:text-lg font-bold mb-2">Skill Balance</h3>
                 <div className="w-full h-[240px] sm:h-[300px]">
                     <ResponsiveContainer>

@@ -6,6 +6,18 @@ const crypto = require("crypto");
 // Speaking jonli tekshiruvi to'lovi shu yerdan tasdiqlanadi.
 const { markSpeakingReviewPaid } = require("./speakingReview");
 
+// Obuna narxlari va ro'yxatdan o'tish chegirmasi.
+const { formatSom, getPlanPrice, BILLING_DAYS } = require("./pricing");
+const {
+  DISCOUNT_ALREADY_CLAIMED,
+  DISCOUNT_CONFIG,
+  getClaimRefs,
+  resolveClaimState,
+  buildClaimDoc,
+  buildClaimCycleUpdate,
+  checkDiscountEligibility,
+} = require("./signupDiscount");
+
 // ⚠️ Token endi kod ichida SAQLANMAYDI. Deploydan oldin sozlang:
 //   firebase functions:config:set telegram.token="<BOTFATHER_TOKEN>" \
 //                                 telegram.admin_chat_id="66049218" \
@@ -232,6 +244,23 @@ async function handleCallback(chatId, query) {
       inline_keyboard: [[{ text: "🌐 Saytga o'tish", url: "https://ielts-portal-v1.web.app/pricing" }]]
     });
   } 
+  // VARIANT A upsell tugmasi: `sw_{billing}_{planId}`.
+  // Bu O'QUVCHI tugmasi (ADMIN_ONLY_CALLBACKS ga kirmaydi) — u faqat o'z
+  // chatidagi to'lov sessiyasini qayta yozadi, boshqa hech narsaga tegmaydi.
+  else if (data.startsWith("sw_")) {
+    const [, newBilling, newPlanId] = data.split("_");
+    const sessionSnap = await admin.firestore()
+      .collection("payment_sessions").doc(chatId.toString()).get();
+    const userId = sessionSnap.exists ? sessionSnap.data().userId : null;
+
+    if (!userId) {
+      await answerCallbackQuery(query.id, "Sessiya eskirgan. Saytdan qaytadan boshlang.");
+      return;
+    }
+
+    await answerCallbackQuery(query.id, "");
+    await sendSubscriptionInvoice(chatId, userId, newPlanId, newBilling);
+  }
   else if (data === "check_status") {
     // Foydalanuvchi statusini bazadan tekshirish logikasi (agar userId saqlangan bo'lsa)
     await sendMessage(chatId, "⏳ Sizning to'lovingiz tekshirilmoqda. Agar to'lov qilgan bo'lsangiz, tez orada Pro ruxsat beriladi.");
@@ -422,7 +451,9 @@ async function handleCallback(chatId, query) {
         return;
       }
 
-      const billingDays = sessionData && sessionData.billing === "tri" ? 90 : 30;
+      const billingDays = sessionData && sessionData.billing === "tri"
+        ? BILLING_DAYS.tri
+        : BILLING_DAYS.monthly;
 
       const userSnap = await userRef.get();
       if (!userSnap.exists) {
@@ -430,25 +461,147 @@ async function handleCallback(chatId, query) {
         return;
       }
 
-      // Amaldagi obuna ustiga QO'SHAMIZ. Ilgari muddat har safar bugundan
-      // qayta boshlanardi va qolgan kunlar yonib ketardi.
-      const currentEnd = userSnap.data().subscriptionEnd;
-      const currentEndDate =
-        currentEnd && typeof currentEnd.toDate === "function" ? currentEnd.toDate() : null;
-      const base = currentEndDate && currentEndDate > new Date() ? new Date(currentEndDate) : new Date();
-      base.setDate(base.getDate() + billingDays);
-      const subscriptionEnd = admin.firestore.Timestamp.fromDate(base);
+      // ─── Chegirmani SARFLASH ────────────────────────────────────────────
+      //
+      // Sessiya yozilgandan beri (o'quvchi karta raqamini ko'rgan paytdan
+      // adminning tugma bosishigacha soatlar o'tishi mumkin) o'sha shaxs
+      // boshqa hisob orqali chegirmani ishlatib ulgurgan bo'lishi mumkin —
+      // shuning uchun reyestr TRANZAKSIYA ichida qayta tekshiriladi.
+      const discountPercent = (sessionData && sessionData.discountPercent) || 0;
+      // Sessiyada yozilgan raqamlar: shu to'lov necha oyni yeydi va jami nechta.
+      //
+      // ⚠️ Eski sessiyalar (bu deploydan oldin ochilgan, hali tasdiqlanmagan)
+      // `discountCycles` siz keladi. Ularga yangi 3 oylik hisobni qo'llasak,
+      // 50% lik eski taklif bilan kelgan o'quvchi yana ikki oy 50% olardi.
+      // Shuning uchun ular AYNAN eski qoida bilan yopiladi: 1 dan 1, ya'ni
+      // bitta to'lovda chegirma to'liq sarflanadi.
+      const hasCycleInfo = Boolean(sessionData && Number(sessionData.discountCycles) > 0);
+      const discountCycles = hasCycleInfo ? Number(sessionData.discountCycles) : 1;
+      const discountCyclesTotal = hasCycleInfo
+        ? (Number(sessionData.discountCyclesTotal) || DISCOUNT_CONFIG.cycles)
+        : 1;
+      const phoneNumber = userSnap.data().phoneNumber || null;
+      const { tgRef, phRef } = getClaimRefs(db, studentChatId, phoneNumber);
 
-      // Update User in Firestore
-      await userRef.update({
-        tier: tier, // pro or standard
-        accountType: tier, // for backward compatibility and header checks
-        isPro: tier === "pro",
-        // Legacy bayroqlar tozalanadi, aks holda ular muddatdan qat'i nazar ruxsat berardi
-        isPremium: admin.firestore.FieldValue.delete(),
-        subscriptionStart: admin.firestore.FieldValue.serverTimestamp(),
-        subscriptionEnd: subscriptionEnd
-      });
+      let base = null;
+      let discountConflict = false;
+      let cyclesLeftAfter = 0;
+
+      try {
+        await db.runTransaction(async (tx) => {
+          // ⚠️ Firestore tranzaksiyasida BARCHA o'qishlar yozuvlardan oldin.
+          const claimSnaps = discountPercent > 0
+            ? await Promise.all([tx.get(tgRef), phRef ? tx.get(phRef) : Promise.resolve(null)])
+            : [];
+          const freshUser = await tx.get(userRef);
+
+          // Sanoqchi holati: `tg_` va `ph_` orasidagi UMUMIY hisob.
+          // Hujjat mavjudligi endi yetarli emas — muhimi qancha oy qolgani.
+          const claimState = resolveClaimState(claimSnaps, discountCyclesTotal);
+          if (discountPercent > 0 && claimState.remaining < discountCycles) {
+            throw new Error(DISCOUNT_ALREADY_CLAIMED);
+          }
+
+          // Amaldagi obuna ustiga QO'SHAMIZ. Ilgari muddat har safar bugundan
+          // qayta boshlanardi va qolgan kunlar yonib ketardi.
+          const currentEnd = freshUser.data().subscriptionEnd;
+          const currentEndDate =
+            currentEnd && typeof currentEnd.toDate === "function" ? currentEnd.toDate() : null;
+          base = currentEndDate && currentEndDate > new Date() ? new Date(currentEndDate) : new Date();
+          base.setDate(base.getDate() + billingDays);
+
+          const userUpdate = {
+            tier: tier, // pro or standard
+            accountType: tier, // for backward compatibility and header checks
+            isPro: tier === "pro",
+            // Legacy bayroqlar tozalanadi, aks holda ular muddatdan qat'i nazar ruxsat berardi
+            isPremium: admin.firestore.FieldValue.delete(),
+            subscriptionStart: admin.firestore.FieldValue.serverTimestamp(),
+            subscriptionEnd: admin.firestore.Timestamp.fromDate(base)
+          };
+
+          if (discountPercent > 0) {
+            const used = claimState.used + discountCycles;
+            const remaining = Math.max(0, claimState.remaining - discountCycles);
+            cyclesLeftAfter = remaining;
+
+            const money = {
+              uid: studentUserId,
+              planId: sessionData.planId,
+              billing: sessionData.billing,
+              percent: discountPercent,
+              originalPrice: sessionData.originalPrice,
+              finalPrice: sessionData.price,
+            };
+
+            // Har bir reyestr hujjati alohida qaraladi: biri bo'lib, ikkinchisi
+            // bo'lmasligi mumkin (o'quvchi Telegramni almashtirgan holat).
+            // Yo'g'i `create` bilan tug'iladi — bu BIRINCHI tsikldagi poyga
+            // himoyasini saqlab qoladi (hujjat oradan paydo bo'lsa tranzaksiya
+            // yiqiladi). Bori esa umumiy holatga TENGLASHTIRILADI.
+            const cycleUpdate = buildClaimCycleUpdate({ ...money, used, remaining });
+            const firstDoc = buildClaimDoc({
+              ...money,
+              telegramId: studentChatId,
+              phoneNumber,
+              cyclesTotal: discountCyclesTotal,
+              cyclesUsed: used,
+            });
+
+            [tgRef, phRef].forEach((ref, i) => {
+              if (!ref) return;
+              const snap = claimSnaps[i];
+              if (snap && snap.exists) tx.update(ref, cycleUpdate);
+              else tx.create(ref, firstDoc);
+            });
+
+            // `users` hujjatidagi nusxa — faqat Pricing.jsx da ko'rsatish uchun.
+            // Chegirma butunlay tugagandagina `used` bo'ladi; ilgari bu birinchi
+            // to'lovdayoq yozilardi va 2-oyda taklif yo'qolgandek ko'rinardi.
+            userUpdate["signupDiscount.cyclesUsed"] = used;
+            userUpdate["signupDiscount.cyclesRemaining"] = remaining;
+            userUpdate["signupDiscount.lastCycleAt"] = admin.firestore.Timestamp.now();
+            if (remaining <= 0) {
+              userUpdate["signupDiscount.status"] = "used";
+              userUpdate["signupDiscount.usedAt"] = admin.firestore.Timestamp.now();
+            }
+          }
+
+          tx.update(userRef, userUpdate);
+        });
+      } catch (txErr) {
+        if (txErr.message !== DISCOUNT_ALREADY_CLAIMED) throw txErr;
+
+        // Chegirma allaqachon ishlatilgan. Pul KELGAN — obunani bermay
+        // turish noto'g'ri bo'lardi. Shuning uchun chegirmasiz qayta
+        // yozamiz va adminni ogohlantiramiz: summa farqini u hal qiladi.
+        discountConflict = true;
+        const currentEnd = userSnap.data().subscriptionEnd;
+        const currentEndDate =
+          currentEnd && typeof currentEnd.toDate === "function" ? currentEnd.toDate() : null;
+        base = currentEndDate && currentEndDate > new Date() ? new Date(currentEndDate) : new Date();
+        base.setDate(base.getDate() + billingDays);
+
+        await userRef.update({
+          tier: tier,
+          accountType: tier,
+          isPro: tier === "pro",
+          isPremium: admin.firestore.FieldValue.delete(),
+          subscriptionStart: admin.firestore.FieldValue.serverTimestamp(),
+          subscriptionEnd: admin.firestore.Timestamp.fromDate(base)
+        });
+      }
+
+      if (discountConflict) {
+        await sendMessage(chatId,
+          `⚠️ <b>Obuna berildi, LEKIN chegirmali oylar yetmadi.</b>\n\n` +
+          `Foydalanuvchi: <code>${studentUserId}</code>\n` +
+          `To'langan (kutilgan): ${formatSom(sessionData.price)} so'm\n` +
+          `To'liq narx: ${formatSom(sessionData.originalPrice)} so'm\n\n` +
+          `Sessiya ochilgandan keyin bu shaxs chegirmali oylarini boshqa hisob ` +
+          `orqali sarflagan bo'lishi mumkin — chekdagi summani tekshiring.`
+        );
+      }
 
       // Sessiyani yopamiz — aks holda keyingi chek eski `billing` bilan o'qilardi.
       if (sessionDoc.exists) {
@@ -463,7 +616,18 @@ async function handleCallback(chatId, query) {
       const tierName = tier === "pro" ? "Pro 🔥" : "Standard ✅";
       const periodName = billingDays === 90 ? "3 oylik" : "1 oylik";
       const endText = base.toLocaleDateString("uz-UZ");
-      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\nSizda <b>${periodName} ${tierName}</b> tarifi faollashtirildi.\n📅 <b>Amal qilish muddati:</b> ${endText} gacha.`);
+      // Qolgan chegirmali oylar aytiladi — bu keyingi to'lovni qaytarib
+      // keladigan yagona xabar. Sukut saqlasak o'quvchi 2-oyda to'liq narx
+      // kutib, obunani uzaytirmay ketardi.
+      let confirmMsg = `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\n` +
+        `Sizda <b>${periodName} ${tierName}</b> tarifi faollashtirildi.\n` +
+        `📅 <b>Amal qilish muddati:</b> ${endText} gacha.`;
+      if (!discountConflict && discountPercent > 0 && cyclesLeftAfter > 0) {
+        confirmMsg += `\n\n🎁 <b>Chegirmangizdan yana ${cyclesLeftAfter} oy qoldi</b> — ` +
+          `${endText} dan keyin ${DISCOUNT_CONFIG.maxGapDays} kun ichida to'lasangiz ` +
+          `${discountPercent}% saqlanadi.`;
+      }
+      await sendMessage(studentChatId, confirmMsg);
 
       // Update Admin Message
       await editMessageText(chatId, query.message.message_id, `✅ <b>TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierName} (${periodName})</b>\nMuddat: <b>${endText}</b>\nStatus: Yakunlandi.`);
@@ -627,6 +791,32 @@ async function sendWelcome(chatId, firstName) {
 
 // To'lov jarayoni (Chiroyli ko'rinishda)
 async function handlePaymentStart(chatId, userId, planId, billing) {
+  // Karta raqamini ko'rsatishdan OLDIN uid haqiqiyligini tekshiramiz.
+  // Ilgari sayt tizimga kirmagan o'quvchi uchun `guest` yuborardi: o'quvchi
+  // pulni to'lab, chekni yuborgach admin tasdiqlashda "Foydalanuvchi topilmadi"
+  // xatosiga urilardi. Endi to'lovga umuman yo'l qo'ymaymiz.
+  if (!userId || userId === "guest" || userId === "undefined" || userId === "null") {
+    await sendMessage(chatId,
+      `⚠️ <b>Avval saytga kiring.</b>\n\n` +
+      `To'lovni bog'lash uchun hisobingiz kerak. Iltimos, saytga kiring va ` +
+      `tarif tugmasini o'sha yerdan bosing — shundan keyin karta ma'lumotlari yuboriladi.`,
+      { inline_keyboard: [[{ text: "🌐 Saytga kirish", url: "https://ielts-portal-v1.web.app/login" }]] }
+    );
+    return;
+  }
+
+  const userExists = await admin.firestore().collection("users").doc(userId).get();
+  if (!userExists.exists) {
+    await sendMessage(chatId,
+      `⚠️ <b>Hisob topilmadi.</b>\n\n` +
+      `Bu havoladagi foydalanuvchi (<code>${userId}</code>) bazada yo'q. ` +
+      `Iltimos, saytga qaytadan kiring va tarif tugmasini bosing. To'lov qilmang — ` +
+      `aks holda tasdiqlab bo'lmaydi.`,
+      { inline_keyboard: [[{ text: "🌐 Saytga kirish", url: "https://ielts-portal-v1.web.app/login" }]] }
+    );
+    return;
+  }
+
   // Speaking jonli tekshiruvi: start=UID_spk_{orderId}
   if (planId === "spk") {
     const orderId = billing;
@@ -734,24 +924,79 @@ async function handlePaymentStart(chatId, userId, planId, billing) {
     return;
   }
 
-  const prices = {
-    standard_monthly: "35 000", standard_tri: "89 000",
-    pro_monthly: "49 000", pro_tri: "129 000"
-  };
+  await sendSubscriptionInvoice(chatId, userId, planId, billing);
+}
 
-  const key = `${planId}_${billing}`;
-  const price = prices[key] || "aniqlanmagan";
+/**
+ * Obuna to'lovi uchun karta ma'lumotlarini yuboradi.
+ *
+ * `handlePaymentStart` dan ham, "3 oylikka o'tish" tugmasidan ham chaqiriladi —
+ * shuning uchun alohida funksiya.
+ *
+ * ⚠️ Bu yerda chegirma faqat TEKSHIRILADI, sarflanmaydi. Odam bu xabarni ko'rib
+ * pul to'lamasligi mumkin; taklifni o'sha payt "yoqib yuborsak" u bekorga
+ * yo'qolardi. Sarflash `approve_` tugmasida, tranzaksiya ichida bo'ladi.
+ */
+async function sendSubscriptionInvoice(chatId, userId, planId, billing) {
+  const db = admin.firestore();
+
+  const basePrice = getPlanPrice(planId, billing);
+  if (basePrice === null) {
+    await sendMessage(chatId, `❌ <b>Noma'lum tarif:</b> ${planId} (${billing}). Saytdan qaytadan tanlang.`);
+    return;
+  }
+
+  let discount = { eligible: false, percent: 0, finalPrice: basePrice, upsell: null };
+  try {
+    discount = await checkDiscountEligibility(db, userId, chatId.toString(), planId, billing);
+  } catch (err) {
+    // Chegirma tekshiruvi yiqilsa to'lovni TO'XTATMAYMIZ — to'liq narx bilan
+    // davom etamiz. Aks holda bitta xatolik butun sotuv oqimini o'ldirardi.
+    console.error("Discount eligibility check failed:", err);
+  }
+
+  const finalPrice = discount.eligible ? discount.finalPrice : basePrice;
   const planName = planId.toUpperCase();
   const period = billing === "tri" ? "3 OY" : "1 OY";
 
-  await admin.firestore().collection("payment_sessions").doc(chatId.toString()).set({
-    userId, planId, billing, price, status: "pending", timestamp: admin.firestore.FieldValue.serverTimestamp()
+  await db.collection("payment_sessions").doc(chatId.toString()).set({
+    userId,
+    planId,
+    billing,
+    price: finalPrice,
+    originalPrice: basePrice,
+    discountPercent: discount.eligible ? discount.percent : 0,
+    // Sanoqchi uchun: shu to'lov necha OYNI yeydi va jami nechta bor.
+    // Tasdiqlash tranzaksiyasi aynan shu raqamlarni ayiradi — narx bilan
+    // sarflanadigan oy bitta sessiyada yozilishi shart, aks holda admin
+    // soatlar keyin bosganda ikkisi ajralib qolardi.
+    discountCycles: discount.eligible ? (discount.cycles || 0) : 0,
+    discountCyclesTotal: discount.eligible ? (discount.cyclesTotal || DISCOUNT_CONFIG.cycles) : 0,
+    discountCycleNumber: discount.eligible ? (discount.cycleNumber || 1) : 0,
+    status: "pending",
+    timestamp: admin.firestore.FieldValue.serverTimestamp()
   });
 
-  const msg = `💳 <b>TO'LOV MA'LUMOTLARI</b>\n\n` +
+  let priceBlock = `💰 <b>Summa:</b> ${formatSom(finalPrice)} so'm\n`;
+  if (discount.eligible) {
+    priceBlock =
+      `💰 <b>Summa:</b> ${formatSom(finalPrice)} so'm\n` +
+      `   <s>${formatSom(basePrice)}</s> · 🎁 <b>${discount.percent}% chegirma</b>\n`;
+  }
+
+  // Chegirma endi 3 OYGA tarqalgan — o'quvchi buni to'lov paytida bilishi
+  // shart. "1/3-oy" ni ko'rsatmasak, 2-oyda to'liq narx kutib, chegirma
+  // yo'qolgan deb o'ylaydi va to'lamay ketadi.
+  if (discount.eligible && discount.cyclesTotal > 1) {
+    const last = discount.cycleNumber + discount.cycles - 1;
+    const span = discount.cycles > 1 ? `${discount.cycleNumber}–${last}` : `${discount.cycleNumber}`;
+    priceBlock += `   📅 Chegirmali oy: <b>${span}/${discount.cyclesTotal}</b>\n`;
+  }
+
+  let msg = `💳 <b>TO'LOV MA'LUMOTLARI</b>\n\n` +
     `📦 <b>Tarif:</b> ${planName} (${period})\n` +
-    `💰 <b>Summa:</b> ${price} so'm\n\n` +
-    `--------------------------\n` +
+    priceBlock +
+    `\n--------------------------\n` +
     `🏛 <b>Karta:</b> <code>8600 0529 2812 2652</code>\n` +
     `👤 <b>Ega:</b> Aslbek Jo'raboyev\n` +
     `--------------------------\n\n` +
@@ -760,7 +1005,44 @@ async function handlePaymentStart(chatId, userId, planId, billing) {
     `2. To'lov chekini (screenshot) ushbu botga yuboring.\n` +
     `3. Admin tasdiqlashi bilan saytda Pro imkoniyatlar ochiladi.`;
 
-  await sendMessage(chatId, msg);
+  // Zanjir sharti — o'quvchiga AYTILISHI shart. Aks holda "45 kun" jimgina
+  // ishlaydigan jazo bo'lib qoladi: odam kechikadi, chegirmasi yonadi va bu
+  // qo'llab-quvvatlashga shikoyat bo'lib qaytadi.
+  if (discount.eligible && discount.cyclesRemaining > discount.cycles) {
+    const left = discount.cyclesRemaining - discount.cycles;
+    msg += `\n\n🎁 <b>Chegirmangiz yana ${left} oy amal qiladi</b> — keyingi to'lovni ` +
+      `obuna tugagach ${DISCOUNT_CONFIG.maxGapDays} kun ichida qilsangiz ${discount.percent}% saqlanadi.`;
+  }
+
+  // Zanjir uzilgan yoki qolgan oylar yetmagan holat: sabab aytilmasa o'quvchi
+  // narxni xato deb o'ylab, kutilganidan kam summa o'tkazadi.
+  if (!discount.eligible && discount.reason === "chain_expired") {
+    msg += `\n\n⏳ <i>Chegirma zanjiri uzilgan (oxirgi to'lovdan ${DISCOUNT_CONFIG.maxGapDays} kundan ko'p o'tdi), ` +
+      `shuning uchun narx to'liq.</i>`;
+  } else if (!discount.eligible && discount.reason === "insufficient_cycles") {
+    msg += `\n\n⏳ <i>Chegirmangizdan ${discount.cyclesRemaining} oy qolgan — u 3 oylik paketni qoplamaydi. ` +
+      `1 oylik tanlasangiz chegirma ishlaydi.</i>`;
+  }
+
+  // Upsell: chegirma bor, lekin u 3 oylik paketga tegishli. Bu tarmoq ESKI
+  // takliflar uchun (`eligibleBillings: ["tri"]`) — yangilarida ikkala davr
+  // ham haqli, ya'ni bu yerga tushmaydi.
+  let keyboard = null;
+  const up = discount.upsell;
+  if (!discount.eligible && up) {
+    const perMonth = Math.round(up.finalPrice / 3);
+    msg += `\n\n--------------------------\n` +
+      `🎁 <b>Sizda ${up.percent}% chegirma bor</b> — u 3 oylik paketda amal qiladi:\n` +
+      `   <s>${formatSom(up.originalPrice)}</s> → <b>${formatSom(up.finalPrice)} so'm</b> ` +
+      `(oyiga ${formatSom(perMonth)})`;
+    keyboard = {
+      inline_keyboard: [[
+        { text: `🎁 3 oylikka o'tish — ${formatSom(up.finalPrice)} so'm`, callback_data: `sw_${up.billing}_${planId}` }
+      ]]
+    };
+  }
+
+  await sendMessage(chatId, msg, keyboard);
 }
 
 // Screenshot handling (Notification to Admin)
@@ -826,8 +1108,24 @@ async function handleScreenshot(chatId, photoArray, documentObj, from) {
         `👥 <b>Limit:</b> ${session.maxStudents} o'quvchi\n` +
         `💰 <b>Summa:</b> ${new Intl.NumberFormat("uz-UZ").format(session.price)} so'm\n`;
     } else {
+      // `session.price` endi RAQAM (ilgari "35 000" ko'rinishidagi matn edi) —
+      // shuning uchun bu yerda ham formatlash kerak, aks holda admin
+      // "89000 so'm" ko'rardi.
       adminMsg += `📦 <b>Tanlangan:</b> ${session.planId} (${session.billing})\n` +
-        `💰 <b>Summa:</b> ${session.price} so'm\n`;
+        `💰 <b>Summa:</b> ${formatSom(session.price)} so'm\n`;
+      if (session.discountPercent > 0) {
+        adminMsg += `🎁 <b>Chegirma:</b> ${session.discountPercent}% ` +
+          `(to'liq narx ${formatSom(session.originalPrice)} so'm)\n`;
+        // Tsikl raqamisiz admin 2-oyda kamaytirilgan summani xato deb o'ylab
+        // chekni rad etardi — chegirma endi bir martalik emas.
+        if (session.discountCyclesTotal > 1) {
+          const last = (session.discountCycleNumber || 1) + (session.discountCycles || 1) - 1;
+          const span = (session.discountCycles || 1) > 1
+            ? `${session.discountCycleNumber}–${last}`
+            : `${session.discountCycleNumber}`;
+          adminMsg += `📅 <b>Chegirmali oy:</b> ${span}/${session.discountCyclesTotal}\n`;
+        }
+      }
     }
   } else {
     adminMsg += `⚠️ <i>Tanlangan tarif/mock aniqlanmadi (chek to'g'ridan-to'g'ri yuborildi).</i>\n`;
@@ -1145,6 +1443,28 @@ async function sendMessage(chatId, text, replyMarkup = null) {
     body: JSON.stringify(body)
   });
 }
+
+/**
+ * Adminga bildirishnoma (HTML). Boshqa modullar ham chaqiradi — masalan
+ * `trial.js` chegirma berilganda.
+ *
+ * Xatosi ATAYLAB yutiladi: bildirishnoma yuborilmagani asosiy amalni
+ * (chegirma berish, to'lov tasdiqlash) yiqitmasligi kerak.
+ */
+async function notifyAdmin(text, replyMarkup = null) {
+  if (!TELEGRAM_TOKEN || !ADMIN_CHAT_ID) return false;
+  try {
+    await sendMessage(ADMIN_CHAT_ID, text, replyMarkup);
+    return true;
+  } catch (err) {
+    console.warn("Adminga xabar yuborilmadi:", err);
+    return false;
+  }
+}
+exports.notifyAdmin = notifyAdmin;
+// Rejalashtirilgan eslatmalar shu yerdan yuboriladi (discountReminders.js).
+// Token/API manzili faqat SHU faylda turadi — nusxa ko'chirilmasin.
+exports.sendMessage = sendMessage;
 
 async function sendPhotoToAdmin(fileId, caption, replyMarkup = null) {
   if (ADMIN_CHAT_ID) {

@@ -88,7 +88,7 @@ export default function AdminAnnouncements() {
     };
 
     return (
-        <div className={`min-h-full font-sans p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`min-h-full font-sans p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
@@ -121,14 +121,14 @@ export default function AdminAnnouncements() {
                     {loading ? (
                         <div className={`text-center py-10 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>Yuklanmoqda...</div>
                     ) : announcements.length === 0 ? (
-                        <div className={`text-center py-20 rounded-3xl border border-dashed transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5 text-white/30' : 'bg-white border-gray-200 text-gray-400'}`}>
+                        <div className={`text-center py-20 rounded-3xl border border-dashed transition-colors ${isDark ? 'bg-[#1f1e1b] border-white/5 text-white/30' : 'bg-white border-gray-200 text-gray-400'}`}>
                             Hozircha e'lonlar mavjud emas.
                         </div>
                     ) : (
                         announcements.map((item) => {
                             const typeStyle = getTypeLabel(item.type);
                             return (
-                                <div key={item.id} className={`p-4 sm:p-5 rounded-2xl border flex justify-between items-start gap-2 group transition ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'}`}>
+                                <div key={item.id} className={`p-4 sm:p-5 rounded-2xl border flex justify-between items-start gap-2 group transition ${isDark ? 'bg-[#1f1e1b] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'}`}>
                                     <div className="flex gap-3 sm:gap-4 min-w-0">
                                         <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl flex items-center justify-center text-lg sm:text-xl transition-colors ${isDark ? 'bg-white/5' : 'bg-gray-50 border border-gray-100'}`}>
                                             {getTypeIcon(item.type)}
@@ -163,7 +163,7 @@ export default function AdminAnnouncements() {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className={`w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl p-5 sm:p-6 border relative transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
+                    <div className={`w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl p-5 sm:p-6 border relative transition-colors ${isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-100 shadow-2xl'}`}>
                         <button onClick={() => setShowModal(false)} className={`absolute top-4 right-4 hover:text-white transition-colors ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
                             <FaTimes />
                         </button>

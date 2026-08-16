@@ -604,7 +604,7 @@ export default function AdminTests() {
     }, [allTests]);
 
     return (
-        <div className={`h-full w-full flex font-sans transition-colors duration-200 relative overflow-hidden ${isDark ? 'bg-[#121212] text-white' : 'bg-[#f5f5f7] text-zinc-900'}`}>
+        <div className={`h-full w-full flex font-sans transition-colors duration-200 relative overflow-hidden ${isDark ? 'bg-[#181715] text-white' : 'bg-[#f5f5f7] text-zinc-900'}`}>
             
             {/* Hidden Input for Importing JSON */}
             <input 
@@ -680,7 +680,7 @@ export default function AdminTests() {
                     )}
                 </div>
 
-                <main className={`flex-1 flex flex-col min-h-0 transition-colors ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
+                <main className={`flex-1 flex flex-col min-h-0 transition-colors ${isDark ? 'bg-[#181715]' : 'bg-white'}`}>
                     {loading ? (
                         <div className="flex-1 flex items-center justify-center">
                             <Loader2 className="animate-spin text-blue-500" size={32} />

@@ -9,6 +9,9 @@ import CompactAudioPreloader from './CompactAudioPreloader';
  */
 export default function VolumeCheckScreen({ test, onStart }) {
     const [audioReady, setAudioReady] = useState(false);
+    // Preloader hisoboti: {total, ok, failed[]}. `ok === 0` bo'lsa talaba
+    // audiosiz imtihonga kirib ketmasligi uchun Continue bloklanadi.
+    const [audioReport, setAudioReport] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [hasPlayed, setHasPlayed] = useState(false);
     const [hasConfirmed, setHasConfirmed] = useState(false);
@@ -113,7 +116,11 @@ export default function VolumeCheckScreen({ test, onStart }) {
         if (test.file && newUrls[test.file]) test.file = newUrls[test.file];
     };
 
-    const canStart = audioReady;
+    // Hech bir audio yuklanmagan bo'lsa boshlashga YO'L QO'YMAYMIZ: ilgari
+    // preloader 30 soniyadan keyin jimgina "tayyor" deb e'lon qilar va talaba
+    // butun listening modulini ovozsiz "topshirib" chiqardi.
+    const audioTotallyFailed = !!audioReport && audioReport.total > 0 && audioReport.ok === 0;
+    const canStart = audioReady && !audioTotallyFailed;
 
     return (
         <div className="absolute inset-0 z-[50] flex items-center justify-center">
@@ -196,8 +203,12 @@ export default function VolumeCheckScreen({ test, onStart }) {
 
                 {/* Footer button */}
                 <div className="p-3 bg-gray-50 border-t border-gray-100 flex flex-col gap-2">
-                    <CompactAudioPreloader test={test} onReady={() => setAudioReady(true)} onBlobsReady={handleBlobsReady} />
-                    <button 
+                    <CompactAudioPreloader
+                        test={test}
+                        onReady={(report) => { setAudioReady(true); setAudioReport(report); }}
+                        onBlobsReady={handleBlobsReady}
+                    />
+                    <button
                         onClick={onStart}
                         disabled={!canStart || !hasConfirmed}
                         className={`

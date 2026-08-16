@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   Search, X, CornerDownLeft, ArrowUpDown, CornerRightDown,
   Home, UserCheck, Trophy, TrendingUp, BookOpen, Headphones, 
-  PenTool, Mic, BookMarked, Settings, Map, CreditCard, Newspaper 
+  PenTool, Mic, BookMarked, Settings, Map, CreditCard, Newspaper, Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../context/LanguageContext';
@@ -102,6 +102,16 @@ export default function SearchOverlay({ isOpen, onClose }) {
       uzDesc: 'Topshirgan testlaringiz ballari, javoblar va batafsil tahlilni ko\'ring.',
       path: '/my-results',
       icon: Trophy
+    },
+    {
+      id: 'analytics',
+      category: 'pages',
+      label: 'Mistake Analysis',
+      uzLabel: 'Xatolar tahlili',
+      desc: 'See which question types you get wrong, why, and every wrong answer.',
+      uzDesc: 'Qaysi savol turlarida xato qilayotganingiz, sabablari va har bir noto\'g\'ri javob.',
+      path: '/analytics',
+      icon: Target
     },
     // {
     //   id: 'leaderboard',

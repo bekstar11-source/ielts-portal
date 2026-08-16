@@ -87,7 +87,7 @@ export default function QuickEditModal({
         >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div className={`relative w-full max-w-md max-h-[90dvh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border ${
-                isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
+                isDark ? 'bg-[#1f1e1b] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
             }`}>
                 <div className={`p-4 sm:p-6 border-b flex justify-between items-center ${
                     isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'
@@ -167,7 +167,7 @@ export default function QuickEditModal({
                             />
                             <label className={`cursor-pointer px-4 py-3 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shrink-0 select-none ${
                                 isUploading
-                                    ? 'opacity-70 cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                                    ? 'opacity-70 cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-[#252320] dark:text-warm-on-dark-soft'
                                     : isDark
                                         ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-white/5'
                                         : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200'

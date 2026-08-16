@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Search, CheckCircle2, XCircle, ArrowRight, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, evaluateTest, calculateBandScore, isChoiceQuestionType, getAnswerKey, getMultiSelectCount, getQuestionWeight, resolveOptionDisplay } from '../../utils/ieltsScoring';
+import { buildReviewQuestions, getReviewScoreSummary } from '../../utils/reviewAnswers';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function DetailedAnswersModal({
@@ -11,201 +11,37 @@ export default function DetailedAnswersModal({
     userAnswers = {},
     score,
     bandScore,
+    totalQuestions = null,
+    partNumber = null,
+    moduleType = null,
     onJumpToQuestion
 }) {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'correct' | 'mistake'
 
-    const questionsList = useMemo(() => {
-        if (!testData) return [];
-        
-        const list = [];
-        const scoredIds = new Set();
+    // Savollar ro'yxati va ball xulosasi — yagona manbadan (`utils/reviewAnswers`),
+    // ball hisoblagichi (`evaluateTest`) bilan bir xil qoidalar asosida.
+    // Part practice'da faqat o'sha part savollari olinadi: ilgari butun test
+    // bo'yicha hisoblanib, natija ekranidagidan butunlay boshqa band chiqardi.
+    const questionsList = useMemo(
+        () => buildReviewQuestions(testData, userAnswers, partNumber),
+        [testData, userAnswers, partNumber]
+    );
 
-        const walk = (obj, parentType, currentOptions = null) => {
-            if (!obj) return;
-            const currentType = obj.type || parentType;
-            const options = obj.options || currentOptions;
-            // `options` bo'lgan guruh variant-tanlash guruhi hisoblanadi (map_labeling,
-            // options'li flow_chart) — evaluateTest ham aynan shu qoidaga tayanadi.
-            const hasOptions = Array.isArray(options) && options.length > 0;
-
-            // MULTI-ANSWER GURUHI: butun guruh bir marta baholanadi.
-            // Ilgari har bir savol alohida tekshirilardi, lekin SelectionBox javoblarni
-            // alifbo tartibida slotlarga yozadi — shuning uchun to'g'ri tanlangan javoblar
-            // ham modalda "xato" bo'lib ko'rinardi (ball esa to'g'ri berilgan edi).
-            if (isMultiAnswerType(obj.type) && !obj.id) {
-                const groupItems = [];
-                const collectItems = (o) => {
-                    if (!o || typeof o !== 'object') return;
-                    if (o.id && getAnswerKey(o) !== undefined) groupItems.push(o);
-                    ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'].forEach(sk => {
-                        if (o[sk] && Array.isArray(o[sk])) o[sk].forEach(collectItems);
-                        else if (o[sk] && typeof o[sk] === 'object') collectItems(o[sk]);
-                    });
-                };
-                collectItems(obj);
-
-                if (groupItems.length > 0) {
-                    const allCorrect = groupItems.map(i => getAnswerKey(i)).join(', ');
-                    const allUser = groupItems.map(i => userAnswers[String(i.id)] || "").join(', ');
-                    let weight = getMultiSelectCount(currentType);
-                    if (!weight) {
-                        weight = groupItems.reduce((sum, i) => sum + getQuestionWeight(i.id), 0) || groupItems.length;
-                    }
-                    const scoreRes = scoreMultiAnswer(allCorrect, allUser, weight);
-                    const ids = groupItems.map(i => i.id);
-
-                    list.push({
-                        id: ids.join(', '),
-                        qNumber: ids.join(', '),
-                        correctAnswer: allCorrect,
-                        userAnswer: allUser.replace(/(^|,\s*)(?=,|$)/g, '').trim(),
-                        type: currentType || 'selection',
-                        questionText: obj.questionText || obj.question || obj.title || '',
-                        passageId: obj.passageId || '',
-                        isCorrect: scoreRes.matches === scoreRes.weight,
-                        partialText: (scoreRes.matches > 0 && scoreRes.matches < scoreRes.weight)
-                            ? `${scoreRes.matches}/${scoreRes.weight}` : null,
-                        passageTitle: testData.passages?.find(p => String(p.id) === String(obj.passageId))?.title || ''
-                    });
-
-                    groupItems.forEach(i => scoredIds.add(String(i.id)));
-                    return; // guruh ichiga qayta kirmaymiz
-                }
-            }
-
-            const answer = getAnswerKey(obj);
-            if (obj.id && answer !== undefined) {
-                const idStr = String(obj.id);
-                if (!scoredIds.has(idStr)) {
-                    scoredIds.add(idStr);
-
-                    // Determine correctness
-                    const uAns = userAnswers[idStr] || userAnswers[obj.id] || "";
-                    const isMulti = isMultiAnswerType(currentType) || idStr.includes('-') || idStr.includes(',');
-                    let isCorrect = false;
-                    let partialText = null;
-
-                    if (isMulti) {
-                        const weight = getMultiSelectCount(currentType) || getQuestionWeight(idStr);
-
-                        const scoreRes = scoreMultiAnswer(answer, uAns, weight);
-                        isCorrect = scoreRes.matches === scoreRes.weight;
-                        if (scoreRes.matches > 0 && scoreRes.matches < scoreRes.weight) {
-                            partialText = `${scoreRes.matches}/${scoreRes.weight}`;
-                        }
-                    } else {
-                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType) || hasOptions, hasOptions ? options : null);
-                    }
-
-                    // Resolve answer and user answer from letter to full text if matching
-                    let displayCorrectAnswer = answer;
-                    let displayUserAnswer = uAns;
-                    const isMatchingType = currentType && String(currentType).toLowerCase().includes('matching') && !String(currentType).toLowerCase().includes('headings');
-
-                    // "Choose from the list" (summary/note/flow completion) turlarida talaba
-                    // ro'yxatdan SO'Z tanlaydi, kalit esa "B" harfi bo'lishi mumkin — ikkalasini
-                    // ham so'z ko'rinishida ko'rsatamiz, aks holda javob ABCD harfi bo'lib chiqardi.
-                    if (hasOptions && !isChoiceQuestionType(currentType)) {
-                        displayCorrectAnswer = resolveOptionDisplay(answer, options) || answer;
-                        displayUserAnswer = resolveOptionDisplay(uAns, options) || uAns;
-                    }
-
-                    if (isMatchingType && options && options.length > 0) {
-                        const resolveText = (val) => {
-                            if (!val) return "";
-                            const valList = String(val).split(/[\/|,]/).map(a => a.trim()).filter(Boolean);
-                            return valList.map(v => {
-                                const foundIdx = options.findIndex((o, idx) => {
-                                    const l = (o.label || String.fromCharCode(65 + idx));
-                                    return String(l).trim().toLowerCase() === String(v).trim().toLowerCase();
-                                });
-                                if (foundIdx !== -1) {
-                                    const opt = options[foundIdx];
-                                    const optText = opt.text || opt.label || opt.content || (typeof opt === 'string' ? opt : "");
-                                    const textStr = String(optText).trim();
-                                    return textStr.replace(/^\s*[A-Z][\.\)\-]\s+/, '').trim() || textStr;
-                                }
-                                return v;
-                            }).join(' / ');
-                        };
-
-                        if (answer) displayCorrectAnswer = resolveText(answer);
-                        if (uAns) displayUserAnswer = resolveText(uAns);
-                    }
-
-                    list.push({
-                        id: obj.id,
-                        qNumber: parseInt(obj.id) || obj.id,
-                        correctAnswer: displayCorrectAnswer,
-                        userAnswer: displayUserAnswer,
-                        type: currentType || 'input',
-                        questionText: obj.questionText || obj.question || obj.title || obj.label || '',
-                        passageId: obj.passageId || '',
-                        isCorrect,
-                        partialText,
-                        passageTitle: testData.passages?.find(p => String(p.id) === String(obj.passageId))?.title || ''
-                    });
-                }
-            }
-
-            const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
-            for (const key of CONTAINER_KEYS) {
-                const val = obj[key];
-                if (val && Array.isArray(val)) {
-                    val.forEach(child => walk(child, currentType, options));
-                } else if (val && typeof val === 'object') {
-                    walk(val, currentType, options);
-                }
-            }
-        };
-
-        walk(testData);
-
-        // Fallbacks if testData top-level questions exist
-        if (testData.questions && list.length === 0) {
-            testData.questions.forEach(q => walk(q, q.type));
-        }
-
-        // Sort by question number (if numeric)
-        return list.sort((a, b) => {
-            const aNum = parseInt(a.id);
-            const bNum = parseInt(b.id);
-            if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-            return String(a.id).localeCompare(String(b.id));
-        });
-    }, [testData, userAnswers]);
-
-    const { computedScore, computedTotal } = useMemo(() => {
-        if (!testData || !userAnswers) return { computedScore: 0, computedTotal: 0 };
-        const res = evaluateTest(testData, userAnswers);
-        return {
-            computedScore: res.correctCount,
-            computedTotal: res.totalQ
-        };
-    }, [testData, userAnswers]);
-
-    // MUHIM: ball va umumiy savol soni HAR DOIM bir manbadan olinadi.
-    // Ilgari ball serverdan, total esa shu yerdagi hisobdan olinardi — ikkalasi farq qilsa
-    // "35/38" kabi noto'g'ri nisbat va xato soni chiqardi.
-    const scoreNum = score !== undefined && score !== null ? Number(score) : NaN;
-    const hasComputed = computedTotal > 0;
-    const displayScore = hasComputed ? computedScore : (!isNaN(scoreNum) ? scoreNum : 0);
-    const displayTotal = hasComputed ? computedTotal : (questionsList.length || 40);
-
-    const bandScoreNum = bandScore !== undefined && bandScore !== null ? Number(bandScore) : NaN;
-    const displayBandScore = useMemo(() => {
-        const calculated = calculateBandScore(displayScore, testData?.type, displayTotal);
-        if (calculated !== null && calculated !== undefined && calculated > 0) {
-            return calculated;
-        }
-        if (!isNaN(bandScoreNum) && bandScoreNum > 0) {
-            return bandScoreNum;
-        }
-        return 0;
-    }, [bandScoreNum, displayScore, testData?.type, displayTotal]);
+    const { correct: displayScore, total: displayTotal, mistakes: displayMistakes, band: displayBandScore } = useMemo(
+        () => getReviewScoreSummary({
+            testData,
+            userAnswers,
+            partNumber,
+            moduleType,
+            score,
+            bandScore,
+            totalQuestions,
+            fallbackTotal: questionsList.length
+        }),
+        [testData, userAnswers, partNumber, moduleType, score, bandScore, totalQuestions, questionsList.length]
+    );
 
     const filteredQuestions = useMemo(() => {
         return questionsList.filter(q => {
@@ -289,7 +125,7 @@ export default function DetailedAnswersModal({
                                 {t('testSolving.mistake') || 'Xato'}
                             </span>
                             <span className="text-base font-black text-rose-500 dark:text-rose-400 mt-0.5">
-                                {Math.max(0, displayTotal - displayScore)}
+                                {displayMistakes}
                             </span>
                         </div>
 

@@ -67,7 +67,7 @@ const TestBasicInfo = ({
     isEditMode,
     onTypeChangeRequest,
 }) => {
-    const inputCls = `w-full h-11 px-4 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#121212] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`;
+    const inputCls = `w-full h-11 px-4 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#181715] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`;
     const titleMissing = !testData.title || !testData.title.trim();
 
     const difficultyOptions = testData.type === 'listening' ? DIFFICULTY_OPTIONS.listening : DIFFICULTY_OPTIONS.default;
@@ -100,13 +100,13 @@ const TestBasicInfo = ({
     };
 
     return (
-        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
             <h3 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-50">Asosiy Ma'lumotlar</h3>
 
             {/* TEST TURI — segmented */}
             <div className="mb-4">
                 <span className="text-xs font-bold mb-1.5 block opacity-60">Test Turi</span>
-                <div className={`grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                <div className={`grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl ${isDark ? 'bg-[#181715]' : 'bg-gray-100'}`}>
                     {TYPES.map(t => {
                         const active = testData.type === t.value;
                         return (

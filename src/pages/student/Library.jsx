@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Headphones, ChevronRight, ArrowLeft, PenTool, Mic } from 'lucide-react';
 import { useTranslation } from "../../context/LanguageContext";
+import { FEATURES } from "../../config/features";
 
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
@@ -53,8 +54,11 @@ export default function Library() {
       title: t('dashboard.speaking') || 'Speaking',
       icon: Mic,
       color: 'orange',
+      // Speaking AI vaqtincha o'chirilgan — flag src/config/features.js da.
       options: [
-        { label: t('library.speakingAi') || 'Speaking AI', desc: 'Interactive AI examiner feedback', path: '/speaking-ai' },
+        ...(FEATURES.speakingAi
+          ? [{ label: t('library.speakingAi') || 'Speaking AI', desc: 'Interactive AI examiner feedback', path: '/speaking-ai' }]
+          : []),
         { label: t('library.speakingPractice') || 'Speaking Practice', desc: 'Record and practice speech cards', path: '/speaking-practice' }
       ]
     }

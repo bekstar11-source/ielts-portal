@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth, db } from "../firebase/firebase";
 import {
   createUserWithEmailAndPassword,
@@ -11,15 +11,22 @@ import {
   GoogleAuthProvider,
   browserSessionPersistence,
   setPersistence,
-  signInWithPopup
+  signInWithPopup,
+  signInAnonymously,
+  linkWithCredential,
+  linkWithPopup,
+  EmailAuthProvider
 } from "firebase/auth";
 import { logAction } from "../utils/logger"; // Import logger
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../firebase/firebase";
 import {
   isSubscriptionExpired,
   getRawTier,
   getSubscriptionEnd
 } from "../utils/subscription";
+import { track, getAttributionForProfile } from "../lib/analytics";
 
 const AuthContext = createContext();
 
@@ -29,10 +36,47 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
 
+  // 0. Mehmon (guest) sessiyasi — landing page'dagi bepul trial uchun.
+  //
+  // Anonim hisob Firestore'ga UMUMAN kira olmaydi (`firestore.rules` dagi
+  // `isAuth()` uni ataylab chetlab o'tadi) — trial butunlay Cloud Functions
+  // orqali ishlaydi. Bu yerdagi yagona maqsad — `context.auth` ni to'ldirish,
+  // ya'ni callable'lar guest'ni tanishi.
+  // ⚠️ `useCallback` shart: bu funksiya `useTrialLogic` dagi testni yuklovchi
+  // `useEffect` ning bog'liqliklari ro'yxatida turadi. Har renderda yangi
+  // havola bo'lsa, `signInAnonymously` → `onAuthStateChanged` → `setUser` →
+  // qayta render → yangi havola → effekt qayta ishga tushadi degan cheksiz
+  // sikl paydo bo'lardi (va har aylanishda `getTrialTest` chaqirilardi).
+  const startGuestSession = useCallback(async () => {
+    if (auth.currentUser) return auth.currentUser;
+    const result = await signInAnonymously(auth);
+    return result.user;
+  }, []);
+
+  /** Hozirgi sessiya anonim (ro'yxatdan o'tmagan) mi. */
+  const isGuest = Boolean(user?.isAnonymous);
+
   // 1. Ro'yxatdan o'tish
   const signup = async (email, password, fullName, role = "student") => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    const user = result.user;
+    const current = auth.currentUser;
+    // Anonim hisob quyida haqiqiy hisobga aylantiriladi — shundan keyin
+    // `isAnonymous` false bo'lib qoladi, shuning uchun bayroqni HOZIR olamiz.
+    const fromTrial = Boolean(current?.isAnonymous);
+    let user;
+
+    if (current && current.isAnonymous) {
+      // ⚠️ Trialni yechgan mehmon ro'yxatdan o'tmoqda. Yangi hisob YARATMAYMIZ,
+      // anonim hisobni haqiqiy hisobga AYLANTIRAMIZ — shunda `uid` o'zgarmaydi
+      // va `trial_results/{uid}` hujjati o'z-o'zidan yangi hisobga tegishli
+      // bo'lib qoladi. Aks holda natijani va chegirmani alohida "ko'chirish"
+      // mexanizmi kerak bo'lardi (va u eski uid ni ishonchli tekshira olmasdi).
+      const credential = EmailAuthProvider.credential(email, password);
+      const result = await linkWithCredential(current, credential);
+      user = result.user;
+    } else {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      user = result.user;
+    }
 
     const newUserData = {
       uid: user.uid,
@@ -47,10 +91,42 @@ export function AuthProvider({ children }) {
       isOnline: true
     };
 
+    // Qaysi reklama/kanal shu hisobni olib kelganini hujjatga muhrlaymiz.
+    // GA4 da bu ma'lumot bor, lekin u yerdan "shu foydalanuvchi keyin to'lov
+    // qildimi" degan savolga javob chiqmaydi — Firestore'dagi nusxa chiqaradi.
+    const acquisition = getAttributionForProfile();
+    if (acquisition) newUserData.acquisition = { ...acquisition, fromTrial };
+
     await setDoc(doc(db, "users", user.uid), newUserData);
     setUserData(newUserData);
 
     logAction(user.uid, 'USER_REGISTER', { email, role, method: 'email' }); // Log action
+    track('sign_up', { method: 'email', from_trial: fromTrial, role });
+
+    // Trial mukofoti (chegirma) shu yerda so'raladi — ro'yxatdan o'tish qaysi
+    // sahifadan boshlangan bo'lsa ham ishlashi uchun. Trial yechilmagan bo'lsa
+    // funksiya darhol `{granted:false, reason:'no_trial'}` qaytaradi, shuning
+    // uchun oddiy ro'yxatdan o'tishga sezilarli qo'shimcha yuk bermaydi.
+    //
+    // Xatosi ro'yxatdan o'tishni YIQITMASLIGI shart: chegirma — bonus, hisob
+    // esa asosiy natija.
+    try {
+      const claimReward = httpsCallable(functions, 'claimTrialReward');
+      const { data: reward } = await claimReward();
+      if (reward?.granted) {
+        track('trial_reward_claimed', { discount_percent: Number(reward.discountPercent) || undefined });
+        // Chegirma serverda `users/{uid}` ga yozildi — uni ko'rish uchun
+        // hujjatni qayta o'qiymiz (Pricing sahifasi shunga qaraydi).
+        //
+        // `refreshUserData()` ishlatilmaydi: u `user` STATE'iga tayanadi,
+        // u esa signup paytida hali eski qiymatda (null yoki anonim) turadi.
+        const fresh = await getDoc(doc(db, "users", user.uid));
+        if (fresh.exists()) setUserData(processUserData(user.uid, fresh.data()));
+      }
+    } catch (err) {
+      console.warn("Trial reward claim failed:", err);
+    }
+
     return user;
   };
 
@@ -163,7 +239,30 @@ export function AuthProvider({ children }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
+      const current = auth.currentUser;
+      // Trialni yechgan mehmon Google bilan kirmoqda. `signInWithPopup` anonim
+      // sessiyani YANGI uid bilan almashtiradi — `trial_results/{uid}` va u
+      // bilan birga chegirma yo'qolardi. Shuning uchun email/parol yo'lidagi
+      // kabi anonim hisobni AYLANTIRAMIZ (uid o'zgarmaydi).
+      const fromTrial = Boolean(current?.isAnonymous);
+      let result;
+      if (fromTrial) {
+        try {
+          result = await linkWithPopup(current, provider);
+        } catch (linkErr) {
+          // Bu Google hisobi allaqachon ro'yxatdan o'tgan — bog'lab bo'lmaydi.
+          // Oddiy kirishga tushamiz (mehmon uid'i, demak trial natijasi ham,
+          // bu holatda yo'qoladi — mavjud hisobga qo'shib bo'lmaydi).
+          if (linkErr.code === 'auth/credential-already-in-use' ||
+              linkErr.code === 'auth/email-already-in-use') {
+            result = await signInWithPopup(auth, provider);
+          } else {
+            throw linkErr;
+          }
+        }
+      } else {
+        result = await signInWithPopup(auth, provider);
+      }
       const user = result.user;
       if (user) {
         const docRef = doc(db, "users", user.uid);
@@ -181,9 +280,29 @@ export function AuthProvider({ children }) {
             lastActiveAt: serverTimestamp(),
             isOnline: true
           };
+          const acquisition = getAttributionForProfile();
+          if (acquisition) newUserData.acquisition = { ...acquisition, fromTrial };
+
           await setDoc(docRef, newUserData);
           setUserData(newUserData);
           logAction(user.uid, 'USER_REGISTER', { email: user.email, method: 'google_popup' });
+          track('sign_up', { method: 'google', from_trial: fromTrial });
+
+          // Trial mukofoti — email/parol yo'lidagi bilan bir xil mantiq.
+          // Xatosi ro'yxatdan o'tishni yiqitmaydi: chegirma bonus, hisob asosiy.
+          if (fromTrial) {
+            try {
+              const claimReward = httpsCallable(functions, 'claimTrialReward');
+              const { data: reward } = await claimReward();
+              if (reward?.granted) {
+                track('trial_reward_claimed', { discount_percent: Number(reward.discountPercent) || undefined });
+                const fresh = await getDoc(docRef);
+                if (fresh.exists()) setUserData(processUserData(user.uid, fresh.data()));
+              }
+            } catch (err) {
+              console.warn("Trial reward claim failed:", err);
+            }
+          }
         } else {
           const processed = processUserData(user.uid, docSnap.data());
           setUserData(processed);
@@ -207,6 +326,13 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (!currentUser) {
+        setUserData(null);
+        setLoading(false);
+      } else if (currentUser.isAnonymous) {
+        // Mehmon (trial) sessiyasi: `users/{uid}` hujjati YO'Q va bo'lmasligi
+        // ham kerak. Bu yerdan chiqib ketmasak, quyidagi kod hujjatni o'qishga
+        // → topolmay yaratishga urinardi va ikkalasi ham qoidalar tomonidan
+        // rad etilib, 5 martalik qayta urinish siklini bekorga aylantirardi.
         setUserData(null);
         setLoading(false);
       } else {
@@ -297,6 +423,8 @@ export function AuthProvider({ children }) {
     refreshUserData,
     signInWithPhone,
     signInWithGoogle,
+    startGuestSession,
+    isGuest,
     loading
   };
 

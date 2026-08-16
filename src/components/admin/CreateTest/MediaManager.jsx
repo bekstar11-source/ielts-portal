@@ -180,7 +180,7 @@ const MediaManager = ({
     const hasAnyAudio = audioMode === 'single' ? !!singleAudioUrl : Object.values(partAudios || {}).some(Boolean);
 
     return (
-        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold uppercase tracking-wider opacity-50">Media & Fayllar</h3>
                 {uploading ? (
@@ -202,7 +202,7 @@ const MediaManager = ({
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-3">
                             <label className="text-xs font-bold opacity-60">Audio Rejimi</label>
-                            <div className={`flex p-1 rounded-lg ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                            <div className={`flex p-1 rounded-lg ${isDark ? 'bg-[#181715]' : 'bg-gray-100'}`}>
                                 <button 
                                     onClick={() => setAudioMode('single')}
                                     className={`px-3 py-1 text-[10px] font-bold rounded-md transition ${audioMode === 'single' ? 'bg-blue-600 text-white shadow-md' : 'opacity-40 hover:opacity-100'}`}
@@ -224,7 +224,7 @@ const MediaManager = ({
                                     <div className="relative flex-1">
                                         <input
                                             type="text"
-                                            className={`w-full h-10 pl-4 pr-9 rounded-xl border outline-none text-xs transition focus:border-blue-500 ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}
+                                            className={`w-full h-10 pl-4 pr-9 rounded-xl border outline-none text-xs transition focus:border-blue-500 ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}
                                             placeholder="Yagona audio URL..."
                                             value={singleAudioUrl}
                                             onChange={e => handleSingleAudioUrlChange(e.target.value)}
@@ -251,7 +251,7 @@ const MediaManager = ({
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {[...Array(listeningPartCount)].map((_, i) => (
-                                    <div key={i} className={`p-3 rounded-xl border ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                    <div key={i} className={`p-3 rounded-xl border ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                                         <div className="flex items-center justify-between mb-2">
                                             <p className="text-[10px] font-bold uppercase opacity-40">Part {i + 1}</p>
                                             <span className={`w-1.5 h-1.5 rounded-full ${partAudios[i] ? 'bg-green-500' : 'bg-gray-400/40'}`} title={partAudios[i] ? "Audio biriktirilgan" : "Audio yo'q"} />
@@ -259,7 +259,7 @@ const MediaManager = ({
                                         <div className="flex gap-2">
                                             <input
                                                 type="text"
-                                                className={`flex-1 h-8 px-2 rounded-lg border outline-none text-[10px] transition focus:border-blue-500 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
+                                                className={`flex-1 h-8 px-2 rounded-lg border outline-none text-[10px] transition focus:border-blue-500 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}
                                                 value={partAudios[i] || ""}
                                                 onChange={e => handleAudioUrlChange(e.target.value, i)}
                                                 placeholder="URL..."
@@ -307,7 +307,7 @@ const MediaManager = ({
                     ) : (
                         <div className="flex flex-wrap gap-2">
                             {uploadedMaps.map((map, idx) => (
-                                <div key={idx} className={`flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-lg border text-[10px] font-medium ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                <div key={idx} className={`flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-lg border text-[10px] font-medium ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                                     <img src={map.url} alt="" className="w-7 h-7 rounded object-cover bg-black/10" />
                                     <a href={map.url} target="_blank" rel="noreferrer" className="max-w-[110px] truncate hover:text-blue-500" title={map.name}>{map.name}</a>
                                     <button
@@ -332,7 +332,7 @@ const MediaManager = ({
                     <input
                         id="test-thumbnail"
                         type="text"
-                        className={`flex-1 h-10 px-4 rounded-xl border outline-none text-xs transition ${isDark ? 'bg-[#121212] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
+                        className={`flex-1 h-10 px-4 rounded-xl border outline-none text-xs transition ${isDark ? 'bg-[#181715] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
                         value={testData.thumbnail || ""}
                         onChange={e => setTestData({ ...testData, thumbnail: e.target.value })}
                         placeholder="Test rasmi URL manzili..."
@@ -374,7 +374,7 @@ const MediaManager = ({
                             const passage = testData.passages?.[i] || {};
                             const partAudioUrl = audioMode === 'single' ? singleAudioUrl : (partAudios[i] || passage.audio || "");
                             return (
-                                <div key={i} className={`p-3 rounded-xl border ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                <div key={i} className={`p-3 rounded-xl border ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-[10px] font-bold uppercase opacity-40">Part {i + 1} Vaqti</span>
                                         {(passage.startTime || passage.endTime || passage.extraSilentTime) && (
@@ -389,7 +389,7 @@ const MediaManager = ({
                                             <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Boshlash</span>
                                             <input
                                                 type="text"
-                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
+                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}
                                                 placeholder="0:00"
                                                 value={passage.startTime || ""}
                                                 onChange={e => onPassageTimeChange(i, 'startTime', e.target.value)}
@@ -399,7 +399,7 @@ const MediaManager = ({
                                             <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Tugash</span>
                                             <input
                                                 type="text"
-                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
+                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}
                                                 placeholder="7:30"
                                                 value={passage.endTime || ""}
                                                 onChange={e => onPassageTimeChange(i, 'endTime', e.target.value)}
@@ -409,7 +409,7 @@ const MediaManager = ({
                                             <span className="text-[8px] font-bold uppercase opacity-35 block mb-1" title="Part tugagandan keyin keyingi partgacha necha soniya sukunat qo'shilishi">Kutish (sek)</span>
                                             <input
                                                 type="number"
-                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}
+                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}
                                                 placeholder="0"
                                                 min="0"
                                                 value={passage.extraSilentTime !== undefined ? passage.extraSilentTime : ""}

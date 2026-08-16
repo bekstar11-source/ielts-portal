@@ -4,8 +4,33 @@ service cloud.firestore {
     
     // --- HELPER FUNCTIONS ---
     
+    /**
+     * Anonim (guest) sessiya.
+     *
+     * Landing page'dagi bepul trial `signInAnonymously()` bilan ishlaydi —
+     * ya'ni SAYTGA KIRGAN HAR QANDAY ODAM `request.auth != null` bo'lib qoladi.
+     */
+    function isAnonymous() {
+      return request.auth != null
+             && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    /**
+     * Ro'yxatdan o'tgan (haqiqiy) foydalanuvchi.
+     *
+     * ⚠️ DIQQAT: bu yerda ataylab `request.auth != null` DEYILMAGAN.
+     * Anonim kirish yoqilgandan keyin oddiy `!= null` tekshiruvi butun
+     * bazani ochib yuborardi: istalgan tashrifchi bir soniyada anonim token
+     * olib, `podcasts`, `articles`, `tests_metadata`, `announcements` va
+     * qolgan hamma `isAuth()` bilan himoyalangan kolleksiyani o'qiy olardi.
+     *
+     * Guest'ga to'g'ridan-to'g'ri Firestore kerak EMAS: trial butunlay
+     * Cloud Functions orqali ishlaydi (`getTrialTest`, `submitTrial`), ular
+     * esa Admin SDK bilan qoidalardan chetlab o'tadi. Shuning uchun eng
+     * xavfsiz yechim — anonim sessiyaga bu yerda umuman ruxsat bermaslik.
+     */
     function isAuth() {
-      return request.auth != null;
+      return request.auth != null && !isAnonymous();
     }
 
     function getUserData() {
@@ -59,7 +84,7 @@ service cloud.firestore {
         return [
           'role', 'accountType', 'isPro', 'isPremium', 'isStandard', 'tier',
           'subscriptionStart', 'subscriptionEnd', 'teacherSubscription',
-          'assignedTests', 'mockTests', 'groupId'
+          'assignedTests', 'mockTests', 'groupId', 'signupDiscount'
         ];
       }
 
@@ -392,6 +417,35 @@ service cloud.firestore {
     // boshlagan brauzer, maxfiy `pollKey` ni ko'rsatib, `claimTelegramLogin`
     // callable orqali oladi (functions/telegramLogin.js).
     match /login_sessions/{sessionId} {
+      allow read, write: if false; // Faqat Admin SDK
+    }
+
+    // DISCOUNT CLAIMS (ro'yxatdan o'tish chegirmasi sarflangani haqidagi reyestr)
+    //
+    // Chegirma IKKI joyda yashaydi:
+    //   • `users/{uid}.signupDiscount` — TAKLIF. Egasi o'qiy oladi (UI uchun),
+    //     lekin yoza olmaydi (`protectedUserFields` ro'yxatida).
+    //   • `discount_claims/{key}` — SARFLASH reyestri. Kalit `uid` ga emas,
+    //     SHAXSGA bog'langan: `tg_{telegramId}` va `ph_{phoneNumber}`.
+    //
+    // Ikkinchisi aynan shu maqsad uchun kerak: o'quvchi yangi email bilan
+    // yangi hisob ochsa `uid` almashadi, lekin to'lov baribir o'sha bitta
+    // Telegram akkaunti orqali o'tadi (`handlePaymentStart` da `chatId` bor) —
+    // ya'ni 10 ta hisob bitta reyestr yozuviga urilib qaytadi.
+    //
+    // Klient bu hujjatlarni O'QIY OLMAYDI ham: aks holda kalitlarni sanab
+    // chiqib, qaysi telefon raqami chegirmani ishlatganini bilib olish mumkin.
+    match /discount_claims/{claimId} {
+      allow read, write: if false; // Faqat Admin SDK (telegramBot / Cloud Functions)
+    }
+
+    // TRIAL RESULTS (landing page'dagi bepul test natijalari)
+    //
+    // Guest anonim sessiyada ishlaydi va bu hujjatga umuman tegmaydi:
+    // natijani `submitTrial` Admin SDK bilan yozadi va javob sifatida
+    // klientga qaytaradi. Klient yozuvga ruxsat olsa, band ballni o'zi
+    // qo'yib chegirmani "yutib" olardi.
+    match /trial_results/{uid} {
       allow read, write: if false; // Faqat Admin SDK
     }
 

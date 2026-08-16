@@ -9,7 +9,7 @@ export const KPICard = ({ title, value, icon: Icon, color, isDark }) => {
     };
 
     return (
-        <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-[24px] border shadow-sm transition-colors min-w-0 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
             <div className="flex justify-between items-start mb-3 sm:mb-4">
                 <div className={`p-2.5 sm:p-3 rounded-xl ${colorClasses[color]}`}>
                     <Icon size={20} />

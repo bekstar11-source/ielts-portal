@@ -121,7 +121,7 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
         return (
             <div
                 data-slot="sidebar"
-                className={cn('flex h-full w-[13rem] flex-col bg-white text-gray-900 dark:bg-[#1E1E1E] dark:text-white', className)}
+                className={cn('flex h-full w-[13rem] flex-col bg-white text-gray-900 dark:bg-[#252320] dark:text-white', className)}
                 {...props}
             >
                 {children}
@@ -142,7 +142,7 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
                     data-slot="sidebar"
                     data-state={openMobile ? 'open' : 'closed'}
                     className={cn(
-                        'fixed inset-y-0 left-0 z-50 flex h-full w-[16rem] flex-col bg-white text-gray-900 shadow-xl transition-transform duration-300 ease-in-out dark:bg-[#1E1E1E] dark:text-white md:hidden',
+                        'fixed inset-y-0 left-0 z-50 flex h-full w-[16rem] flex-col bg-white text-gray-900 shadow-xl transition-transform duration-300 ease-in-out dark:bg-[#252320] dark:text-white md:hidden',
                         openMobile ? 'translate-x-0' : '-translate-x-full',
                         className
                     )}
@@ -158,7 +158,10 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
     // Yig'ilgan holatda sichqoncha panel ustiga kelganda vizual ravishda ochiladi
     // (kontent ustidan overlay bo'lib), lekin bo'sh joy (gap) kengligi haqiqiy
     // pinned holatga bog'liq bo'lib qoladi — shu sabab kontent hover paytida sakramaydi.
+    // Pinned (toggle bilan) ochilganda esa gap ham kengayadi: panel kontent ustiga
+    // chiqmaydi, kontent yonida qisqaradi.
     const visuallyExpanded = collapsible === 'icon' ? expanded || hovered : expanded;
+    const overlaying = collapsible === 'icon' && hovered && !expanded;
 
     return (
         <SidebarVisualContext.Provider value={visuallyExpanded}>
@@ -167,7 +170,9 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
                 data-slot="sidebar-gap"
                 className={cn(
                     'hidden flex-shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none md:block',
-                    collapsible === 'icon' ? 'w-16' : expanded ? 'w-[13rem]' : 'w-0'
+                    collapsible === 'icon'
+                        ? expanded ? 'w-[13rem]' : 'w-16'
+                        : expanded ? 'w-[13rem]' : 'w-0'
                 )}
             />
             <aside
@@ -176,9 +181,10 @@ export function Sidebar({ collapsible = 'icon', className, children, ...props })
                 onMouseEnter={() => collapsible === 'icon' && setHovered(true)}
                 onMouseLeave={() => collapsible === 'icon' && setHovered(false)}
                 className={cn(
-                    'fixed inset-y-0 left-0 z-30 hidden h-full flex-col border-r border-gray-200 bg-white text-gray-900 md:flex dark:border-white/5 dark:bg-[#1E1E1E] dark:text-white',
+                    'fixed inset-y-0 left-0 z-30 hidden h-full flex-col border-r border-gray-200 bg-white text-gray-900 md:flex dark:border-white/5 dark:bg-[#252320] dark:text-white',
                     'will-change-[width] transition-[width,box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
-                    visuallyExpanded ? 'w-[13rem] shadow-2xl' : 'w-16 shadow-none',
+                    visuallyExpanded ? 'w-[13rem]' : 'w-16',
+                    overlaying ? 'shadow-2xl' : 'shadow-none',
                     collapsible === 'offcanvas' && !expanded && '-translate-x-full',
                     className
                 )}
@@ -248,7 +254,7 @@ export function SidebarGroupLabel({ className, children, ...props }) {
         >
             <span
                 className={cn(
-                    'text-[9px] font-bold uppercase tracking-widest whitespace-nowrap text-gray-400 transition-opacity duration-200 dark:text-gray-600',
+                    'text-[9px] font-bold uppercase tracking-widest whitespace-nowrap text-gray-400 transition-opacity duration-200 dark:text-warm-muted',
                     expanded ? 'opacity-100 delay-100' : 'opacity-0'
                 )}
             >
@@ -282,8 +288,8 @@ export function SidebarMenuButton({ asChild = false, isActive = false, tooltip, 
         'flex h-9 items-center rounded-xl font-semibold text-[13px] transition-colors duration-200',
         expanded ? 'gap-3 px-2.5' : 'justify-center gap-0 px-0',
         isActive
-            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 dark:bg-blue-600'
-            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white',
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20 dark:bg-warm-primary dark:shadow-warm-primary/20'
+            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-warm-on-dark-soft dark:hover:bg-white/5 dark:hover:text-white',
         className
     );
     const title = !expanded ? tooltip : undefined;

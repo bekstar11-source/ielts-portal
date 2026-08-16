@@ -32,6 +32,10 @@ export const TestSolvingView = ({
     // useState boshlang'ich qiymati sifatida o'qilardi — o'sha paytda hali 0 bo'lgani
     // uchun overlay HECH QACHON ko'rinmasdi, ya'ni autoplay'ni ochadigan foydalanuvchi
     // klik bosqichi tushib qolar va tiklangan listening'da audio ishga tushmasligi mumkin edi.
+    // Brauzer autoplay siyosati audio'ni bloklaganda ko'rsatiladi. Ilgari bu holat
+    // faqat console'da qolar, talaba esa jim ekran oldida o'tirardi.
+    const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+
     const [showResumeOverlay, setShowResumeOverlay] = useState(false);
     const resumeOverlayShownRef = useRef(false);
     useEffect(() => {
@@ -114,6 +118,44 @@ export const TestSolvingView = ({
                                 Continue Test
                             </button>
                         </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Autoplay bloklandi — bitta klik audio'ni ochadi.
+                CustomAudioPlayer hujjat bo'ylab klik listener'i orqali darhol
+                qayta urinadi, shuning uchun tugmaning o'zi hech narsa
+                chaqirmasa ham yetarli — baribir aniqlik uchun chaqiramiz. */}
+            <AnimatePresence>
+                {autoplayBlocked && logicalStage === 'listening' && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[1100] flex items-center justify-center bg-zinc-900/60 backdrop-blur-md px-4"
+                    >
+                        <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-[360px] w-full">
+                            <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                                <Volume2 className="text-amber-600" size={28} />
+                            </div>
+                            <h2 className="text-xl font-bold text-zinc-900 tracking-tight mb-2">
+                                Ovozni yoqish uchun bosing
+                            </h2>
+                            <p className="text-[13px] text-zinc-500 leading-relaxed mb-7">
+                                Brauzer audio'ni avtomatik ijro etishga ruxsat bermadi. Davom etish uchun
+                                quyidagi tugmani bosing — audio to'xtagan joyidan davom etadi.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    const el = document.getElementById(`audio-part-${activePart}`);
+                                    el?.play?.().catch(() => {});
+                                    setAutoplayBlocked(false);
+                                }}
+                                className="w-full py-3.5 bg-[#e31b23] text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all active:scale-[0.98] shadow-lg shadow-red-500/20"
+                            >
+                                Audioni yoqish
+                            </button>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -275,6 +317,7 @@ export const TestSolvingView = ({
                     resumeAudioTime={resumeAudioTime}
                     onTotalDurationCalculated={onTotalDurationCalculated}
                     onAudioEnded={onAudioEnded}
+                    onPlaybackBlocked={setAutoplayBlocked}
                 />
             </div>
 

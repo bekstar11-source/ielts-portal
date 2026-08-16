@@ -23,13 +23,13 @@ export default function AdminAnalytics() {
     } = useAdminAnalytics();
 
     if (loading) return (
-        <div className={`h-full min-h-[60vh] flex items-center justify-center transition-colors ${isDark ? 'bg-[#121212]' : 'bg-gray-50'}`}>
+        <div className={`h-full min-h-[60vh] flex items-center justify-center transition-colors ${isDark ? 'bg-[#181715]' : 'bg-gray-50'}`}>
             <div className={`animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full`}></div>
         </div>
     );
 
     return (
-        <div className={`p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
             {/* HEADER */}
             <div className="flex flex-wrap items-start justify-between gap-3 mb-6 md:mb-8">

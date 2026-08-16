@@ -21,8 +21,8 @@ export default function SchemaMarkup() {
     "logo": {
       "@type": "ImageObject",
       "url": `${currentUrl}/favicon.png`,
-      "width": "180",
-      "height": "180"
+      "width": "512",
+      "height": "512"
     },
     "image": `${currentUrl}/favicon.png`,
     "description": "IELTS dan yuqori ball olishning eng zamonaviy o'quv portali. Real imtihon muhiti, sun'iy intellekt yordamida chuqur tahlil va aniq natijalar.",

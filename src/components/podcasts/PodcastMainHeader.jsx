@@ -1,6 +1,7 @@
 import React from "react";
 import { Search, ChevronLeft, ChevronRight, Home, Sun, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Logo from "../common/Logo";
 
 export default function PodcastMainHeader({ 
     isDark, 
@@ -30,10 +31,7 @@ export default function PodcastMainHeader({
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <h2 className={`flex items-center gap-2 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                    <span className="text-[20px] font-black uppercase tracking-tight">ENGLEV</span>
-                    <span className="text-[20px] font-light">Podcasts</span>
-                </h2>
+                <Logo size="md" tone={isDark ? 'light' : 'ink'} suffix="Podcasts" />
             </div>
             
             <div className="flex-1 flex justify-end items-center gap-4 z-10">

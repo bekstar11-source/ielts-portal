@@ -14,7 +14,7 @@ const formatTimeAgo = (date) => {
 };
 
 export const RecentAwards = ({ awards, isDark }) => (
-    <div className={`rounded-2xl sm:rounded-[24px] border p-4 sm:p-6 flex flex-col max-h-[460px] sm:max-h-[600px] min-w-0 transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+    <div className={`rounded-2xl sm:rounded-[24px] border p-4 sm:p-6 flex flex-col max-h-[460px] sm:max-h-[600px] min-w-0 transition-colors ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
         <h3 className="font-bold mb-4 sm:mb-6 flex items-center gap-2 text-sm uppercase tracking-wider opacity-70">
             <Star className="text-yellow-500" size={18} fill="currentColor" /> 
             Recent Awards
@@ -28,7 +28,7 @@ export const RecentAwards = ({ awards, isDark }) => (
                             <Medal size={24} />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate">{award.title || 'Achievement Unlocked'}</p>
+                            <p className="text-sm font-bold text-zinc-800 dark:text-warm-on-dark truncate">{award.title || 'Achievement Unlocked'}</p>
                             <p className="text-xs font-medium text-zinc-500">Awarded to <span className="text-blue-500 font-bold">{award.userName}</span></p>
                             <p className="text-[10px] font-black uppercase tracking-tighter opacity-30 mt-1">{formatTimeAgo(award.date)}</p>
                         </div>

@@ -96,7 +96,7 @@ export default function AdminArticles() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="min-w-0">
                     <h1 className="text-xl md:text-3xl font-bold tracking-tight">Maqolalar</h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    <p className="text-gray-500 dark:text-warm-on-dark-soft text-sm">
                         O&apos;quvchilar uchun darajali maqolalar yarating va boshqaring.
                     </p>
                 </div>
@@ -106,7 +106,7 @@ export default function AdminArticles() {
                         onClick={refresh}
                         disabled={loading}
                         title="Yangilash"
-                        className="p-2.5 shrink-0 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-gray-100 dark:border-white/5 text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
+                        className="p-2.5 shrink-0 rounded-2xl bg-white dark:bg-[#1f1e1b] border border-gray-100 dark:border-white/5 text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
                     >
                         <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
                     </button>
@@ -138,7 +138,7 @@ export default function AdminArticles() {
                 ].map(({ icon, label, value, tone }) => (
                     <div
                         key={label}
-                        className="bg-white dark:bg-[#1E1E1E] p-3 sm:p-4 rounded-[20px] border border-gray-100 dark:border-white/5 flex items-center gap-2 sm:gap-3 min-w-0"
+                        className="bg-white dark:bg-[#1f1e1b] p-3 sm:p-4 rounded-[20px] border border-gray-100 dark:border-white/5 flex items-center gap-2 sm:gap-3 min-w-0"
                     >
                         <div className={`p-2 sm:p-2.5 shrink-0 rounded-xl ${tone}`}>{icon}</div>
                         <div className="min-w-0">
@@ -149,14 +149,14 @@ export default function AdminArticles() {
                 ))}
             </div>
 
-            <div className="bg-white dark:bg-[#1E1E1E] p-3 sm:p-4 rounded-2xl sm:rounded-[24px] border border-gray-100 dark:border-white/5 space-y-3">
+            <div className="bg-white dark:bg-[#1f1e1b] p-3 sm:p-4 rounded-2xl sm:rounded-[24px] border border-gray-100 dark:border-white/5 space-y-3">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             type="text"
                             placeholder="Sarlavha, izoh, muallif yoki kategoriya bo'yicha qidirish..."
-                            className="w-full bg-gray-50 dark:bg-[#252525] border-none rounded-xl pl-10 pr-9 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 outline-none transition-all"
+                            className="w-full bg-gray-50 dark:bg-[#252320] border-none rounded-xl pl-10 pr-9 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 outline-none transition-all"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -170,7 +170,7 @@ export default function AdminArticles() {
                             </button>
                         )}
                     </div>
-                    <div className="flex gap-1 p-1 rounded-xl bg-gray-50 dark:bg-[#252525] shrink-0 overflow-x-auto">
+                    <div className="flex gap-1 p-1 rounded-xl bg-gray-50 dark:bg-[#252320] shrink-0 overflow-x-auto">
                         {SORT_OPTIONS.map((opt) => (
                             <button
                                 key={opt.id}

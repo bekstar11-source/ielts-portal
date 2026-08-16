@@ -17,7 +17,7 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete, isFiltered })
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div
                         key={i}
-                        className="h-[300px] bg-white dark:bg-[#1E1E1E] rounded-[28px] border border-black/[0.03] dark:border-white/5 animate-pulse"
+                        className="h-[300px] bg-white dark:bg-[#1f1e1b] rounded-[28px] border border-black/[0.03] dark:border-white/5 animate-pulse"
                     />
                 ))}
             </div>
@@ -56,7 +56,7 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete, isFiltered })
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.96 }}
                             transition={{ duration: 0.2 }}
-                            className="group bg-white dark:bg-[#1E1E1E] rounded-[28px] border border-black/[0.04] dark:border-white/5 overflow-hidden hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/20 transition-all duration-300 flex flex-col"
+                            className="group bg-white dark:bg-[#1f1e1b] rounded-[28px] border border-black/[0.04] dark:border-white/5 overflow-hidden hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/20 transition-all duration-300 flex flex-col"
                         >
                             <div className="h-36 w-full relative overflow-hidden bg-gray-100 dark:bg-white/5">
                                 {article.imageUrl ? (
@@ -67,7 +67,7 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete, isFiltered })
                                         alt={article.title || 'Maqola muqovasi'}
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
+                                    <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-warm-muted">
                                         <ImageIcon size={34} />
                                     </div>
                                 )}
@@ -114,12 +114,12 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete, isFiltered })
                                         </span>
                                     )}
                                     {vocabCount > 0 && (
-                                        <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-[10px] font-bold flex items-center gap-1">
+                                        <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-warm-on-dark-soft text-[10px] font-bold flex items-center gap-1">
                                             <BookMarked size={9} /> {vocabCount}
                                         </span>
                                     )}
                                     {article.readTime && (
-                                        <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-[10px] font-bold flex items-center gap-1">
+                                        <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-warm-on-dark-soft text-[10px] font-bold flex items-center gap-1">
                                             <Clock size={9} /> {formatReadTimeLabel(article.readTime)}
                                         </span>
                                     )}

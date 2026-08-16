@@ -3,8 +3,33 @@ import { db, functions } from "../firebase/firebase";
 import { doc, getDoc, serverTimestamp, setDoc, deleteDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { syncServerTime, getCurrentServerTime } from "../utils/timeSync";
+import { revokeMockAudioBlobs } from "../utils/audioBlobRegistry";
 
 const STORAGE_KEY = 'ielts_mock_session';
+const DEVICE_KEY = 'ielts_device_id';
+
+/**
+ * Shu brauzer uchun barqaror identifikator.
+ *
+ * Bitta imtihon sessiyasi ikki qurilmada ochilsa, ikkalasi ham bir xil
+ * Firestore hujjatiga yozadi va javoblar bir-birini bosib ketadi. Buni
+ * to'xtata olmaymiz (talaba baribir ikkinchi qurilmani ocha oladi), lekin
+ * aniqlab, ogohlantira olamiz.
+ */
+function getDeviceId() {
+    try {
+        let id = localStorage.getItem(DEVICE_KEY);
+        if (!id) {
+            id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+            localStorage.setItem(DEVICE_KEY, id);
+        }
+        return id;
+    } catch {
+        // Private rejimda localStorage yopiq bo'lishi mumkin — sessiya davomida
+        // barqaror bo'lsa yetarli.
+        return 'no-storage';
+    }
+}
 
 // Sessiya saqlanadigan bosqichlar ('loading' ataylab yo'q).
 const PERSISTED_STAGES = ['listening', 'reading', 'writing', 'listening_volume_check', 'intro', 'test_ended', 'saving', 'result'];
@@ -86,6 +111,16 @@ export function useMockExam(mockData, user, userData, navigate) {
         listeningStartTimeRef.current = listeningStartTime;
     }, [listeningStartTime]);
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
+    // Bu sessiya boshqa qurilmada ham ochiqmi (banner shu bo'yicha ko'rsatiladi).
+    const [deviceConflict, setDeviceConflict] = useState(false);
+
+    // ─── Diagnostika: talaba "audio to'xtab qoldi" desa, adminda dalil bo'lsin ───
+    // Taymer internet uzilganda ham ishlaydi, ya'ni uzilish = yo'qotilgan vaqt.
+    // Har bir hodisa vaqt tamg'asi bilan yoziladi.
+    const deviceIdRef = useRef(getDeviceId());
+    const offlineMsRef = useRef(0);
+    const connectionEventsRef = useRef([]);
+    const tabSwitchEventsRef = useRef([]);
     
     // Auto-set deadline for test_ended stage only (intro is managed by MockExamIntro)
     // MUHIM: test_ended dan chiqqanda deadline NULL ga qaytarilishi shart. Ilgari
@@ -95,12 +130,23 @@ export function useMockExam(mockData, user, userData, navigate) {
     useEffect(() => {
         if (stage === 'test_ended') {
             if (!autoStartDeadline) {
-                setAutoStartDeadline(Date.now() + TEST_ENDED_AUTO_ADVANCE_SEC * 1000);
+                // Server vaqti: mahalliy soatni o'zgartirish bilan deadline'ni
+                // surib bo'lmasin (qolgan hisob-kitoblar allaqachon shunday).
+                setAutoStartDeadline(getCurrentServerTime() + TEST_ENDED_AUTO_ADVANCE_SEC * 1000);
             }
         } else if (autoStartDeadline) {
             setAutoStartDeadline(null);
         }
     }, [stage, autoStartDeadline]);
+
+    // Qurilma ogohlantirishi bir marta ko'rsatilib, o'zi yo'qoladi. Aks holda u
+    // butun imtihon davomida osilib qolar va ustuvorligi tufayli undan MUHIMROQ
+    // bannerni (internet uzilishi) ko'rsatmay qo'yardi.
+    useEffect(() => {
+        if (!deviceConflict) return;
+        const id = setTimeout(() => setDeviceConflict(false), 30000);
+        return () => clearTimeout(id);
+    }, [deviceConflict]);
 
     const stageRef = useRef(stage);
     const answersRef = useRef(answers);
@@ -141,6 +187,10 @@ export function useMockExam(mockData, user, userData, navigate) {
             deadline: deadlineVal,
             listeningStartTime,
             listeningDuration,
+            deviceId: deviceIdRef.current,
+            offlineMs: offlineMsRef.current,
+            connectionEvents: connectionEventsRef.current,
+            tabSwitchEvents: tabSwitchEventsRef.current,
             savedAt: getCurrentServerTime()
         });
     }, [stage, answers, timeLeft, completedModules, user?.uid, mockId, autoStartDeadline, listeningStartTime, listeningDuration]);
@@ -177,6 +227,10 @@ export function useMockExam(mockData, user, userData, navigate) {
                         tabSwitchCount: tabSwitchCountRef.current,
                         audioTime: audioTimeRef.current,
                         activePart: activePartRef.current,
+                        deviceId: deviceIdRef.current,
+                        offlineMs: offlineMsRef.current,
+                        connectionEvents: connectionEventsRef.current.slice(-50),
+                        tabSwitchEvents: tabSwitchEventsRef.current.slice(-50),
                         updatedAt: serverTimestamp()
                     };
 
@@ -203,6 +257,10 @@ export function useMockExam(mockData, user, userData, navigate) {
                         completedModules: completedRef.current,
                         audioTime: audioTimeRef.current,
                         activePart: activePartRef.current,
+                        deviceId: deviceIdRef.current,
+                        offlineMs: offlineMsRef.current,
+                        connectionEvents: connectionEventsRef.current.slice(-50),
+                        tabSwitchEvents: tabSwitchEventsRef.current.slice(-50),
                         updatedAt: serverTimestamp()
                     }, { merge: true });
                 }
@@ -261,6 +319,13 @@ export function useMockExam(mockData, user, userData, navigate) {
             if (document.hidden && activeTestStages.includes(stageRef.current)) {
                 hiddenTimer = setTimeout(() => {
                     if (document.hidden && activeTestStages.includes(stageRef.current)) {
+                        // Har bir strike'ni vaqt tamg'asi va bosqichi bilan yozamiz.
+                        // Talaba "men hech qayoqqa o'tmadim" desa, admin nima
+                        // bo'lganini ko'ra olsin — hozir faqat quruq raqam bor edi.
+                        tabSwitchEventsRef.current = [
+                            ...tabSwitchEventsRef.current,
+                            { at: getCurrentServerTime(), stage: stageRef.current }
+                        ].slice(-50);
                         setTabSwitchCount(prev => prev + 1);
                     }
                 }, HIDDEN_GRACE_MS);
@@ -356,7 +421,23 @@ export function useMockExam(mockData, user, userData, navigate) {
                     setCompletedModules(saved.completedModules || []);
                     setTabSwitchCount(saved.tabSwitchCount || 0);
                     setAutoStartDeadline(saved.autoStartDeadline || null);
-                    
+
+                    // Diagnostikani davom ettiramiz, noldan boshlamaymiz.
+                    offlineMsRef.current = Number(saved.offlineMs) || 0;
+                    connectionEventsRef.current = Array.isArray(saved.connectionEvents) ? saved.connectionEvents : [];
+                    tabSwitchEventsRef.current = Array.isArray(saved.tabSwitchEvents) ? saved.tabSwitchEvents : [];
+
+                    // Sessiya boshqa qurilmada ochilganmi? Oxirgi yozuv boshqa
+                    // qurilmadan kelgan va yaqinda (2 daqiqa ichida) bo'lsa,
+                    // katta ehtimol bilan u hali ham ochiq turibdi.
+                    if (saved.deviceId && saved.deviceId !== deviceIdRef.current) {
+                        const lastWrite = Number(saved.updatedAt) || 0;
+                        if (!lastWrite || currentServerTime - lastWrite < 2 * 60 * 1000) {
+                            setDeviceConflict(true);
+                        }
+                    }
+
+
                     // Audio resume state
                     if (saved.audioTime) setResumeAudioTime(saved.audioTime);
                     if (saved.activePart) setResumeActivePart(saved.activePart);
@@ -467,6 +548,10 @@ export function useMockExam(mockData, user, userData, navigate) {
             }
         }
         else if (currentStage === 'listening') {
+            // Listening tugadi — audio blob'lari endi kerak emas. Ularni bo'shatmasak
+            // o'nlab MB xotirada qolib, Reading/Writing davomida mobil brauzer
+            // (ayniqsa iOS Safari) tab'ni o'ldirishi mumkin.
+            revokeMockAudioBlobs();
             setCompletedModules(prev => [...new Set([...prev, 'listening'])]);
             setStage('test_ended');
         }
@@ -558,6 +643,7 @@ export function useMockExam(mockData, user, userData, navigate) {
     };
 
     const clearExamSession = useCallback(async () => {
+        revokeMockAudioBlobs();
         try {
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('ielts_mock_session_') || 
@@ -575,6 +661,22 @@ export function useMockExam(mockData, user, userData, navigate) {
             console.warn("Failed to delete Firestore mock session:", e);
         }
     }, [user?.uid, mockId]);
+
+    /**
+     * Internet uzilishi tugaganda chaqiriladi. Umumiy yo'qotilgan vaqtni
+     * yig'ib boradi — taymer uzilish davomida ham ishlagani uchun bu talaba
+     * haqiqatan boy bergan vaqt. Natijani ko'rib chiqishda hisobga olish
+     * uchun sessiyaga yoziladi (avtomatik vaqt QO'SHILMAYDI — bu qaror
+     * o'qituvchiga qoldiriladi).
+     */
+    const recordOfflineDuration = useCallback((ms) => {
+        if (!ms || ms < 1000) return;
+        offlineMsRef.current += ms;
+        connectionEventsRef.current = [
+            ...connectionEventsRef.current,
+            { at: getCurrentServerTime(), durationMs: Math.round(ms), stage: stageRef.current }
+        ].slice(-50);
+    }, []);
 
     // Callback for parent to report audioTime and activePart
     const updateAudioProgress = useCallback((time, part) => {
@@ -616,6 +718,8 @@ export function useMockExam(mockData, user, userData, navigate) {
         tabSwitchCount,
         mockId,
         clearExamSession,
-        updateListeningDuration
+        updateListeningDuration,
+        deviceConflict,
+        recordOfflineDuration
     };
 }

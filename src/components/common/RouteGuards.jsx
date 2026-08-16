@@ -16,9 +16,13 @@ export const LoadingScreen = () => {
 };
 
 export const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, isGuest } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/" />;
+  // ⚠️ Anonim (trial) sessiyada `user` to'ldirilgan bo'ladi, lekin `users/{uid}`
+  // hujjati yo'q va Firestore ham yopiq. Uni ichkariga qo'ysak, quyidagi
+  // `userData` tekshiruvlari xato ekraniga olib borardi — mehmonni bosh
+  // sahifaga qaytargan ma'qul.
+  if (!user || isGuest) return <Navigate to="/" />;
   
   // If the user has authenticated but their Firestore document doesn't exist yet,
   // redirect them to the dashboard router to show the onboarding/creation fallback or an error screen.

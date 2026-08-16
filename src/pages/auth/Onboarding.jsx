@@ -15,6 +15,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
+import Logo from '../../components/common/Logo';
 
 const StepTitle = ({ title, subtitle }) => (
     <div className="mb-4 text-center">
@@ -376,7 +377,7 @@ export default function Onboarding() {
 
                 {/* Logo - Top Left */}
                 <div className="absolute top-6 left-8 z-10">
-                    <img src="/englev-logo.png" alt="englev." className="h-8 md:h-9 w-auto object-contain" />
+                    <Logo tone="ink" size="md" />
                 </div>
 
                 {/* Header - Absolute Positioned */}

@@ -72,7 +72,7 @@ export default function QuestionBankModal({
         >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div className={`relative w-full max-w-5xl h-[80dvh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border flex flex-col ${
-                isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
+                isDark ? 'bg-[#1f1e1b] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
             }`}>
                 <div className={`p-4 border-b flex justify-between items-center ${
                     isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'
@@ -188,7 +188,7 @@ export default function QuestionBankModal({
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 italic text-sm">
-                                <BookOpen size={48} className="stroke-1 text-zinc-350 dark:text-zinc-650 mb-3" />
+                                <BookOpen size={48} className="stroke-1 text-zinc-350 dark:text-warm-muted mb-3" />
                                 Chap paneldan biror test tanlang. Undagi bo'limlar va savollarni bu yerda ko'rishingiz mumkin.
                             </div>
                         )}

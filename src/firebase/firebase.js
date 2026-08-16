@@ -13,7 +13,11 @@ const firebaseConfig = {
   projectId: "ielts-portal-v1",
   storageBucket: "ielts-portal-v1.firebasestorage.app",
   messagingSenderId: "114093038420",
-  appId: "1:114093038420:web:8f437371ad18447ffa86c1"
+  appId: "1:114093038420:web:8f437371ad18447ffa86c1",
+  // GA4 o'lchov ID'si (Firebase Console → Project settings → Web app).
+  // `.env.local` da VITE_FIREBASE_MEASUREMENT_ID sifatida beriladi; bo'lmasa
+  // analitika jimgina o'chiq qoladi (src/lib/analytics.js ga qarang).
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Firebaseni ishga tushiramiz

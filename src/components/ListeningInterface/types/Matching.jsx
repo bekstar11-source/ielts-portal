@@ -217,7 +217,7 @@ export const Matching = ({ group, userAnswers, onAnswerChange, isReviewMode, han
                     <h4 className="text-[1.2em] font-bold text-black mb-1 px-1">{questionTitle}</h4>
                     <div className="flex flex-col gap-2">
                         {questions.map((q) => {
-                            const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value, true) : false;
+                            const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value, true, options) : false;
                             const qText = (typeof q.text === 'object' ? q.text.text : q.text) || "";
                             const cleanText = String(qText).replace('[DROP]', '').trim();
                             return (

@@ -3,7 +3,7 @@ import { Users, FileText, BarChart3, TrendingUp, TrendingDown } from 'lucide-rea
 
 const StatCard = ({ title, value, trend, icon: Icon, colorClass, isDark }) => (
     <div className={`col-span-12 sm:col-span-6 lg:col-span-4 rounded-2xl p-5 border
-        ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100'}`}>
+        ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex justify-between items-start">
             <div className={`p-2.5 rounded-xl ${colorClass}`}>
                 <Icon className="w-5 h-5" />
@@ -17,7 +17,7 @@ const StatCard = ({ title, value, trend, icon: Icon, colorClass, isDark }) => (
         </div>
         <div className="mt-4">
             <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{value}</div>
-            <h3 className="text-gray-400 dark:text-gray-500 text-xs font-medium mt-1">{title}</h3>
+            <h3 className="text-gray-400 dark:text-warm-muted text-xs font-medium mt-1">{title}</h3>
         </div>
     </div>
 );

@@ -235,6 +235,121 @@ export function getTierLabel(userData) {
 }
 
 /* ─────────────────────────────────────────────────────────────
+ * RO'YXATDAN O'TISH CHEGIRMASI (`signupDiscount`)
+ *
+ * ⚠️ Bu yerdagi mantiq `functions/signupDiscount.js` bilan bir xil bo'lishi
+ * shart. Bu fayl faqat KO'RSATISH uchun — to'lanadigan haqiqiy summani har
+ * doim Telegram bot hisoblaydi (`sendSubscriptionInvoice`). Klient chegirmani
+ * "bor" deb ko'rsatib, server "yo'q" desa — foydalanuvchi noto'g'ri summani
+ * kartaga o'tkazib yuboradi, shuning uchun shartlar aynan bir xil.
+ *
+ * Bu maydonni klient YOZA OLMAYDI: `firestore.rules` dagi
+ * `protectedUserFields()` ro'yxatida.
+ * ───────────────────────────────────────────────────────────── */
+
+/** Chegirma qaysi to'lov davrlarida ishlaydi (ikkalasida ham). */
+export const DISCOUNT_DEFAULT_BILLINGS = ['monthly', 'tri'];
+
+/** Ikki to'lov orasidagi eng katta tanaffus — `DISCOUNT_CONFIG.maxGapDays`. */
+export const DISCOUNT_MAX_GAP_DAYS = 45;
+
+/** Tanlangan davr necha OYNI yeydi (`monthsForBilling` bilan bir xil). */
+export function billingMonths(billing) {
+  return billing === 'tri' ? 3 : 1;
+}
+
+/**
+ * Amaldagi chegirma taklifi (bo'lmasa `null`).
+ *
+ * Chegirma bir martalik emas — u obunaning dastlabki `cycles` oyini qoplaydi.
+ * Shuning uchun bu yerda ikkita oyna bor va ular ARALASHTIRILMASLIGI kerak:
+ *
+ *   zanjir boshlanmagan → `expiresAt` (taklif oynasi, 7 kun)
+ *   zanjir boshlangan   → oxirgi to'lovdan `DISCOUNT_MAX_GAP_DAYS`
+ *
+ * `expiresAt` ni ikkinchi holatda ham tekshirsak, 2-oy to'lovi 7-kunda
+ * yonib ketardi va chegirma amalda bir martalik bo'lib qolardi.
+ *
+ * @returns {{percent:number, expiresAt:Date, eligibleBillings:string[], daysLeft:number,
+ *            cyclesRemaining:number, cyclesTotal:number, started:boolean}|null}
+ */
+export function getSignupDiscount(userData) {
+  const offer = userData?.signupDiscount;
+  if (!offer || offer.status !== 'active') return null;
+
+  // `cycles` maydonisiz eski takliflar — bir martalik (server ham shunday o'qiydi).
+  const cyclesTotal = Number(offer.cycles) > 0 ? Number(offer.cycles) : 1;
+  const cyclesUsed = Number(offer.cyclesUsed) || 0;
+  const cyclesRemaining = offer.cyclesRemaining === undefined
+    ? cyclesTotal
+    : Math.max(0, Number(offer.cyclesRemaining) || 0);
+  if (cyclesRemaining <= 0) return null;
+
+  const started = cyclesUsed > 0;
+  const expiresAt = toDate(offer.expiresAt);
+
+  if (!started) {
+    if (!expiresAt || expiresAt.getTime() <= Date.now()) return null;
+    // Ilgari to'lov qilganlar bu taklifga kirmaydi — bu "birinchi xarid" chegirmasi.
+    if (userData.subscriptionStart) return null;
+  } else {
+    const lastCycleAt = toDate(offer.lastCycleAt);
+    if (lastCycleAt && Date.now() - lastCycleAt.getTime() > DISCOUNT_MAX_GAP_DAYS * 86400000) {
+      return null;
+    }
+  }
+
+  // Zanjir boshlangach "necha kun qoldi" — taklif oynasi emas, tanaffus oynasi.
+  const deadline = started
+    ? new Date((toDate(offer.lastCycleAt)?.getTime() || Date.now()) + DISCOUNT_MAX_GAP_DAYS * 86400000)
+    : expiresAt;
+
+  return {
+    percent: Number(offer.percent) || 0,
+    expiresAt: deadline,
+    eligibleBillings: Array.isArray(offer.eligibleBillings)
+      ? offer.eligibleBillings
+      : DISCOUNT_DEFAULT_BILLINGS,
+    daysLeft: Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / 86400000)),
+    cyclesRemaining,
+    cyclesTotal,
+    started,
+  };
+}
+
+/**
+ * Chegirma AYNAN shu to'lov davriga tegishlimi.
+ *
+ * Ikki shart: davr ro'yxatda bo'lsin VA qolgan oylar uni qoplasin — masalan
+ * 1 oy qolganda 3 oylik paketga chegirma berib bo'lmaydi (server ham
+ * `INSUFFICIENT_CYCLES` bilan rad etadi).
+ */
+export function discountAppliesTo(discount, billing) {
+  if (!discount || !discount.eligibleBillings.includes(billing)) return false;
+  return discount.cyclesRemaining >= billingMonths(billing);
+}
+
+/**
+ * Chegirmali narx.
+ * `functions/pricing.js` dagi `applyDiscount` bilan bir xil — 100 so'mgacha
+ * pastga yaxlitlanadi, aks holda kartaga o'tkazishda noqulay toq summa chiqadi.
+ */
+export function applySignupDiscount(price, percent) {
+  const p = Number(percent) || 0;
+  if (p <= 0) return price;
+  // ⚠️ `functions/pricing.js` dagi `applyDiscount` bilan AYNAN bir xil
+  // bo'lishi shart — bu yerdagi raqam saytda, u yerdagisi chekda chiqadi.
+  // Butun sonda ko'paytirish suzuvchi nuqta xatosini yopadi (89000 × 0.7
+  // → 62299.999... → 62 200 o'rniga to'g'ri 62 300).
+  return Math.floor(Math.round((price * (100 - p)) / 100) / 100) * 100;
+}
+
+/** 89000 → "89 000". */
+export function formatSom(amount) {
+  return new Intl.NumberFormat('uz-UZ').format(Number(amount) || 0);
+}
+
+/* ─────────────────────────────────────────────────────────────
  * O'QITUVCHI OBUNASI (`teacherSubscription`)
  *
  * Ilgari bu tekshiruv 3 xil sahifada 3 marta qo'lda yozilgan edi

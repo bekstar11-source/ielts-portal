@@ -1,5 +1,6 @@
 import React from 'react';
-import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, Eye, Copy, Folder } from 'lucide-react';
+import { MoreHorizontal, Edit2, Edit3, Trash2, Globe, Lock, Eye, Copy, Folder, Hash } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useTheme } from '../../../context/ThemeContext';
 import { normalizeTestSegments } from '../../../utils/normalizeTestSegments';
 import { formatQuestionType, getMatchSnippet, findParentMergedTest, getTypeMeta, getTestStructure } from './testListHelpers';
@@ -49,7 +50,7 @@ const AdminTestsList = ({
                 <tbody className="divide-y divide-zinc-100 dark:divide-white/5">
                     {tests.length === 0 ? (
                         <tr>
-                            <td colSpan="6" className="py-12 text-center text-sm font-semibold text-zinc-400 dark:text-zinc-500">
+                            <td colSpan="6" className="py-12 text-center text-sm font-semibold text-zinc-400 dark:text-warm-muted">
                                 No tests found.
                             </td>
                         </tr>
@@ -87,7 +88,7 @@ const AdminTestsList = ({
                                             <TypeIcon size={16} />
                                         </div>
                                         <div>
-                                            <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 flex-wrap">
+                                            <div className="text-sm font-bold text-zinc-900 dark:text-warm-on-dark flex items-center gap-2 flex-wrap">
                                                 <span>{test.title || "Untitled Test"}</span>
                                                 {test.isFree && (
                                                     <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-white leading-none">FREE</span>
@@ -234,7 +235,7 @@ const AdminTestsList = ({
                                         ) : <span className="text-[10px] text-zinc-400 font-medium italic">No types defined</span>}
                                     </div>
                                 </td>
-                                <td className="py-4 px-4 text-[11px] text-zinc-450 dark:text-zinc-500 font-bold">
+                                <td className="py-4 px-4 text-[11px] text-zinc-450 dark:text-warm-muted font-bold">
                                     {test.createdAt ? new Date(test.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                                 </td>
                                 <td className="py-4 pr-4 text-right">
@@ -248,6 +249,21 @@ const AdminTestsList = ({
                                                 <Eye size={14} />
                                             </button>
                                         )}
+                                        {/* Test ID sini nusxalash. Ilgari ID faqat to'plamsiz
+                                            testlarda, o'sha ham 8 belgiga qirqilgan holda
+                                            ko'rinardi — to'liq ID ni olish uchun testni ochib
+                                            brauzer manzilidan ko'chirish kerak edi. */}
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(test.id)
+                                                    .then(() => toast.success(`ID nusxalandi: ${test.id}`))
+                                                    .catch(() => toast.error("Nusxalab bo'lmadi"));
+                                            }}
+                                            className="p-1.5 text-zinc-400 hover:text-violet-500 dark:hover:text-violet-400 hover:bg-violet-500/5 rounded-full transition-all"
+                                            title={`ID ni nusxalash: ${test.id}`}
+                                        >
+                                            <Hash size={14} />
+                                        </button>
                                         <button
                                             onClick={() => onDuplicate && onDuplicate(test.id, test.title)}
                                             className="p-1.5 text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-500/5 rounded-full transition-all"

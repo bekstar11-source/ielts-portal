@@ -32,7 +32,7 @@ const WritingReviewSidebar = ({
         <div
             className={`absolute inset-y-0 left-0 z-20 w-full transform-gpu will-change-transform transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:static lg:z-auto lg:w-[300px] lg:translate-x-0 lg:transition-none flex-shrink-0 flex flex-col border-r ${
                 selectedId ? '-translate-x-full' : 'translate-x-0'
-            } ${isDark ? 'bg-[#161616] border-white/5' : 'bg-white border-gray-100'}`}
+            } ${isDark ? 'bg-[#181715] border-white/5' : 'bg-white border-gray-100'}`}
         >
             <div className="p-5 pb-3 space-y-4">
                 <div className="flex items-center justify-between">
@@ -86,7 +86,7 @@ const WritingReviewSidebar = ({
                         <button key={w.id} onClick={() => setSelectedId(w.id)} className={`w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3 ${isSelected ? (isDark ? 'bg-white/10' : 'bg-gray-100') : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}>
                             <div className={`w-9 h-9 rounded-full flex shrink-0 items-center justify-center font-medium text-xs relative ${isDark ? 'bg-white/5 text-gray-300' : 'bg-gray-100 text-slate-500'}`}>
                                 {initials}
-                                {!w.writingBand && <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-white dark:ring-[#161616]" />}
+                                {!w.writingBand && <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-white dark:ring-[#181715]" />}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-sm font-medium truncate">{getStudentName(w)}</h3>

@@ -191,7 +191,7 @@ export default function StoryFormModal({
     return (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto overscroll-contain">
             <div className={`w-full max-w-5xl max-h-[90dvh] overflow-y-auto rounded-3xl p-4 sm:p-6 border relative transition-colors grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 my-4 sm:my-8 ${
-                isDark ? 'bg-[#1E1E1E] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
+                isDark ? 'bg-[#1f1e1b] border-white/10 text-white' : 'bg-white border-gray-100 shadow-2xl'
             }`}>
                 <button 
                     onClick={onClose} 
@@ -429,8 +429,8 @@ export default function StoryFormModal({
                 </div>
 
                 {/* Right Side: iPhone Live Preview */}
-                <div className="hidden lg:col-span-5 lg:flex flex-col items-center justify-center bg-[#18181b] rounded-3xl p-4 sm:p-6 border border-zinc-800">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-4">LIVE PREVIEW</span>
+                <div className="hidden lg:col-span-5 lg:flex flex-col items-center justify-center bg-[#1f1e1b] rounded-3xl p-4 sm:p-6 border border-zinc-800">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-warm-muted uppercase tracking-widest mb-4">LIVE PREVIEW</span>
                     
                     {/* iPhone Shell */}
                     <div className="w-[280px] h-[560px] rounded-[40px] border-[8px] border-zinc-800 bg-zinc-950 shadow-2xl relative overflow-hidden flex flex-col justify-between select-none">

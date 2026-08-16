@@ -21,3 +21,19 @@ export const getCdnUrl = (originalUrl) => {
 
   return originalUrl.replace(FIREBASE_STORAGE_ORIGIN, CDN_DOMAIN);
 };
+
+/**
+ * getCdnUrl'ning teskarisi: CDN manzilini xom Firebase Storage manziliga qaytaradi.
+ *
+ * Worker yagona nuqta — u yiqilsa butun imtihon guruhi audiosiz qoladi. Shu sababli
+ * har bir yuklovchi CDN muvaffaqiyatsiz bo'lganda ORIGINAL manzil bilan qayta
+ * urinishi kerak (qimmatroq, lekin imtihon davom etadi).
+ */
+export const getOriginUrl = (url) => {
+  if (!url || typeof url !== "string") return url;
+  if (!url.startsWith(CDN_DOMAIN)) return url;
+  return url.replace(CDN_DOMAIN, FIREBASE_STORAGE_ORIGIN);
+};
+
+/** Manzil CDN orqali ketayotganini bildiradi (fallback kerakligini aniqlash uchun). */
+export const isCdnUrl = (url) => typeof url === "string" && url.startsWith(CDN_DOMAIN);

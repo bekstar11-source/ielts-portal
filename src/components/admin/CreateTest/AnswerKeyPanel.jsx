@@ -24,7 +24,7 @@ function AnswerKeyPanel({ testData, isDark, onJump, onOpenImport }) {
     };
 
     return (
-        <div className={`rounded-2xl border ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <div className={`rounded-2xl border ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
             <div className="p-4 flex items-center justify-between gap-3">
                 <button
                     type="button"

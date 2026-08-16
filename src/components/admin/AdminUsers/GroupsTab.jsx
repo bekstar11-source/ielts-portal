@@ -110,7 +110,7 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onU
                     return (
                     <div
                         key={group.id}
-                        className={`group relative p-4 sm:p-6 rounded-2xl border transition-all duration-300 hover:shadow-xl ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:border-blue-500/30' : 'bg-white border-gray-100 hover:border-blue-200 shadow-sm'}`}
+                        className={`group relative p-4 sm:p-6 rounded-2xl border transition-all duration-300 hover:shadow-xl ${isDark ? 'bg-[#1f1e1b] border-white/5 hover:border-blue-500/30' : 'bg-white border-gray-100 hover:border-blue-200 shadow-sm'}`}
                     >
                         <div className="flex justify-between items-start mb-4 sm:mb-6">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -166,14 +166,14 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onU
             {showCreateModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-                    <div className={`relative w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 sm:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 ${isDark ? 'bg-[#1E1E1E] text-white border border-white/5' : 'bg-white text-gray-900'}`}>
+                    <div className={`relative w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 sm:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200 ${isDark ? 'bg-[#1f1e1b] text-white border border-white/5' : 'bg-white text-gray-900'}`}>
                         <h2 className="text-xl sm:text-2xl font-black mb-5 sm:mb-6 tracking-tight">Yangi Guruh</h2>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1.5 block">Guruh Nomi</label>
                                 <input
                                     type="text"
-                                    className={`w-full h-12 px-4 rounded-xl border outline-none font-bold transition ${isDark ? 'bg-[#121212] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
+                                    className={`w-full h-12 px-4 rounded-xl border outline-none font-bold transition ${isDark ? 'bg-[#181715] border-white/5 focus:border-blue-500' : 'bg-gray-50 border-gray-200 focus:border-blue-500'}`}
                                     placeholder="Masalan: IELTS Morning"
                                     value={newGroupName}
                                     onChange={e => setNewGroupName(e.target.value)}
@@ -182,7 +182,7 @@ const GroupsTab = ({ groups, teachers, students, onRefresh, onRefreshGroups, onU
                             <div>
                                 <label className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1.5 block">O'qituvchi</label>
                                 <select
-                                    className={`w-full h-12 px-4 rounded-xl border outline-none font-bold transition appearance-none ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}
+                                    className={`w-full h-12 px-4 rounded-xl border outline-none font-bold transition appearance-none ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}
                                     value={selectedTeacherId}
                                     onChange={e => setSelectedTeacherId(e.target.value)}
                                 >

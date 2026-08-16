@@ -37,7 +37,7 @@ export default function AdminGamification() {
     const seasonTitle = `Weekly Season #${currentWeek} (${currentYear})`;
 
     return (
-        <div className={`min-h-full p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`min-h-full p-4 md:p-6 transition-colors duration-200 ${isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
             {/* HEADER */}
             <div className="flex justify-between items-start gap-3 mb-6 md:mb-8">
@@ -50,7 +50,7 @@ export default function AdminGamification() {
                 <div className="flex gap-2 shrink-0">
                     <button
                         onClick={refresh}
-                        className={`p-2.5 rounded-xl transition-all border shadow-sm ${isDark ? 'bg-[#1E1E1E] border-white/5 hover:bg-white/10 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-600'}`}
+                        className={`p-2.5 rounded-xl transition-all border shadow-sm ${isDark ? 'bg-[#1f1e1b] border-white/5 hover:bg-white/10 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-600'}`}
                     >
                         <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
                     </button>

@@ -21,6 +21,7 @@ import { getPopularArticles, formatClapsDisplay, parseArticleClaps } from "../..
 import { getUserClappedArticleIds, addArticleClap, removeArticleClap } from "../../utils/articleClaps";
 import { getSavedArticleIds, toggleArticleSave, fetchSavedArticles } from "../../utils/articleSaves";
 import PopularArticlesSidebar from "../../components/articles/PopularArticlesSidebar";
+import Logo from "../../components/common/Logo";
 
 const CATEGORY_INITIAL_LIMIT = 6;
 
@@ -318,16 +319,14 @@ export default function Articles() {
                             setShowSavedOnly(false);
                             window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className="flex items-center gap-2 shrink-0 group"
+                        className="shrink-0 group"
                         title="Englev Articles"
                     >
-                        <svg width="22" height="22" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#1d1d1f] dark:text-white shrink-0">
-                            <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor" />
-                        </svg>
-                        <span className="text-[19px] md:text-[22px] font-bold tracking-[-0.03em] text-[#1d1d1f] dark:text-white leading-none">
-                            Englev
-                            <span className="hidden sm:inline font-normal text-gray-400 dark:text-neutral-500"> {t('articles.title') || 'Articles'}</span>
-                        </span>
+                        <Logo
+                            size="sm"
+                            suffix={t('articles.title') || 'Articles'}
+                            suffixClassName="hidden sm:inline"
+                        />
                     </button>
 
                     {/* Search pill */}

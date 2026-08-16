@@ -110,7 +110,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
     };
 
     return (
-        <div className={`rounded-xl border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`rounded-xl border h-full flex flex-col overflow-hidden ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
             {/* Toolbar */}
             <div className={`p-3 md:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors shrink-0 ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50/50'}`}>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-4 w-full sm:w-auto">
@@ -212,7 +212,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
             {/* Table */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                    <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#1E1E1E]' : 'bg-white'}`}>
+                    <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#1f1e1b]' : 'bg-white'}`}>
                         <tr>
                             <th className={`w-10 py-3 pl-4 md:pl-6 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                                 <input
@@ -308,7 +308,7 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
             </div>
 
             {hasMore && (
-                <div className={`p-4 border-t flex justify-center transition-colors shrink-0 ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50'}`}>
+                <div className={`p-4 border-t flex justify-center transition-colors shrink-0 ${isDark ? 'border-white/5 bg-[#1f1e1b]' : 'border-gray-100 bg-gray-50'}`}>
                     <button
                         onClick={handleLoadMore}
                         disabled={isLoadingMore}

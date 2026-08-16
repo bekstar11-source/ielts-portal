@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUp, ArrowDown, ChevronsUpDown, Eye, Loader2, Trash2, SearchX } from 'lucide-react';
 import { formatDateTime, isGraded } from '../../../hooks/useAdminResults';
+import { getBandValue } from '../../../utils/teacherResults';
 
 const TYPE_STYLES = {
     reading: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20',
@@ -8,7 +9,7 @@ const TYPE_STYLES = {
     writing: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20',
     speaking: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-500/10 dark:text-pink-300 dark:border-pink-500/20',
     podcast: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/10 dark:text-teal-300 dark:border-teal-500/20',
-    other: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-white/5 dark:text-gray-300 dark:border-white/10',
+    other: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-white/5 dark:text-warm-on-dark-soft dark:border-white/10',
 };
 
 const STATUS_LABELS = {
@@ -85,7 +86,7 @@ const ResultsTable = ({
     const headBg = isDark ? 'bg-[#232323]' : 'bg-gray-50';
 
     return (
-        <div className={`border rounded-2xl shadow-sm overflow-hidden transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200'}`}>
+        <div className={`border rounded-2xl shadow-sm overflow-hidden transition-colors ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}>
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[900px] text-left border-collapse font-sans">
                     <thead className={headBg}>
@@ -139,8 +140,15 @@ const ResultsTable = ({
                                 const isDeleting = deletingId === res.id;
                                 const reviewable = isReviewable(res);
                                 const selected = selectedIds?.has(res.id);
-                                const scoreValue = res.bandScore ?? res.score;
-                                const hasScore = scoreValue !== undefined && scoreValue !== null && scoreValue !== '' && scoreValue !== '-';
+                                // Band — o'qituvchi paneli bilan bitta manbadan (`getBandValue`).
+                                // Ilgari bu yerda `res.bandScore ?? res.score` turardi:
+                                //   • baholanmagan writing/speaking uchun `bandScore: 0` yozilgani sababli
+                                //     jadval "0" band ko'rsatardi;
+                                //   • bandi yo'q eski natijalarda esa XOM ball (masalan 32) band
+                                //     ustunida chiqib qolardi.
+                                const bandValue = getBandValue(res);
+                                const hasScore = bandValue !== null;
+                                const scoreValue = hasScore ? bandValue.toFixed(1) : '—';
 
                                 return (
                                     <tr
@@ -219,12 +227,12 @@ const ResultsTable = ({
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 align-middle text-center">
-                                            <span className="text-[12px] font-medium tabular-nums px-2 py-1 rounded-md bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-300">
+                                            <span className="text-[12px] font-medium tabular-nums px-2 py-1 rounded-md bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-warm-on-dark-soft">
                                                 {res.durationDisplay}
                                             </span>
                                         </td>
-                                        <td className={`py-3 px-4 align-middle text-center text-[15px] font-bold tabular-nums ${hasScore ? bandTone(res.bandScore ?? res.score) : 'text-gray-400'}`}>
-                                            {hasScore ? scoreValue : '—'}
+                                        <td className={`py-3 px-4 align-middle text-center text-[15px] font-bold tabular-nums ${hasScore ? bandTone(bandValue) : 'text-gray-400'}`}>
+                                            {scoreValue}
                                         </td>
                                         <td className="py-3 px-4 align-middle text-center">
                                             <span

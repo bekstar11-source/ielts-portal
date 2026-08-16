@@ -63,20 +63,22 @@ export const nextSelection = (current, order, label, maxSelection) => {
     return { selection, order: newOrder };
 };
 
-export const checkAnswer = (userVal, correctVal, isChoiceType = false) => {
-    if (!correctVal || (Array.isArray(correctVal) && correctVal.length === 0)) return false;
-    if (!userVal) return false;
+// Review UI ball hisoblagich (`evaluateTest`) bilan AYNAN bir xil qaror qabul qilishi shart.
+// Shu sababli hech qanday "o'ziga xos" tekshiruv qilinmaydi — hammasi markaziy
+// `checkAnswer` ga uzatiladi:
+//   • Ilgari kalit avval "/" bo'yicha bo'linardi va "knife and/or fork" kabi kalitlar
+//     "knife and" + "or fork" ga aylanib, talabaning "knife and" javobi review'da
+//     YASHIL, ball hisobida esa XATO bo'lardi (markaziy funksiya "and/or" ni maxsus
+//     qayta ishlaydi).
+//   • `choiceOptions` umuman uzatilmasdi: variantlar ro'yxati bor guruhlarda
+//     ("choose from the list", map labeling) kalit "B" harfi, talaba javobi esa so'z
+//     bo'lganda ball berilardi, lekin review qizil ko'rsatardi.
+export const checkAnswer = (userVal, correctVal, isChoiceType = false, choiceOptions = null) => {
+    if (correctVal === undefined || correctVal === null) return false;
+    if (Array.isArray(correctVal) && correctVal.length === 0) return false;
+    if (userVal === undefined || userVal === null || String(userVal).trim() === '') return false;
 
-    if (Array.isArray(correctVal)) {
-        return correctVal.some(val => centralCheckAnswer(val, userVal, isChoiceType));
-    }
-
-    const correctList = String(correctVal).split(/[\/|]/).map(c => c.trim()).filter(Boolean);
-    if (correctList.length > 1) {
-        return correctList.some(val => centralCheckAnswer(val, userVal, isChoiceType));
-    }
-
-    return centralCheckAnswer(correctVal, userVal, isChoiceType);
+    return centralCheckAnswer(correctVal, userVal, isChoiceType, choiceOptions);
 };
 
 export const getStatusStyles = (isReviewMode, isCorrect, isSelected = false, type = 'border') => {

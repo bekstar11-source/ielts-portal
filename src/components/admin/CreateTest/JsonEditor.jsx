@@ -124,7 +124,7 @@ const JsonEditor = ({
     const iconBtn = `w-7 h-7 flex items-center justify-center rounded-lg border transition active:scale-95 ${isDark ? 'border-white/10 hover:bg-white/5 text-gray-400' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`;
 
     return (
-        <div className={`p-5 rounded-2xl border flex flex-col min-h-[500px] ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+        <div className={`p-5 rounded-2xl border flex flex-col min-h-[500px] ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div className="flex items-baseline gap-2">
                     <h3 className="text-sm font-bold uppercase tracking-wider opacity-50">JSON Ma'lumotlar</h3>
@@ -229,7 +229,7 @@ const JsonEditor = ({
                 <textarea
                     ref={textareaRef}
                     aria-label="Test JSON ma'lumotlari"
-                    className={`w-full h-full min-h-[400px] p-5 rounded-2xl border outline-none font-mono text-[11px] leading-relaxed resize-y transition-all duration-300 ${isDark ? 'bg-[#121212] text-blue-400' : 'bg-gray-50 text-blue-600'} ${jsonError ? 'border-red-500/40 focus:border-red-500' : (isDark ? 'border-white/5 focus:border-blue-500/50' : 'border-gray-100 focus:border-blue-400')}`}
+                    className={`w-full h-full min-h-[400px] p-5 rounded-2xl border outline-none font-mono text-[11px] leading-relaxed resize-y transition-all duration-300 ${isDark ? 'bg-[#181715] text-blue-400' : 'bg-gray-50 text-blue-600'} ${jsonError ? 'border-red-500/40 focus:border-red-500' : (isDark ? 'border-white/5 focus:border-blue-500/50' : 'border-gray-100 focus:border-blue-400')}`}
                     value={jsonInput}
                     onChange={handleJsonChange}
                     onKeyDown={handleKeyDown}

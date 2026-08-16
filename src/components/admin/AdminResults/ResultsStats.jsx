@@ -32,7 +32,7 @@ const ResultsStats = ({ stats, isDark, statusFilter, onSelectStatus, loading }) 
                         active
                             ? 'border-blue-500 ring-2 ring-blue-500/20 ' + (isDark ? 'bg-blue-500/10' : 'bg-blue-50/50')
                             : isDark
-                                ? 'bg-[#1E1E1E] border-white/5 hover:border-white/10'
+                                ? 'bg-[#1f1e1b] border-white/5 hover:border-white/10'
                                 : 'bg-white border-gray-200 hover:border-gray-300'
                     }`}
                 >

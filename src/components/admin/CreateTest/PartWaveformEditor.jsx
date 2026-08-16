@@ -163,7 +163,7 @@ export default function PartWaveformEditor({ audioUrl, passages = [], partCount 
     if (!audioUrl) return null;
 
     return (
-        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#121212] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+        <div className={`p-3 rounded-xl border ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-50">To'lqin bo'yicha belgilash</p>

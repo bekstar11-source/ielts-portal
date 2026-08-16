@@ -6,7 +6,7 @@ export const UserDetailModal = ({ user, onClose, onBlock, onUpdateType, isDark }
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-            <div className={`relative w-full max-w-lg max-h-[90dvh] rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
+            <div className={`relative w-full max-w-lg max-h-[90dvh] rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-100'}`}>
                 <div className="p-4 sm:p-6 border-b flex justify-between items-center border-gray-100 dark:border-white/5">
                     <h2 className="text-xl font-bold">O'quvchi Profili</h2>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full"><X size={20} /></button>
@@ -38,7 +38,7 @@ export const GroupSelectionModal = ({ user, groups, onClose, onAdd, processing, 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-            <div className={`relative w-full max-w-md max-h-[90dvh] rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-100'}`}>
+            <div className={`relative w-full max-w-md max-h-[90dvh] rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#1f1e1b] border-white/10' : 'bg-white border-gray-100'}`}>
                 <div className="p-4 sm:p-6 border-b flex justify-between items-center border-gray-100 dark:border-white/5">
                     <h2 className="text-xl font-bold">Guruhga Qo'shish</h2>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full"><X size={20} /></button>

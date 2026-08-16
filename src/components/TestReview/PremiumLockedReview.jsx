@@ -1,106 +1,30 @@
 import React, { useState, useMemo } from 'react';
 import { Search, CheckCircle2, XCircle, AlertCircle, Lock, Zap, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { checkAnswer, isMultiAnswerType, scoreMultiAnswer, isChoiceQuestionType, resolveOptionDisplay } from '../../utils/ieltsScoring';
+import { buildReviewQuestions, getReviewScoreSummary } from '../../utils/reviewAnswers';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function PremiumLockedReview({
     testData,
     userAnswers = {},
     score = 0,
-    bandScore = 0
+    bandScore = 0,
+    totalQuestions = null,
+    partNumber = null,
+    moduleType = null
 }) {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'correct' | 'mistake'
 
-    const questionsList = useMemo(() => {
-        if (!testData) return [];
-        
-        const list = [];
-        const scoredIds = new Set();
-
-        const walk = (obj, parentType, parentOptions = null) => {
-            if (!obj) return;
-            const currentType = obj.type || parentType;
-            // "Choose from the list" guruhlarida kalit harf, javob esa so'z bo'lishi mumkin.
-            const groupOptions = (Array.isArray(obj.options) && obj.options.length > 0) ? obj.options : parentOptions;
-            const hasGroupOptions = Array.isArray(groupOptions) && groupOptions.length > 0;
-
-            const answer = obj.answer || obj.correct_answer || obj.correctAnswer || obj.correct_answer_value;
-            if (obj.id && answer) {
-                const idStr = String(obj.id);
-                if (!scoredIds.has(idStr)) {
-                    scoredIds.add(idStr);
-
-                    // Determine correctness
-                    const uAns = userAnswers[idStr] || userAnswers[obj.id] || "";
-                    const isMulti = isMultiAnswerType(currentType);
-                    let isCorrect = false;
-                    let partialText = null;
-
-                    if (isMulti) {
-                        let weight = 1;
-                        const tLower = String(currentType).toLowerCase();
-                        if (tLower.includes('two') || tLower.includes('pick two')) weight = 2;
-                        else if (tLower.includes('three') || tLower.includes('pick three')) weight = 3;
-                        else if (tLower.includes('four') || tLower.includes('pick four')) weight = 4;
-                        else if (tLower.includes('five') || tLower.includes('pick five')) weight = 5;
-
-                        const scoreRes = scoreMultiAnswer(answer, uAns, weight);
-                        isCorrect = scoreRes.matches === scoreRes.weight;
-                        if (scoreRes.matches > 0 && scoreRes.matches < scoreRes.weight) {
-                            partialText = `${scoreRes.matches}/${scoreRes.weight}`;
-                        }
-                    } else {
-                        isCorrect = checkAnswer(answer, uAns, isChoiceQuestionType(currentType) || hasGroupOptions, groupOptions);
-                    }
-
-                    list.push({
-                        id: obj.id,
-                        qNumber: parseInt(obj.id) || obj.id,
-                        correctAnswer: (hasGroupOptions && !isChoiceQuestionType(currentType))
-                            ? (resolveOptionDisplay(answer, groupOptions) || answer)
-                            : answer,
-                        userAnswer: (hasGroupOptions && !isChoiceQuestionType(currentType))
-                            ? (resolveOptionDisplay(uAns, groupOptions) || uAns)
-                            : uAns,
-                        type: currentType || 'input',
-                        questionText: obj.questionText || obj.question || obj.title || obj.label || '',
-                        passageId: obj.passageId || '',
-                        isCorrect,
-                        partialText,
-                        passageTitle: testData.passages?.find(p => String(p.id) === String(obj.passageId))?.title || ''
-                    });
-                }
-            }
-
-            const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
-            for (const key of CONTAINER_KEYS) {
-                const val = obj[key];
-                if (val && Array.isArray(val)) {
-                    val.forEach(child => walk(child, currentType, groupOptions));
-                } else if (val && typeof val === 'object') {
-                    walk(val, currentType, groupOptions);
-                }
-            }
-        };
-
-        walk(testData);
-
-        // Fallbacks if testData top-level questions exist
-        if (testData.questions && list.length === 0) {
-            testData.questions.forEach(q => walk(q, q.type));
-        }
-
-        // Sort by question number (if numeric)
-        return list.sort((a, b) => {
-            const aNum = parseInt(a.id);
-            const bNum = parseInt(b.id);
-            if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-            return String(a.id).localeCompare(String(b.id));
-        });
-    }, [testData, userAnswers]);
+    // Savollar ro'yxati — DetailedAnswersModal bilan bitta manbadan.
+    // Ilgari bu yerda alohida (va soddaroq) implementatsiya bor edi: ko'p javobli
+    // guruhlarni bo'lib yuborardi, "0" javob kalitini tashlab ketardi va part
+    // practice'da butun testni ko'rsatardi.
+    const questionsList = useMemo(
+        () => buildReviewQuestions(testData, userAnswers, partNumber),
+        [testData, userAnswers, partNumber]
+    );
 
     const filteredQuestions = useMemo(() => {
         return questionsList.filter(q => {
@@ -114,12 +38,22 @@ export default function PremiumLockedReview({
         });
     }, [questionsList, searchTerm, filterStatus]);
 
-    const stats = useMemo(() => {
-        const total = questionsList.length;
-        const correct = score;
-        const mistakes = Math.max(0, total - correct);
-        return { total, correct, mistakes };
-    }, [questionsList, score]);
+    // Ball xulosasi — serverdagi qiymatlar birlamchi. Ilgari `total` klientdagi
+    // savollar sonidan, `correct` esa serverdan olinardi: part practice'da
+    // "9 / 40" kabi o'zaro zid nisbat va noto'g'ri xatolar soni chiqardi.
+    const stats = useMemo(
+        () => getReviewScoreSummary({
+            testData,
+            userAnswers,
+            partNumber,
+            moduleType,
+            score,
+            bandScore,
+            totalQuestions,
+            fallbackTotal: questionsList.length
+        }),
+        [testData, userAnswers, partNumber, moduleType, score, bandScore, totalQuestions, questionsList.length]
+    );
 
     return (
         <div className="w-full min-h-screen bg-[#f8f9fa] dark:bg-zinc-950 py-8 px-4 sm:px-6 lg:px-8 font-sans pb-24">
@@ -273,7 +207,7 @@ export default function PremiumLockedReview({
                             BAND SCORE
                         </span>
                         <span className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
-                            {bandScore ? Number(bandScore).toFixed(1) : '0.0'}
+                            {stats.band ? Number(stats.band).toFixed(1) : '0.0'}
                         </span>
                     </div>
                 </div>

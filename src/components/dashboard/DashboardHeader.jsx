@@ -31,7 +31,8 @@ import {
   FilePlus,
   Plus,
   Award,
-  Users
+  Users,
+  Target
 } from 'lucide-react';
 import SearchOverlay from './SearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,6 +42,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getTier, canAccessPremiumContent } from '../../utils/subscription';
 import { useSpotlightNotice } from '../../hooks/useSpotlightNotice';
+import { FEATURES } from '../../config/features';
+import Logo from '../common/Logo';
 
 export default function DashboardHeader({ 
   user, 
@@ -116,6 +119,10 @@ export default function DashboardHeader({
     { id: 'dashboard', label: 'Bosh sahifa', path: '/dashboard', icon: Home },
     { id: 'mock', label: 'Mock Exam', path: '/mock', icon: Computer },
     { id: 'results', label: 'Results', path: '/my-results', icon: BarChart2 },
+    // "Results" ball ko'rsatadi, "Tahlil" esa xatolarning sababini. Ilgari tahlil
+    // sahifasiga faqat /statistics ichidagi tugma orqali kirilardi — uch qadam
+    // ichkarida, ya'ni amalda topilmasdi.
+    { id: 'analytics', label: 'Tahlil', path: '/analytics', icon: Target },
     // { id: 'leaderboard', label: 'Reyting', path: '/leaderboard', icon: TrendingUp },
   ];
 
@@ -191,8 +198,9 @@ export default function DashboardHeader({
           {skillRow(BookOpen, t('dashboard.reading'), isPartReadingActive, () => handleSubItemClick('/reading/parts'))}
           {skillRow(Headphones, t('dashboard.listening'), isPartListeningActive, () => handleSubItemClick('/listening/parts'))}
           {skillRow(PenTool, t('dashboard.writing'), isPartWritingActive, () => handleSubItemClick('/practice?tab=writing&type=part'))}
-          <div className="h-px bg-warm-hairline dark:bg-white/10 my-1" />
-          {skillRow(Mic, t('dashboard.speaking'), isSpeakingActive, () => handleSubItemClick('/speaking-ai'))}
+          {/* Speaking vaqtincha o'chirilgan — flag src/config/features.js da. */}
+          {FEATURES.speakingAi && <div className="h-px bg-warm-hairline dark:bg-white/10 my-1" />}
+          {FEATURES.speakingAi && skillRow(Mic, t('dashboard.speaking'), isSpeakingActive, () => handleSubItemClick('/speaking-ai'))}
         </div>
       );
     }
@@ -219,8 +227,8 @@ export default function DashboardHeader({
           </div>
         </div>
 
-        {/* Speaking */}
-        {skillRow(Mic, t('dashboard.speaking'), isSpeakingActive, () => handleSubItemClick('/speaking-ai'))}
+        {/* Speaking — vaqtincha o'chirilgan, flag src/config/features.js da. */}
+        {FEATURES.speakingAi && skillRow(Mic, t('dashboard.speaking'), isSpeakingActive, () => handleSubItemClick('/speaking-ai'))}
       </div>
     );
   };
@@ -477,6 +485,9 @@ export default function DashboardHeader({
     } else if (path === '/my-results') {
       parentKey = 'results';
       childKey = 'academic';
+    } else if (path === '/analytics' || path === '/statistics') {
+      parentKey = 'analytics';
+      childKey = 'mistakes';
     } else if (path === '/leaderboard') {
       parentKey = 'ranking';
       childKey = 'leaderboard';
@@ -615,16 +626,11 @@ export default function DashboardHeader({
 
         {/* Fixed Logo Header */}
         <div className={`h-14 flex items-center flex-shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-md'}`}>
-          <div className="cursor-pointer flex items-center gap-2 select-none" onClick={() => navigate('/dashboard')}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-warm-primary flex-shrink-0">
-              <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor"/>
-            </svg>
-            {!isCollapsed && (
-              <span className="text-[22px] tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
-                Englev
-              </span>
-            )}
-          </div>
+          <Logo
+            size="lg"
+            variant={isCollapsed ? 'mark' : 'full'}
+            onClick={() => navigate('/dashboard')}
+          />
         </div>
 
         {/* Scrollable sidebar content */}
@@ -760,14 +766,7 @@ export default function DashboardHeader({
           >
             <Menu size={20} />
           </button>
-          <div className="cursor-pointer flex items-center gap-1.5 select-none" onClick={() => navigate('/dashboard')}>
-            <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-warm-primary flex-shrink-0">
-              <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor"/>
-            </svg>
-            <span className="text-xl tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
-              Englev
-            </span>
-          </div>
+          <Logo size="md" onClick={() => navigate('/dashboard')} />
         </div>
 
         <div className="flex items-center gap-sm">
@@ -873,14 +872,10 @@ export default function DashboardHeader({
               <div className="flex flex-col gap-sm">
                 {/* Close button row */}
                 <div className="flex items-center justify-between pb-xs">
-                  <div className="cursor-pointer flex items-center gap-2 select-none" onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}>
-                    <svg width="26" height="26" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-warm-primary flex-shrink-0">
-                      <path fillRule="evenodd" clipRule="evenodd" d="M8 0C3.58172 0 0 3.58172 0 8V20C0 24.4183 3.58172 28 8 28H20C24.4183 28 28 24.4183 28 20V8C28 3.58172 24.4183 0 20 0H8ZM14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20Z" fill="currentColor"/>
-                    </svg>
-                    <span className="text-xl tracking-tight font-bold text-warm-ink dark:text-warm-on-dark font-sans">
-                      Englev
-                    </span>
-                  </div>
+                  <Logo
+                    size={26}
+                    onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}
+                  />
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="p-1 text-warm-muted-soft hover:text-warm-ink dark:hover:text-warm-on-dark rounded-full hover:bg-warm-surface dark:hover:bg-white/10 transition-colors"

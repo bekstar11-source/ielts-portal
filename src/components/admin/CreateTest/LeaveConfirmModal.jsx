@@ -17,7 +17,7 @@ const LeaveConfirmModal = ({ show, onConfirm, onCancel, onSave, isDark }) => {
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                        className={`relative w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 sm:p-8 rounded-3xl shadow-2xl ${isDark ? 'bg-[#1E1E1E] text-white border border-white/5' : 'bg-white text-gray-900'}`}
+                        className={`relative w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 sm:p-8 rounded-3xl shadow-2xl ${isDark ? 'bg-[#1f1e1b] text-white border border-white/5' : 'bg-white text-gray-900'}`}
                     >
                         <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mb-6">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -317,7 +317,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
         const isActive = activeEditorLevel === level;
         const base = 'relative px-3 sm:px-4 py-2.5 rounded-2xl text-xs font-bold transition-all text-left min-w-[96px] sm:min-w-[112px]';
         if (!isActive) {
-            return `${base} bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10`;
+            return `${base} bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-warm-on-dark-soft hover:bg-gray-200 dark:hover:bg-white/10`;
         }
         const tone =
             meta.color === 'emerald' ? 'bg-emerald-600' : meta.color === 'violet' ? 'bg-violet-600' : 'bg-blue-600';
@@ -332,7 +332,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
         }`;
 
     const inputClass =
-        'w-full bg-gray-50 dark:bg-[#252525] border border-transparent focus:border-blue-500/40 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/30 font-medium text-gray-900 dark:text-white outline-none transition-all';
+        'w-full bg-gray-50 dark:bg-[#252320] border border-transparent focus:border-blue-500/40 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/30 font-medium text-gray-900 dark:text-white outline-none transition-all';
 
     return (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -347,7 +347,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                 initial={{ opacity: 0, y: 30, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 30, scale: 0.98 }}
-                className="relative w-full max-w-4xl h-[94dvh] sm:h-[92dvh] bg-white dark:bg-[#1E1E1E] rounded-t-3xl sm:rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
+                className="relative w-full max-w-4xl h-[94dvh] sm:h-[92dvh] bg-white dark:bg-[#1f1e1b] rounded-t-3xl sm:rounded-[24px] shadow-2xl overflow-hidden flex flex-col"
             >
                 {/* Header */}
                 <div className="px-3 sm:px-6 py-3 sm:py-3.5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center gap-2 sm:gap-4 bg-gray-50/60 dark:bg-white/[0.02]">
@@ -431,11 +431,11 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                                         Muqova rasmi
                                     </label>
                                     <div className="flex flex-col sm:flex-row gap-3">
-                                        <div className="w-full sm:w-40 h-24 rounded-xl bg-gray-100 dark:bg-[#252525] flex items-center justify-center overflow-hidden shrink-0 border border-black/[0.04] dark:border-white/[0.05]">
+                                        <div className="w-full sm:w-40 h-24 rounded-xl bg-gray-100 dark:bg-[#252320] flex items-center justify-center overflow-hidden shrink-0 border border-black/[0.04] dark:border-white/[0.05]">
                                             {formData.imageUrl ? (
                                                 <img src={formData.imageUrl} className="w-full h-full object-cover" alt="Muqova" />
                                             ) : (
-                                                <ImageIcon className="text-gray-300 dark:text-gray-600" size={26} />
+                                                <ImageIcon className="text-gray-300 dark:text-warm-muted" size={26} />
                                             )}
                                         </div>
                                         <div className="flex-1 space-y-2">
@@ -483,11 +483,11 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                                         Muallif
                                     </label>
                                     <div className="flex gap-3 items-center">
-                                        <div className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#252525] flex items-center justify-center overflow-hidden shrink-0 border border-black/[0.04] dark:border-white/[0.05]">
+                                        <div className="w-11 h-11 rounded-full bg-gray-100 dark:bg-[#252320] flex items-center justify-center overflow-hidden shrink-0 border border-black/[0.04] dark:border-white/[0.05]">
                                             {formData.authorAvatar ? (
                                                 <img src={formData.authorAvatar} className="w-full h-full object-cover" alt="Muallif" />
                                             ) : (
-                                                <User className="text-gray-300 dark:text-gray-600" size={18} />
+                                                <User className="text-gray-300 dark:text-warm-muted" size={18} />
                                             )}
                                         </div>
                                         <input
@@ -497,7 +497,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                                             value={formData.author}
                                             onChange={(e) => setField('author', e.target.value)}
                                         />
-                                        <label className="cursor-pointer bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/[0.15] text-gray-700 dark:text-gray-300 px-4 py-2.5 rounded-xl flex items-center gap-1.5 font-bold text-xs shrink-0 transition-colors">
+                                        <label className="cursor-pointer bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/[0.15] text-gray-700 dark:text-warm-on-dark-soft px-4 py-2.5 rounded-xl flex items-center gap-1.5 font-bold text-xs shrink-0 transition-colors">
                                             {uploadingField === 'authorAvatar' ? (
                                                 <Loader2 className="animate-spin" size={14} />
                                             ) : (
@@ -596,7 +596,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                                             type="button"
                                             disabled={!levelStats[lv].ready}
                                             onClick={() => copyFromLevel(lv)}
-                                            className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-[10px] font-bold text-gray-600 dark:text-gray-300 flex items-center gap-1 transition-colors disabled:opacity-40 disabled:hover:bg-gray-100"
+                                            className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-[10px] font-bold text-gray-600 dark:text-warm-on-dark-soft flex items-center gap-1 transition-colors disabled:opacity-40 disabled:hover:bg-gray-100"
                                         >
                                             <Copy size={11} /> {lv} → {activeEditorLevel}
                                         </button>
@@ -619,13 +619,13 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
 
                                     {showAiHelper && (
                                         <div className="space-y-3 pt-3 border-t border-blue-500/10">
-                                            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                            <p className="text-[11px] text-gray-500 dark:text-warm-on-dark-soft">
                                                 Matnni joylang: oddiy paragraflarga ajrating yoki AI orqali {activeEditorLevel} darajasiga
                                                 moslashtiring — lug&apos;at ham avtomatik yaratiladi.
                                             </p>
                                             <textarea
                                                 rows={6}
-                                                className="w-full bg-white dark:bg-[#252525] border border-blue-500/10 rounded-xl px-4 py-3 text-xs placeholder-gray-400 focus:ring-2 focus:ring-blue-500/30 text-gray-900 dark:text-white outline-none"
+                                                className="w-full bg-white dark:bg-[#252320] border border-blue-500/10 rounded-xl px-4 py-3 text-xs placeholder-gray-400 focus:ring-2 focus:ring-blue-500/30 text-gray-900 dark:text-white outline-none"
                                                 placeholder="Maqolaning to'liq matnini shu yerga joylang..."
                                                 value={rawPasteText}
                                                 onChange={(e) => setRawPasteText(e.target.value)}
@@ -640,7 +640,7 @@ const AdminArticlesEditor = ({ article, isOpen, onClose, onSave, onUpload, proce
                                                         type="button"
                                                         onClick={handleQuickSplit}
                                                         disabled={aiProcessing || !rawPasteText.trim()}
-                                                        className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold text-[11px] flex items-center gap-1.5 transition-all disabled:opacity-40"
+                                                        className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-warm-on-dark-soft font-bold text-[11px] flex items-center gap-1.5 transition-all disabled:opacity-40"
                                                     >
                                                         <AlignLeft size={14} /> Paragraflarga ajratish
                                                     </button>

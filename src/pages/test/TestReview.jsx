@@ -106,25 +106,36 @@ export default function TestReview() {
         }, 150);
     };
 
+    // Ball/band/umumiy savollar soni — HAR DOIM bitta manbadan (serverda saqlangan
+    // natijadan). Uchtasi aralashtirilsa (masalan ball serverdan, total klientdan)
+    // review sahifasi bilan "Batafsil javoblar" oynasi har xil band ko'rsatardi.
+    // `moduleType` mock uchun muhim: sub-test hujjatining `type` maydoni noto'g'ri
+    // bo'lsa, band Reading jadvali bo'yicha hisoblanib ketardi.
     const getSectionScoreAndBand = () => {
-        if (!resultData) return { score: 0, bandScore: 0 };
+        const empty = { score: 0, bandScore: 0, totalQuestions: null, partNumber: null, moduleType: null };
+        if (!resultData) return empty;
+
         if (resultData.type === 'mock_full') {
             const part = activeMockPart?.toLowerCase();
-            if (part === 'reading') {
+            if (part === 'reading' || part === 'listening') {
                 return {
-                    score: resultData.scores?.reading ?? 0,
-                    bandScore: resultData.scores?.readingBand ?? 0
-                };
-            } else if (part === 'listening') {
-                return {
-                    score: resultData.scores?.listening ?? 0,
-                    bandScore: resultData.scores?.listeningBand ?? 0
+                    score: resultData.scores?.[part] ?? 0,
+                    bandScore: resultData.scores?.[`${part}Band`] ?? 0,
+                    totalQuestions: resultData.scores?.[`${part}Total`] ?? null,
+                    partNumber: null,
+                    moduleType: part
                 };
             }
+            return { ...empty, moduleType: part || null };
         }
+
         return {
             score: resultData.score ?? 0,
-            bandScore: resultData.bandScore ?? 0
+            bandScore: resultData.bandScore ?? 0,
+            totalQuestions: resultData.totalQuestions ?? null,
+            // Part practice: natija faqat shu part savollari bo'yicha hisoblangan.
+            partNumber: resultData.partNumber ?? null,
+            moduleType: (testData?.type || resultData.type || '').toLowerCase() || null
         };
     };
 
@@ -170,8 +181,7 @@ export default function TestReview() {
                         <PremiumLockedReview
                             testData={testData}
                             userAnswers={currentAnswers}
-                            score={getSectionScoreAndBand().score}
-                            bandScore={getSectionScoreAndBand().bandScore}
+                            {...getSectionScoreAndBand()}
                         />
                     ) : testData.type?.toLowerCase() === 'reading' ? (
                         <ReadingInterface
@@ -267,8 +277,7 @@ export default function TestReview() {
                     onClose={() => setIsAnswersListOpen(false)}
                     testData={testData}
                     userAnswers={currentAnswers}
-                    score={getSectionScoreAndBand().score}
-                    bandScore={getSectionScoreAndBand().bandScore}
+                    {...getSectionScoreAndBand()}
                     onJumpToQuestion={handleJumpToQuestion}
                 />
             )}

@@ -40,10 +40,10 @@ export default function AdminUsers() {
     );
 
     return (
-        <div className={`h-full flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`h-full flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
             
             {/* Header / Nav */}
-            <div className={`h-14 px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 border-b shrink-0 z-20 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+            <div className={`h-14 px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 border-b shrink-0 z-20 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div className="w-8 h-8 shrink-0 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-900/20">
                         <Users size={16} />

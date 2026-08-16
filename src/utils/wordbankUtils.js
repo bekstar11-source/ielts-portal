@@ -165,8 +165,9 @@ export async function getSynonymPairCounts(userId, testIds) {
 export async function deleteSynonymPair(userId, testId, pairId) {
     const ref = doc(db, "users", userId, "synonymPairs", testId, "pairs", pairId);
     const wordbankRef = doc(db, "users", userId, "wordbank", pairId);
+    // Xatoni yutmaymiz — chaqiruvchi UI dan qatorni o'chirishdan oldin bilishi kerak
     await Promise.all([
         deleteDoc(ref),
         deleteDoc(wordbankRef)
-    ]).catch(err => console.error("Error deleting pair:", err));
+    ]);
 }

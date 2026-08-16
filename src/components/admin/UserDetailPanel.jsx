@@ -135,7 +135,7 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
         });
     }, [recentResults]);
 
-    const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all text-sm ${isDark ? 'bg-[#1E1E1E] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`;
+    const inputClass = `w-full p-2.5 rounded-xl border outline-none transition-all text-sm ${isDark ? 'bg-[#1f1e1b] border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`;
     const labelClass = `text-xs font-medium transition-colors ${isDark ? 'text-gray-400' : 'text-gray-600'}`;
     const sectionTitle = `text-xs font-bold uppercase tracking-wider transition-colors ${isDark ? 'text-gray-500' : 'text-gray-400'}`;
 
@@ -153,7 +153,7 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
             {/* Centered Modal */}
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
                 <div
-                    className={`w-full max-w-6xl flex flex-col rounded-t-3xl sm:rounded-[32px] shadow-2xl transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${isDark ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white border border-gray-100'}`}
+                    className={`w-full max-w-6xl flex flex-col rounded-t-3xl sm:rounded-[32px] shadow-2xl transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${isDark ? 'bg-[#1f1e1b] border border-white/10' : 'bg-white border border-gray-100'}`}
                     style={{ maxHeight: 'min(92dvh, calc(100dvh - 24px))' }}
                 >
                     {/* Header */}
@@ -286,7 +286,7 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                                     ) : recentResults.length > 0 ? (
                                         <div className="space-y-2">
                                             {recentResults.slice().reverse().slice(0, 5).map((res, i) => (
-                                                <div key={i} className={`flex justify-between items-center p-3 rounded-xl border transition-colors ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-gray-50 border-gray-100 shadow-sm'}`}>
+                                                <div key={i} className={`flex justify-between items-center p-3 rounded-xl border transition-colors ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-gray-50 border-gray-100 shadow-sm'}`}>
 
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <div className={`p-2 rounded-lg flex-shrink-0 ${isDark ? 'bg-white/5 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -328,7 +328,7 @@ export default function UserDetailPanel({ user, isOpen, onClose, onUpdate }) {
                             <div className="lg:col-span-8 p-4 sm:p-6 space-y-6">
                                 <h4 className={sectionTitle}>O'sish Dinamikasi — Band Scores</h4>
 
-                                <div className={`rounded-2xl sm:rounded-3xl border p-3 sm:p-6 transition-colors ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-gray-50 shadow-sm'}`}>
+                                <div className={`rounded-2xl sm:rounded-3xl border p-3 sm:p-6 transition-colors ${isDark ? 'border-white/5 bg-[#1f1e1b]' : 'border-gray-100 bg-gray-50 shadow-sm'}`}>
 
                                     {loading ? (
                                         <div className="h-[260px] sm:h-[340px] flex items-center justify-center">

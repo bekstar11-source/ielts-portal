@@ -229,7 +229,7 @@ export const MapLabeling = ({ group, userAnswers, onAnswerChange, isReviewMode, 
                             <h4 className="text-[18px] font-bold text-black uppercase tracking-wide mb-1 px-1 text-center border-b border-gray-100 pb-2">{questionTitle}</h4>
                             <div className="flex flex-col gap-1">
                                 {questions.map((q) => {
-                                    const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value, true) : false;
+                                    const isCorrect = isReviewMode ? checkAnswer(userAnswers[q.id], q.answer || q.correct_answer || q.correctAnswer || q.correct_answer_value, true, options) : false;
                                     return (
                                         <div key={q.id} className={`flex items-center justify-between gap-4 py-0.5 px-3 rounded-xl transition-all hover:bg-gray-50/50 ${isReviewMode ? 'pr-20' : ''}`}>
                                             <div className="flex items-center gap-3 flex-1 min-w-0">

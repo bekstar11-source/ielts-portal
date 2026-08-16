@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { getCdnUrl } from '../../utils/cdnUtils';
+import { getCdnUrl, getOriginUrl, isCdnUrl } from '../../utils/cdnUtils';
 
 const processTimeStr = (val) => {
     if (val === undefined || val === null || val === '') return 0;
@@ -31,8 +31,24 @@ const CustomAudioPlayer = forwardRef(({
     resumeTime = 0,
     extraSilentTime = 0,
     onDurationCalculated,
+    onPlaybackBlocked,
 }, ref) => {
     const audioRef = useRef(null);
+    // Haqiqiy ijro manzili. CDN Worker javob bermasa xom Firebase Storage
+    // manziliga bir marta almashamiz — Worker yagona nuqta bo'lgani uchun
+    // usiz butun imtihon guruhi audiosiz qolardi.
+    //
+    // Holat sifatida FAQAT "qaysi src uchun fallback qilindi" saqlanadi, manzilning
+    // o'zi esa undan hosil qilinadi. Shu tufayli `src` o'zgarganda hech qanday
+    // reset kerak emas — yangi manba avtomatik yana CDN'dan boshlanadi.
+    const [fallbackFor, setFallbackFor] = useState(null);
+    const resolvedSrc = fallbackFor === src ? getOriginUrl(getCdnUrl(src)) : getCdnUrl(src);
+
+    // Ref orqali: parent har renderda yangi inline arrow uzatadi va uni
+    // dependency'ga qo'shsak autoplay effekti doimo qayta ishga tushardi.
+    const onPlaybackBlockedRef = useRef(onPlaybackBlocked);
+    useEffect(() => { onPlaybackBlockedRef.current = onPlaybackBlocked; }, [onPlaybackBlocked]);
+
     const hasResumed = useRef(false);
     const hasPlayed = useRef(false);
     const isSystemPausedRef = useRef(false);
@@ -257,6 +273,24 @@ const CustomAudioPlayer = forwardRef(({
             }
         };
 
+        // CDN yiqilsa xom Storage manziliga bir marta qaytamiz va o'sha
+        // soniyadan davom ettiramiz.
+        const onSrcError = () => {
+            // Manba allaqachon xom Storage manzili bo'lsa — bu ikkinchi xato,
+            // qaytadigan joy qolmadi. Shart shu bilan takror fallback'ni to'sadi.
+            if (!isCdnUrl(audio.currentSrc || audio.src)) return;
+            const resumeAt = audio.currentTime || parsedStartTime;
+            console.warn('[CustomAudioPlayer] CDN failed, falling back to origin URL');
+            setFallbackFor(src);
+            const restore = () => {
+                audio.removeEventListener('loadedmetadata', restore);
+                try { audio.currentTime = resumeAt; } catch { /* seek imkonsiz */ }
+                if (isExam) audio.play().catch(() => {});
+            };
+            audio.addEventListener('loadedmetadata', restore);
+        };
+
+        audio.addEventListener('error', onSrcError);
         audio.addEventListener('play', onPlay);
         audio.addEventListener('pause', onPause);
         audio.addEventListener('pause', onPauseExam);
@@ -276,6 +310,7 @@ const CustomAudioPlayer = forwardRef(({
         }
 
         return () => {
+            audio.removeEventListener('error', onSrcError);
             audio.removeEventListener('play', onPlay);
             audio.removeEventListener('pause', onPause);
             audio.removeEventListener('pause', onPauseExam);
@@ -331,6 +366,12 @@ const CustomAudioPlayer = forwardRef(({
             return;
         }
 
+        // Brauzer autoplay siyosati `play()` ni NotAllowedError bilan rad etishi
+        // mumkin. Ilgari bu faqat console'ga yozilardi va talaba nega ovoz
+        // yo'qligini BILMASDI — endi bir necha urinishdan keyin parentga
+        // xabar beramiz va u "Ovozni yoqish uchun bosing" oynasini ko'rsatadi.
+        let blockedStreak = 0;
+
         const attemptPlay = () => {
             if (isSilentRef.current) return; // Do not auto-play during silent period
             if (audio && audio.paused && !audio.ended && audio.readyState >= 2) {
@@ -338,9 +379,15 @@ const CustomAudioPlayer = forwardRef(({
                 audio.play()
                     .then(() => {
                         console.log(`[CustomAudioPlayer] Part ${index} successfully started auto-play.`);
+                        blockedStreak = 0;
+                        onPlaybackBlockedRef.current?.(false);
                     })
                     .catch(err => {
                         console.warn(`[CustomAudioPlayer] Part ${index} play attempt failed:`, err.name);
+                        if (err?.name === 'NotAllowedError') {
+                            blockedStreak += 1;
+                            if (blockedStreak >= 2) onPlaybackBlockedRef.current?.(true);
+                        }
                     });
             }
         };
@@ -497,11 +544,11 @@ const CustomAudioPlayer = forwardRef(({
         <audio
             ref={audioRef}
             id={`audio-part-${index}`}
-            src={getCdnUrl(src)}
+            src={resolvedSrc}
             preload={effectivePreload}
             style={{ display: 'none' }}
         />
-    ), [src, index, effectivePreload]);
+    ), [resolvedSrc, index, effectivePreload]);
 
     return (
         <div className={isVisible ? "" : "hidden"} style={{ display: isVisible ? 'block' : 'none' }}>

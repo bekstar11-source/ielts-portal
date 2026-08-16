@@ -84,4 +84,8 @@ async function getSanitizedTest(data, context) {
     }
 }
 
-module.exports = { getSanitizedTest };
+// `sanitizeObject` trial oqimida ham ishlatiladi (functions/trial.js) — javob
+// kalitlarini olib tashlash mantig'i IKKI joyda yozilmasligi uchun eksport
+// qilinadi. Bu funksiyaning nusxasi paydo bo'lsa, biri yangilanib ikkinchisi
+// eskirib qolishi mumkin edi — ya'ni jimgina javob sizib chiqishi.
+module.exports = { getSanitizedTest, sanitizeObject };

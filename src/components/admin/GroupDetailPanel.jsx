@@ -161,7 +161,7 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
             <div className={`
                 fixed inset-y-0 right-0 z-50 w-full md:w-[520px] shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col
                 ${isOpen ? 'translate-x-0' : 'translate-x-full'}
-                ${isDark ? 'bg-[#1E1E1E] border-l border-white/10' : 'bg-white border-l border-gray-200'}
+                ${isDark ? 'bg-[#1f1e1b] border-l border-white/10' : 'bg-white border-l border-gray-200'}
             `}>
                 {/* Header */}
                 <div className={`h-16 px-6 flex items-center justify-between border-b shrink-0 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
@@ -212,7 +212,7 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
                                     type="text"
                                     value={groupName}
                                     onChange={e => setGroupName(e.target.value)}
-                                    className={`w-full p-2.5 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+                                    className={`w-full p-2.5 rounded-xl border outline-none transition text-sm ${isDark ? 'bg-[#252320] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
                                     placeholder="Guruh nomi..."
                                 />
                             </div>
@@ -222,7 +222,7 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
                                     <select
                                         value={selectedTeacherId}
                                         onChange={e => setSelectedTeacherId(e.target.value)}
-                                        className={`w-full p-2.5 pr-9 rounded-xl border outline-none transition text-sm appearance-none cursor-pointer ${isDark ? 'bg-[#2C2C2C] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+                                        className={`w-full p-2.5 pr-9 rounded-xl border outline-none transition text-sm appearance-none cursor-pointer ${isDark ? 'bg-[#252320] border-white/5 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
                                     >
                                         <option value="">O'qituvchini tanlang...</option>
                                         {teachers.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
@@ -246,7 +246,7 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
                             {/* O'quvchi qo'shish */}
                             <div>
                                 <p className={`text-xs mb-2 font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>O'quvchi qo'shish</p>
-                                <div className={`flex items-center px-3 py-2.5 mb-2 rounded-xl border ${isDark ? 'bg-[#2C2C2C] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className={`flex items-center px-3 py-2.5 mb-2 rounded-xl border ${isDark ? 'bg-[#252320] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                                     {isSearchingDb ? (
                                         <div className="w-3.5 h-3.5 mr-2 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0"></div>
                                     ) : (
@@ -266,7 +266,7 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
                                     )}
                                 </div>
                                 {searchStudent && (
-                                    <div className={`rounded-xl border max-h-52 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/5 bg-[#1E1E1E]' : 'border-gray-100 bg-white'}`}>
+                                    <div className={`rounded-xl border max-h-52 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/5 bg-[#1f1e1b]' : 'border-gray-100 bg-white'}`}>
                                         {searchFilteredAvailable.length > 0 ? searchFilteredAvailable.map(st => (
                                             <div key={st.id} className={`flex justify-between items-center p-3 border-b last:border-0 hover:bg-white/5 transition cursor-pointer ${isDark ? 'border-white/5' : 'border-gray-100'}`} onClick={() => handleAddStudent(st)}>
                                                 <div className="min-w-0">

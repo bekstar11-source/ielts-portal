@@ -10,6 +10,7 @@ import { functions } from "../../firebase/firebase";
 import { signInWithCustomToken } from "firebase/auth";
 import { Send } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
+import Logo from '../../components/common/Logo';
 
 // Telegram deep-link'dagi `start` parametri 64 belgidan oshmasligi kerak,
 // shuning uchun hash'ning dastlabki 40 ta hex belgisi olinadi (160 bit).
@@ -49,13 +50,15 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
   const { t } = useTranslation();
 
-  const { login, signInWithGoogle, resetPassword, user } = useAuth();
+  const { login, signInWithGoogle, resetPassword, user, isGuest } = useAuth();
   const navigate = useNavigate();
   const unsubscribeRef = useRef(null);
   const telegramWindowRef = useRef(null);
 
   useEffect(() => {
-    if (user) {
+    // Anonim (trial) sessiyada ham `user` bor — mehmonni login sahifasidan
+    // `/dashboard` ga uloqtirmaymiz (u yerdan `ProtectedRoute` `/` ga qaytaradi).
+    if (user && !isGuest) {
       const checkOnboardingAndRedirect = async () => {
         try {
           const docRef = doc(db, "users", user.uid);
@@ -75,7 +78,7 @@ export default function Login() {
       };
       checkOnboardingAndRedirect();
     }
-  }, [user, navigate]);
+  }, [user, isGuest, navigate]);
 
   useEffect(() => {
     return () => {
@@ -350,12 +353,7 @@ export default function Login() {
     <div className="min-h-screen flex bg-white font-sans selection:bg-black/10 selection:text-black justify-center items-center relative px-6 py-20">
       {/* Top-Left Logo */}
       <div className="absolute top-6 left-6 md:top-10 md:left-12 z-20">
-        <Link to="/" className="block transition-transform hover:scale-105 active:scale-95 select-none">
-          <span className="text-3xl md:text-4xl font-sans tracking-tight text-black lowercase">
-            <span className="font-normal">eng</span>
-            <span className="font-bold">lev.</span>
-          </span>
-        </Link>
+        <Logo to="/" tone="ink" size="lg" />
       </div>
 
       {/* Login Form */}

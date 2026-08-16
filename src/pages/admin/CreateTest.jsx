@@ -794,10 +794,10 @@ export default function CreateTest() {
     );
 
     return (
-        <div className={`h-full min-h-0 flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
+        <div className={`h-full min-h-0 flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#181715] text-white' : 'bg-[#F5F5F7] text-gray-900'}`}>
 
             {/* --- HEADER --- */}
-            <div className={`h-16 px-3 sm:px-6 flex items-center justify-between gap-3 border-b shrink-0 z-20 ${isDark ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <div className={`h-16 px-3 sm:px-6 flex items-center justify-between gap-3 border-b shrink-0 z-20 ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200 shadow-sm'}`}>
                 <div className="flex items-center gap-3 min-w-0">
                     <button
                         onClick={handleBack}
@@ -1141,7 +1141,7 @@ export default function CreateTest() {
 
             {/* UPLOAD OVERLAY */}
             {uploading && (
-                <div className="fixed bottom-6 right-6 z-[100] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-blue-500/20 p-4 min-w-[220px] animate-in slide-in-from-bottom-4">
+                <div className="fixed bottom-6 right-6 z-[100] bg-white dark:bg-[#1f1e1b] rounded-2xl shadow-2xl border border-blue-500/20 p-4 min-w-[220px] animate-in slide-in-from-bottom-4">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
                             <Icons.Cloud className="w-4 h-4 text-blue-500" />

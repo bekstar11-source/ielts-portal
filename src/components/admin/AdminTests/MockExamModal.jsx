@@ -80,7 +80,7 @@ export default function MockExamModal({
         >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div className={`relative w-full max-w-md max-h-[90dvh] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border ${
-                isDark ? 'bg-[#1e1e1e] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
+                isDark ? 'bg-[#1f1e1b] border-white/5 text-white' : 'bg-white border-zinc-100 text-zinc-900'
             }`}>
                 <div className={`p-4 sm:p-6 border-b flex justify-between items-center ${
                     isDark ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50/50'
