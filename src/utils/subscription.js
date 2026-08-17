@@ -247,8 +247,14 @@ export function getTierLabel(userData) {
  * `protectedUserFields()` ro'yxatida.
  * ───────────────────────────────────────────────────────────── */
 
-/** Chegirma qaysi to'lov davrlarida ishlaydi (ikkalasida ham). */
-export const DISCOUNT_DEFAULT_BILLINGS = ['monthly', 'tri'];
+/**
+ * Chegirma qaysi to'lov davrlarida ishlaydi.
+ *
+ * ⚠️ `functions/signupDiscount.js` dagi `DISCOUNT_CONFIG.eligibleBillings`
+ * bilan bir xil: chegirma 2 oyni qoplaydi, `tri` esa 3 oyni yeydi — ya'ni
+ * 3 oylik paketga u yetmaydi.
+ */
+export const DISCOUNT_DEFAULT_BILLINGS = ['monthly'];
 
 /** Ikki to'lov orasidagi eng katta tanaffus — `DISCOUNT_CONFIG.maxGapDays`. */
 export const DISCOUNT_MAX_GAP_DAYS = 45;
@@ -261,7 +267,8 @@ export function billingMonths(billing) {
 /**
  * Amaldagi chegirma taklifi (bo'lmasa `null`).
  *
- * Chegirma bir martalik emas — u obunaning dastlabki `cycles` oyini qoplaydi.
+ * Chegirma bir martalik emas — u obunaning dastlabki `cycles` (hozir 2) oyini
+ * qoplaydi.
  * Shuning uchun bu yerda ikkita oyna bor va ular ARALASHTIRILMASLIGI kerak:
  *
  *   zanjir boshlanmagan → `expiresAt` (taklif oynasi, 7 kun)
@@ -321,8 +328,8 @@ export function getSignupDiscount(userData) {
  * Chegirma AYNAN shu to'lov davriga tegishlimi.
  *
  * Ikki shart: davr ro'yxatda bo'lsin VA qolgan oylar uni qoplasin — masalan
- * 1 oy qolganda 3 oylik paketga chegirma berib bo'lmaydi (server ham
- * `INSUFFICIENT_CYCLES` bilan rad etadi).
+ * 2 oylik chegirma 3 oylik paketni qoplamaydi (server ham
+ * `INSUFFICIENT_CYCLES` / `BILLING_NOT_ELIGIBLE` bilan rad etadi).
  */
 export function discountAppliesTo(discount, billing) {
   if (!discount || !discount.eligibleBillings.includes(billing)) return false;

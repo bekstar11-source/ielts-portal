@@ -180,9 +180,10 @@ export default function TrialResult() {
               Tabriklaymiz — {discountPercent}% chegirmaga ega bo'ldingiz
             </h3>
             <p className="text-[14px] leading-relaxed text-white/70 mb-5">
-              Chegirma obunangizning dastlabki <b className="text-white/90">3 oyiga</b> amal
-              qiladi — 1 oylik tanlasangiz ham har oy shu narxda to'laysiz. Ro'yxatdan
-              o'tganingizdan so'ng hisobingizga biriktiriladi va natijangiz saqlanib qoladi.
+              Chegirma obunangizning dastlabki <b className="text-white/90">2 oyiga</b> amal
+              qiladi — 1 oylik tarifni tanlasangiz har ikki to'lovda shu narxda
+              to'laysiz. Ro'yxatdan o'tganingizdan so'ng hisobingizga biriktiriladi
+              va natijangiz saqlanib qoladi.
             </p>
             <Link
               to="/register"

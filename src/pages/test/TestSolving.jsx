@@ -197,34 +197,34 @@ export default function TestSolving() {
 
     if (loading) {
         return (
-            <div className="flex flex-col h-screen items-center justify-center bg-[#f9fafb] font-sans select-none">
+            <div className="flex flex-col h-screen items-center justify-center bg-[#F0EEE6] font-sans select-none">
                 <div className="relative flex flex-col items-center max-w-sm px-6 text-center animate-in">
                     {/* Ring Loader */}
                     <div className="relative w-24 h-24 mb-8">
                         {/* Outer rotating track */}
-                        <div className="absolute inset-0 rounded-full border-4 border-zinc-200/60"></div>
+                        <div className="absolute inset-0 rounded-full border-4 border-[#141413]/10"></div>
                         {/* Inner spinning gradient indicator */}
-                        <div className="absolute inset-0 rounded-full border-4 border-t-[#0066cc] border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                        <div className="absolute inset-0 rounded-full border-4 border-t-[#D97757] border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
                         {/* Center icon container */}
                         <div className="absolute inset-2 bg-white rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] flex items-center justify-center">
                             {/* Pulsing book icon */}
-                            <svg className="w-8 h-8 text-[#0066cc] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                            <svg className="w-8 h-8 text-[#D97757] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
                         </div>
                     </div>
 
                     {/* Loading Texts */}
-                    <h3 className="text-xl font-bold text-zinc-900 mb-2 tracking-tight">Test yuklanmoqda</h3>
-                    <p className="text-sm text-zinc-500 max-w-xs leading-relaxed">
+                    <h3 className="text-xl font-bold text-[#141413] mb-2 tracking-tight">Test yuklanmoqda</h3>
+                    <p className="text-sm text-[#141413]/60 max-w-xs leading-relaxed">
                         Iltimos, biroz kutib turing. Test materiallari va savollari tayyorlanmoqda...
                     </p>
 
                     {/* Bouncing progress dots */}
                     <div className="flex gap-2 mt-7 justify-center">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#0066cc]/30 animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#0066cc]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#0066cc] animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#D97757]/30 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#D97757]/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#D97757] animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                 </div>
             </div>

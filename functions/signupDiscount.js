@@ -25,10 +25,11 @@
 //
 // ─── NEGA SANOQCHI, "BOR/YO'Q" EMAS ─────────────────────────────────────────
 //
-// Chegirma endi BIR MARTALIK emas — u obunaning dastlabki 3 OYINI qoplaydi:
+// Chegirma endi BIR MARTALIK emas — u obunaning dastlabki 2 OYINI qoplaydi:
 //
-//   monthly → har to'lov 1 oyni yeydi, ya'ni 3 ta chegirmali to'lov
-//   tri     → bitta to'lov 90 kunni qoplaydi, ya'ni 3 oyni BIRDANIGA yeydi
+//   monthly → har to'lov 1 oyni yeydi, ya'ni 2 ta chegirmali to'lov
+//   tri     → bitta to'lov 90 kunni (3 oyni) yeydi, ya'ni 2 oylik chegirma
+//             unga YETMAYDI — shuning uchun `eligibleBillings` da `tri` yo'q
 //
 // Shuning uchun reyestrda hujjat mavjudligi yetarli emas: `cyclesRemaining`
 // qancha oy qolganini saytadi va tasdiqlash paytida kamayadi. Hujjat
@@ -37,8 +38,8 @@
 //
 // ─── NEGA KETMA-KETLIK SHARTI ───────────────────────────────────────────────
 //
-// `maxGapDays` bo'lmasa o'quvchi 1-oyni yanvarda, 2-oyni iyunda, 3-oyni
-// dekabrda to'lardi va "birinchi xarid chegirmasi" bir yilga cho'zilardi.
+// `maxGapDays` bo'lmasa o'quvchi 1-oyni yanvarda, 2-oyni dekabrda to'lardi va
+// "birinchi xarid chegirmasi" bir yilga cho'zilardi.
 // To'lovlar ketma-ket bo'lishi shart; uzilsa qolgan oylar yonadi.
 //
 // ─── NEGA SARFLASH TASDIQLASH PAYTIDA ───────────────────────────────────────
@@ -56,11 +57,11 @@ const DISCOUNT_CONFIG = {
   /**
    * 50% emas, 30%.
    *
-   * Chegirma endi bitta to'lovga emas, uchta oyga tarqaladi (pastdagi
-   * `cycles`), ya'ni jami yon berish 50% × 1 oydan ancha katta. 30% da
-   * standard monthly 24 500 bo'ladi — psixologik to'siqni yorib o'tadi,
-   * lekin 3 oylik jami tushum (73 500) eski bir martalik tri chegirmasidan
-   * (44 500) yuqori qoladi.
+   * Chegirma bitta to'lovga emas, ikkita oyga tarqaladi (pastdagi `cycles`),
+   * ya'ni jami yon berish 50% × 1 oydan katta. 30% da standard monthly
+   * 24 500 bo'ladi — psixologik to'siqni yorib o'tadi, lekin 2 oylik jami
+   * tushum (49 000) eski bir martalik tri chegirmasidan (44 500) yuqori
+   * qoladi.
    */
   percent: 30,
   /**
@@ -79,11 +80,11 @@ const DISCOUNT_CONFIG = {
   /**
    * Chegirma necha OYNI qoplaydi.
    *
-   * "3 ta to'lov" emas, "3 oy" — chunki tri bitta to'lovda 90 kunni yopadi.
-   * Oyda hisoblash ikkala davrni bir o'lchovga keltiradi va monthly↔tri
-   * aralashtirilganda ham hisob buzilmaydi.
+   * "2 ta to'lov" emas, "2 oy" — o'lchov OY, chunki davrlar (30/90 kun)
+   * shu o'lchovda taqqoslanadi va monthly↔tri aralashtirilganda ham hisob
+   * buzilmaydi.
    */
-  cycles: 3,
+  cycles: 2,
   /**
    * Ikki to'lov orasidagi eng katta tanaffus.
    *
@@ -94,17 +95,18 @@ const DISCOUNT_CONFIG = {
    */
   maxGapDays: 45,
   /**
-   * Chegirma endi HAR IKKALA davrda ishlaydi.
+   * Chegirma FAQAT 1 oylik davrda ishlaydi.
    *
-   * Ilgari faqat `tri` edi (Variant A) — sababi "1 oylikka berilsa foyda har
-   * oy takrorlanadi" degan xavf. Uni `cycles: 3` yopdi: hujum tsikli baribir
-   * 3 oy, ya'ni tri dagidan tez emas. Buning evaziga eng katta to'siq —
-   * 89 000 ni bir zarbada to'lash — olib tashlandi.
+   * Sabab arifmetik, siyosiy emas: `cycles: 2` — chegirma 2 oyni qoplaydi,
+   * `tri` esa bitta to'lovda 3 oyni yeydi. Ya'ni tri ga chegirma berish
+   * va'da qilingandan bir oy ko'p yon berish bo'lardi (`checkDiscountEligibility`
+   * ham buni `INSUFFICIENT_CYCLES` bilan rad etardi). Shuning uchun tri
+   * ro'yxatda umuman turmaydi — o'quvchi rad javob o'rniga darhol ishlaydigan
+   * 1 oylik variantni (upsell tugmasi) ko'radi.
    *
-   * Narx narvoni buzilmaydi: tri chegirmali oyiga 20 766, monthly 24 500 —
-   * tri hamon arzonroq, ya'ni monthly tri ni yemaydi.
+   * 3 oylik paket o'z tejamkorligi (−20%) bilan qoladi.
    */
-  eligibleBillings: ["monthly", "tri"],
+  eligibleBillings: ["monthly"],
 };
 
 /** `checkDiscountEligibility` qaytaradigan sabablar. */
@@ -164,8 +166,8 @@ function monthsForBilling(billing) {
  * Taklif necha oyni qoplaydi.
  *
  * ⚠️ Eski takliflarda (30% dan oldin berilgan, `cycles` maydonisiz) javob 1 —
- * ya'ni AYNAN eski xatti-harakat: bir martalik chegirma. Ularga 3 oy berish
- * va'da qilinganidan ko'proq bo'lardi va 50% × 3 oy juda qimmatga tushardi.
+ * ya'ni AYNAN eski xatti-harakat: bir martalik chegirma. Ularga bir necha oy
+ * berish va'da qilinganidan ko'proq bo'lardi va 50% × 2 oy qimmatga tushardi.
  */
 function offerCycles(offer) {
   const n = Number(offer && offer.cycles);
@@ -193,8 +195,8 @@ function getClaimRefs(db, telegramId, phoneNumber) {
  * Reyestr snapshot'laridan sanoqchi holatini chiqaradi.
  *
  * ⚠️ `tg_` va `ph_` MUSTAQIL hujjatlar, lekin sanoq UMUMIY bo'lishi shart.
- * Aks holda: o'quvchi 1-oyni Telegram A bilan to'laydi (`tg_A` = 2 qoldi),
- * keyin Telegram B ga o'tadi — `tg_B` umuman yo'q, ya'ni yangi 3 oy. Shuning
+ * Aks holda: o'quvchi 1-oyni Telegram A bilan to'laydi (`tg_A` = 1 qoldi),
+ * keyin Telegram B ga o'tadi — `tg_B` umuman yo'q, ya'ni yangi 2 oy. Shuning
  * uchun qolgan oy — ikkalasining MINIMUMI, sarflangan oy esa MAKSIMUMI.
  *
  * Eski (sanoqchisiz) claim hujjatlarida `cyclesRemaining` yo'q → 0 bo'lib
@@ -281,6 +283,16 @@ function buildClaimCycleUpdate({ uid, planId, billing, percent, originalPrice, f
  * Takroriy chaqiruv YANGI taklif bermaydi — aks holda trialni qayta-qayta
  * yechib, muddati tugagan chegirmani cheksiz yangilash mumkin bo'lardi.
  *
+ * `force: true` — SHU shartni chetlab o'tadi (faqat admin callable'idan).
+ * Kerak bo'lgan holat: sozlama o'zgardi (masalan 3 oy → 2 oy), lekin allaqachon
+ * berilgan takliflarda eski raqam muzlab qolgan va sayt "dastlabki 3 oy" deb
+ * ko'rsatib turadi. Trial oqimi buni HECH QACHON ishlatmaydi — aks holda
+ * o'quvchi testni qayta yechib taklifini cheksiz yangilardi.
+ *
+ * ⚠️ `force` sanoqchini (`discount_claims`) tozalamaydi: allaqachon
+ * ISHLATILGAN oylar reyestrda qoladi, ya'ni bu bilan chegirmani "qayta
+ * to'ldirib" bo'lmaydi. Shuning uchun `status: "used"` shartida u ham to'xtaydi.
+ *
  * @returns {Promise<{granted: boolean, reason?: string}>}
  */
 async function grantSignupDiscount(db, uid, options = {}) {
@@ -289,6 +301,7 @@ async function grantSignupDiscount(db, uid, options = {}) {
     days = DISCOUNT_CONFIG.days,
     cycles = DISCOUNT_CONFIG.cycles,
     sourceResultId = null,
+    force = false,
   } = options;
 
   const userRef = db.collection("users").doc(uid);
@@ -308,8 +321,8 @@ async function grantSignupDiscount(db, uid, options = {}) {
   if (existing && existing.status === "used") {
     return { granted: false, reason: REASON.USED };
   }
-  // Amaldagi taklif bor — muddatini cho'zib yubormaymiz.
-  if (existing && existing.status === "active") {
+  // Amaldagi taklif bor — muddatini cho'zib yubormaymiz (`force` dan tashqari).
+  if (!force && existing && existing.status === "active") {
     const end = toDate(existing.expiresAt);
     if (end && end.getTime() > Date.now()) {
       return { granted: false, reason: "already_active" };
@@ -345,11 +358,11 @@ async function grantSignupDiscount(db, uid, options = {}) {
  * yubormaydi". `sendSubscriptionInvoice` da narxni ko'rsatish uchun ishlatiladi.
  *
  * Qaytadigan `cycles` — shu to'lov necha oyni yeydi (monthly 1, tri 3).
- * `cycleNumber`/`cyclesTotal` bot xabarida "2/3-oy" deb ko'rsatiladi.
+ * `cycleNumber`/`cyclesTotal` bot xabarida "2/2-oy" deb ko'rsatiladi.
  *
- * `upsell` maydoni ESKI takliflar uchun saqlanib qoldi: ular `["tri"]` bilan
- * yozilgan, ya'ni 1 oylik tanlagan o'sha o'quvchilar hamon 3 oylikka
- * yo'naltirilishi kerak. Yangi takliflarda bu tarmoq ishlamaydi.
+ * `upsell` — chegirma haqiqiy, lekin tanlangan davrga tegishli emas. Yangi
+ * takliflarda bu 3 oylik tanlagan o'quvchini 1 oylikka yo'naltiradi; eski
+ * (`["tri"]` bilan yozilgan) takliflarda esa aksincha.
  */
 async function checkDiscountEligibility(db, uid, telegramId, planId, billing) {
   const originalPrice = getPlanPrice(planId, billing);
@@ -418,7 +431,8 @@ async function checkDiscountEligibility(db, uid, telegramId, planId, billing) {
   }
 
   if (!allowedBillings.includes(billing)) {
-    // Chegirma haqiqiy, faqat boshqa davrga tegishli (eski takliflar).
+    // Chegirma haqiqiy, faqat boshqa davrga tegishli — odatda o'quvchi
+    // 3 oylikni tanlagan, chegirma esa 1 oylikda ishlaydi.
     // Botga upsell beramiz — quruq "ishlamaydi" bilan qaytarmaymiz.
     const upsellBilling = allowedBillings[0];
     const upsellOriginal = getPlanPrice(planId, upsellBilling);
@@ -437,9 +451,9 @@ async function checkDiscountEligibility(db, uid, telegramId, planId, billing) {
   }
 
   if (state.remaining < months) {
-    // Masalan: 2 ta monthly to'langan (1 oy qoldi), endi tri tanlandi.
-    // Qolgan 1 oy bilan 3 oylik paketni chegirma qilib bo'lmaydi — aks holda
-    // o'quvchi qolganidan ko'p oyni chegirmada olardi.
+    // Yangi takliflarda `tri` yuqoridagi shartda to'xtaydi; bu tarmoq ESKI
+    // (`["monthly","tri"]`) takliflar uchun qoladi: 1 oy qolgan holda tri
+    // tanlansa, qolganidan ko'p oyni chegirmada berib bo'lmaydi.
     return {
       ...base,
       reason: REASON.INSUFFICIENT_CYCLES,
@@ -485,7 +499,7 @@ async function grantSignupDiscountCallable(data, context) {
     throw new functions.https.HttpsError("permission-denied", "Bu amal faqat admin uchun.");
   }
 
-  const { uid, percent, days, cycles } = data || {};
+  const { uid, percent, days, cycles, force } = data || {};
   if (!uid || typeof uid !== "string") {
     throw new functions.https.HttpsError("invalid-argument", "`uid` kiritilishi shart.");
   }
@@ -495,6 +509,9 @@ async function grantSignupDiscountCallable(data, context) {
     days: days || DISCOUNT_CONFIG.days,
     cycles: cycles || DISCOUNT_CONFIG.cycles,
     sourceResultId: null,
+    // Amaldagi taklifni yangi sozlama bilan qayta yozish — sozlama
+    // o'zgargandan keyin eski raqam ("dastlabki 3 oy") qotib qolmasligi uchun.
+    force: force === true,
   });
 }
 

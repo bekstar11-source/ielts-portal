@@ -471,7 +471,7 @@ async function handleCallback(chatId, query) {
       // Sessiyada yozilgan raqamlar: shu to'lov necha oyni yeydi va jami nechta.
       //
       // ⚠️ Eski sessiyalar (bu deploydan oldin ochilgan, hali tasdiqlanmagan)
-      // `discountCycles` siz keladi. Ularga yangi 3 oylik hisobni qo'llasak,
+      // `discountCycles` siz keladi. Ularga yangi ko'p oylik hisobni qo'llasak,
       // 50% lik eski taklif bilan kelgan o'quvchi yana ikki oy 50% olardi.
       // Shuning uchun ular AYNAN eski qoida bilan yopiladi: 1 dan 1, ya'ni
       // bitta to'lovda chegirma to'liq sarflanadi.
@@ -984,8 +984,8 @@ async function sendSubscriptionInvoice(chatId, userId, planId, billing) {
       `   <s>${formatSom(basePrice)}</s> · 🎁 <b>${discount.percent}% chegirma</b>\n`;
   }
 
-  // Chegirma endi 3 OYGA tarqalgan — o'quvchi buni to'lov paytida bilishi
-  // shart. "1/3-oy" ni ko'rsatmasak, 2-oyda to'liq narx kutib, chegirma
+  // Chegirma bir necha OYGA tarqalgan — o'quvchi buni to'lov paytida bilishi
+  // shart. "1/2-oy" ni ko'rsatmasak, 2-oyda to'liq narx kutib, chegirma
   // yo'qolgan deb o'ylaydi va to'lamay ketadi.
   if (discount.eligible && discount.cyclesTotal > 1) {
     const last = discount.cycleNumber + discount.cycles - 1;
@@ -1024,20 +1024,27 @@ async function sendSubscriptionInvoice(chatId, userId, planId, billing) {
       `1 oylik tanlasangiz chegirma ishlaydi.</i>`;
   }
 
-  // Upsell: chegirma bor, lekin u 3 oylik paketga tegishli. Bu tarmoq ESKI
-  // takliflar uchun (`eligibleBillings: ["tri"]`) — yangilarida ikkala davr
-  // ham haqli, ya'ni bu yerga tushmaydi.
+  // Upsell: chegirma bor, lekin u BOSHQA davrga tegishli. Yangi takliflarda
+  // bu 3 oylikni tanlagan o'quvchini 1 oylikka yo'naltiradi (chegirma 2 oyni
+  // qoplaydi, tri esa 3 oyni yeydi); eski `["tri"]` takliflarda — aksincha.
+  //
+  // ⚠️ Matn `up.billing` dan qurilishi shart: qattiq "3 oylik" deb yozilsa,
+  // 1 oylikka yo'naltiruvchi tugma teskari davrni reklama qilardi.
   let keyboard = null;
   const up = discount.upsell;
   if (!discount.eligible && up) {
-    const perMonth = Math.round(up.finalPrice / 3);
+    const upMonths = up.billing === "tri" ? 3 : 1;
+    const upLabel = `${upMonths} oylik`;
+    const perMonthLine = upMonths > 1
+      ? ` (oyiga ${formatSom(Math.round(up.finalPrice / upMonths))})`
+      : "";
     msg += `\n\n--------------------------\n` +
-      `🎁 <b>Sizda ${up.percent}% chegirma bor</b> — u 3 oylik paketda amal qiladi:\n` +
-      `   <s>${formatSom(up.originalPrice)}</s> → <b>${formatSom(up.finalPrice)} so'm</b> ` +
-      `(oyiga ${formatSom(perMonth)})`;
+      `🎁 <b>Sizda ${up.percent}% chegirma bor</b> — u ${upLabel} paketda amal qiladi:\n` +
+      `   <s>${formatSom(up.originalPrice)}</s> → <b>${formatSom(up.finalPrice)} so'm</b>` +
+      perMonthLine;
     keyboard = {
       inline_keyboard: [[
-        { text: `🎁 3 oylikka o'tish — ${formatSom(up.finalPrice)} so'm`, callback_data: `sw_${up.billing}_${planId}` }
+        { text: `🎁 ${upLabel}ka o'tish — ${formatSom(up.finalPrice)} so'm`, callback_data: `sw_${up.billing}_${planId}` }
       ]]
     };
   }

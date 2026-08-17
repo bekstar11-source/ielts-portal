@@ -3,14 +3,12 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import PublicDashboard from '../../pages/public/PublicDashboard';
 import StudentDashboard from '../../pages/student/StudentDashboard';
+import Logo from './Logo';
 
 export const LoadingScreen = () => {
   return (
     <div className="flex h-screen flex-col items-center justify-center bg-white select-none">
-      <span className="text-3xl md:text-4xl font-sans tracking-tight text-black lowercase animate-pulse">
-        <span className="font-normal">eng</span>
-        <span className="font-bold">lev.</span>
-      </span>
+      <Logo size="xl" tone="ink" className="animate-pulse" />
     </div>
   );
 };

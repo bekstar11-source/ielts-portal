@@ -1,6 +1,7 @@
 /**
  * Utility functions for ReadingRightPane
  */
+import { getNumeralPrefix } from '../../../utils/ieltsScoring';
 
 export const toRoman = (num) => {
     const lookup = { m: 1000, cm: 900, d: 500, cd: 400, c: 100, xc: 90, l: 50, xl: 40, x: 10, ix: 9, v: 5, iv: 4, i: 1 };
@@ -15,19 +16,19 @@ export const toRoman = (num) => {
 };
 
 // Derives a stable, collision-free label ("i", "ii", ...) for each heading option.
-// Only treats a leading "i"/"v"/"x"/digit run as a numeral marker when it's followed by
-// "." or ")" (a real list marker) — a bare space after "I"/"V"/"X" is almost always just
-// the start of an English sentence, not a numeral, so it must not be matched here.
+// The numeral written in the option text always wins: lists are often stored as
+// "iv Heading" (space, no dot) and are not always in numeral order, so falling back
+// to the positional numeral there would store the wrong label as the student's answer.
+// `getNumeralPrefix` only accepts a space-separated prefix when it is a real numeral,
+// so "I visited the museum" is still treated as plain text.
 export const getHeadingOptionLabels = (options) => {
     if (!Array.isArray(options)) return [];
     const used = new Set();
 
     return options.map((opt, idx) => {
         const optText = typeof opt === 'object' ? opt.text : opt;
-        
-        // Try to extract from text first (must have . or ) after the numeral to be safe)
-        const match = String(optText || '').trim().match(/^([ivx\d]+)[\.\)]/i);
-        let label = match ? match[1].toLowerCase() : null;
+
+        let label = getNumeralPrefix(optText);
 
         // Fall back to the object's label/id if no numeral found in text
         if (!label && typeof opt === 'object') {

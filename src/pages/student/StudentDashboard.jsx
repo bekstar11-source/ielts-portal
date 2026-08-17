@@ -9,6 +9,7 @@ import { useStudentDashboard } from "../../hooks/dashboard/useStudentDashboard";
 
 // COMPONENTS
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
+import DiscountBanner from "../../components/dashboard/DiscountBanner";
 import NewsFeed from "../../components/dashboard/NewsFeed";
 import CatalogDashboard from "../../components/dashboard/CatalogDashboard";
 import DashboardModals from "../../components/dashboard/DashboardModals";
@@ -163,6 +164,8 @@ export default function StudentDashboard() {
                 onRefreshClick={handleManualRefresh}
                 loading={loading}
             />
+            {/* Chegirma eslatmasi — chegirma bo'lmasa hech narsa chizmaydi. */}
+            <DiscountBanner userData={userData} />
             <main className="w-full pb-24 md:pb-0">
                 {renderContent()}
             </main>

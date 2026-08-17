@@ -219,6 +219,59 @@ const getOptionRawText = (opt) => {
     return String(opt).trim();
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RIM RAQAMLI VARIANTLAR (Matching Headings)
+// Sarlavhalar ro'yxati "iv. Heading" yoki "iv Heading" ko'rinishida saqlanadi,
+// talabaning javobi esa yorliq ("iv") bo'ladi. Quyidagi yordamchilarsiz "iv"
+// hech qaysi variantga bog'lanmasdi: review'da sarlavha o'rniga rim raqami
+// ko'rinardi, kalit matn ko'rinishida saqlangan savollar esa xato sanalardi.
+// ─────────────────────────────────────────────────────────────────────────────
+const ROMAN_RE = /^(?:x{0,3})(?:ix|iv|v?i{0,3})$/i;
+
+export const isRomanNumeral = (val) => {
+    const t = String(val ?? '').trim().replace(/[.)]$/, '').toLowerCase();
+    return !!t && ROMAN_RE.test(t);
+};
+
+export const romanToInt = (val) => {
+    const t = String(val ?? '').trim().replace(/[.)]$/, '').toLowerCase();
+    if (!t || !ROMAN_RE.test(t)) return NaN;
+    const map = { i: 1, v: 5, x: 10 };
+    let total = 0;
+    for (let i = 0; i < t.length; i++) {
+        const cur = map[t[i]];
+        const next = map[t[i + 1]];
+        total += (next && next > cur) ? -cur : cur;
+    }
+    return total;
+};
+
+// "iv. Heading" / "iv) Heading" / "iv Heading" → "iv". Prefiks yo'q bo'lsa null.
+// Bo'sh joy bilan ajratilganda FAQAT haqiqiy rim raqami (yoki son) qabul qilinadi —
+// aks holda "I visited the museum" kabi jumlalar ham raqamli deb o'qilardi.
+export const getNumeralPrefix = (text) => {
+    const raw = String(text ?? '').trim();
+    if (!raw) return null;
+
+    const punct = raw.match(/^([ivxIVX]{1,5}|\d{1,2})\s*[.)]/);
+    if (punct) return punct[1].toLowerCase();
+
+    const spaced = raw.match(/^([ivx]{1,5}|[IVX]{2,5}|\d{1,2})\s+\S/);
+    if (spaced && (isRomanNumeral(spaced[1]) || /^\d+$/.test(spaced[1]))) {
+        return spaced[1].toLowerCase();
+    }
+    return null;
+};
+
+// "iv. Heading" → "Heading". Prefiks bo'lmasa matn o'zgarishsiz qaytadi.
+export const stripNumeralPrefix = (text) => {
+    if (typeof text !== 'string') return text;
+    const raw = text.trim();
+    if (!getNumeralPrefix(raw)) return raw;
+    const rest = raw.replace(/^(?:[ivxIVX]{1,5}|\d{1,2})\s*[.)]?\s*/, '').trim();
+    return rest || raw;
+};
+
 // Variant harfi: matndagi "B." prefiksi, bo'lmasa `label`, u ham bo'lmasa tartib bo'yicha (A, B, C...)
 export const getOptionLabel = (opt, idx = 0) => {
     if (opt && typeof opt === 'object' && opt.label !== undefined && opt.label !== null) {
@@ -230,9 +283,10 @@ export const getOptionLabel = (opt, idx = 0) => {
     return String.fromCharCode(65 + idx);
 };
 
-// Variant matni harf prefiksisiz: "B. adaptation" → "adaptation"
+// Variant matni prefiksisiz: "B. adaptation" → "adaptation", "iv Heading" → "Heading"
 export const getOptionText = (opt) => {
     const raw = getOptionRawText(opt);
+    if (getNumeralPrefix(raw)) return stripNumeralPrefix(raw);
     const stripped = raw.replace(/^[A-Za-z][.)]\s*/, '').trim();
     return stripped || raw;
 };
@@ -244,6 +298,36 @@ export const findOptionIndex = (value, choiceOptions) => {
     if (!raw) return -1;
 
     const bare = raw.replace(/[.)]$/, '');
+
+    // Rim raqamli yorliq: variantlarning O'ZIDA raqam yozilgan bo'lsa ("iv Heading"),
+    // u har doim ustun turadi — "i" ni 9-variantning "I" harfi deb o'qib bo'lmaydi.
+    const romanTarget = isRomanNumeral(bare) ? bare.toLowerCase() : null;
+    if (romanTarget) {
+        const byNumeral = choiceOptions.findIndex((o) => {
+            const lbl = (o && typeof o === 'object' && o.label !== undefined && o.label !== null)
+                ? String(o.label).trim().toLowerCase().replace(/[.)]$/, '')
+                : null;
+            if (lbl && isRomanNumeral(lbl)) return lbl === romanTarget;
+            return getNumeralPrefix(getOptionRawText(o)) === romanTarget;
+        });
+        if (byNumeral !== -1) return byNumeral;
+    }
+
+    // Variantlarda hech qanday yorliq yo'q bo'lsa, rim raqami tartibni bildiradi (i → 1-variant).
+    // Bu tekshiruv harfli qidiruvdan OLDIN turadi: aks holda 9+ variantli sarlavha
+    // ro'yxatida "i" javobi 9-variantning "I" harfiga bog'lanib ketardi.
+    const hasLetterLabels = choiceOptions.some((o) => {
+        const lbl = (o && typeof o === 'object' && o.label !== undefined && o.label !== null)
+            ? String(o.label).trim().replace(/[.)]$/, '')
+            : null;
+        if (lbl && /^[A-Za-z]$/.test(lbl) && !isRomanNumeral(lbl)) return true;
+        return /^[A-Za-z][.)]/.test(getOptionRawText(o));
+    });
+    if (romanTarget && !hasLetterLabels && raw === raw.toLowerCase()) {
+        const pos = romanToInt(romanTarget);
+        if (pos >= 1 && pos <= choiceOptions.length) return pos - 1;
+    }
+
     if (/^[A-Za-z]$/.test(bare)) {
         const byLabel = choiceOptions.findIndex((o, i) => getOptionLabel(o, i) === bare.toUpperCase());
         if (byLabel !== -1) return byLabel;

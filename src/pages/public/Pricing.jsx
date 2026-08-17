@@ -49,13 +49,13 @@ export default function PricingPage() {
   // ─── Ro'yxatdan o'tish chegirmasi ────────────────────────────────────────
   //
   // `discount` — taklif umuman bormi. `discountActive` — u AYNAN hozir
-  // tanlangan to'lov davriga tegishlimi. Yangi takliflarda ikkala davr ham
-  // haqli, ya'ni odatda ikkisi teng; ajratilgan holat ESKI takliflar uchun
-  // qoladi (ular faqat 3 oylikda ishlaydi) va "1 oy qoldi, 3 oylik tanlandi"
-  // holati uchun — u yerda narxni o'zgartirmay, boshqa davrni taklif qilamiz.
+  // tanlangan to'lov davriga tegishlimi. Chegirma 2 oyni qoplaydi, 3 oylik
+  // paket esa 3 oyni yeydi — shuning uchun u FAQAT 1 oylikda ishlaydi.
+  // 3 oylik tanlangan bo'lsa narxni o'zgartirmay, ishlaydigan davrni
+  // bir bosishda taklif qilamiz (eski `["tri"]` takliflarda — aksincha).
   const discount = getSignupDiscount(userData);
   const discountActive = discountAppliesTo(discount, billing);
-  const discountBilling = discount?.eligibleBillings?.[0] || 'tri';
+  const discountBilling = discount?.eligibleBillings?.[0] || 'monthly';
   const altBilling = billing === 'monthly' ? 'tri' : 'monthly';
   const discountAltActive = discountAppliesTo(discount, altBilling);
 
@@ -237,7 +237,7 @@ export default function PricingPage() {
                 </button>
               )}
 
-              {/* Chegirma 3 oyga tarqalgan — buni AYTISH shart. Aks holda
+              {/* Chegirma bir necha oyga tarqalgan — buni AYTISH shart. Aks holda
                   o'quvchi uni bir martalik deb o'ylaydi va 2-oyda to'liq narx
                   ko'rib, obunani uzaytirmay ketadi. */}
               {discount.cyclesTotal > 1 && (

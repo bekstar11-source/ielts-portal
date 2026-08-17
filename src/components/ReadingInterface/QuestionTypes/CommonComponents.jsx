@@ -1,16 +1,13 @@
 import React from "react";
 import { Lock, Zap } from 'lucide-react';
-import { checkAnswer as centralCheckAnswer, isChoiceQuestionType } from "../../../utils/ieltsScoring";
+import { checkAnswer as centralCheckAnswer, isChoiceQuestionType, stripNumeralPrefix } from "../../../utils/ieltsScoring";
 
 // --- UTILS ---
+// "iv. Heading" / "iv Heading" → "Heading". Faqat haqiqiy rim raqami (yoki son)
+// kesiladi — ilgari "I visited the museum" sarlavhasidan ham "I" kesilib ketardi.
 export const stripRomanNumerals = (text) => {
     if (!text || typeof text !== 'string') return text;
-    const regex = /^([ivx\d]+)[\.\)\s]+(.*)$/i;
-    const match = text.trim().match(regex);
-    if (match && match[2]) {
-        return match[2].trim();
-    }
-    return text.trim();
+    return stripNumeralPrefix(text);
 };
 
 export const cleanStr = (s) => String(s || "").trim().toLowerCase();

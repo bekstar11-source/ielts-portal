@@ -19,7 +19,9 @@ import {
     getAnswerKey,
     getMultiSelectCount,
     getQuestionWeight,
-    resolveOptionDisplay
+    resolveOptionDisplay,
+    findOptionIndex,
+    stripNumeralPrefix
 } from './ieltsScoring';
 
 const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
@@ -43,7 +45,12 @@ const isOutsideTargetPart = (obj, targetPassageId) => {
     return false;
 };
 
-/** "Matching" turlarida harfni variant matniga aylantiradi ("B" → "The author"). */
+/**
+ * "Matching" turlarida yorliqni variant matniga aylantiradi:
+ * "B" → "The author", "iv" → "Ways of protecting the environment".
+ * Yorliqni topish `findOptionIndex` zimmasida — u ham harfli, ham rim raqamli
+ * ro'yxatlarni biladi, shusiz sarlavha o'rniga rim raqamining o'zi ko'rinardi.
+ */
 const resolveMatchingText = (val, options) => {
     if (!val) return "";
     return String(val)
@@ -51,17 +58,15 @@ const resolveMatchingText = (val, options) => {
         .map(a => a.trim())
         .filter(Boolean)
         .map(v => {
-            const foundIdx = options.findIndex((o, idx) => {
-                const label = (o && typeof o === 'object' ? o.label : null) || String.fromCharCode(65 + idx);
-                return String(label).trim().toLowerCase() === v.toLowerCase();
-            });
+            const foundIdx = findOptionIndex(v, options);
             if (foundIdx === -1) return v;
             const opt = options[foundIdx];
             const optText = (opt && typeof opt === 'object')
                 ? (opt.text || opt.label || opt.content || "")
                 : String(opt || "");
             const textStr = String(optText).trim();
-            return textStr.replace(/^\s*[A-Z][.)-]\s+/, '').trim() || textStr;
+            const stripped = stripNumeralPrefix(textStr);
+            return stripped.replace(/^\s*[A-Z][.)-]\s+/, '').trim() || textStr;
         })
         .join(' / ');
 };
@@ -179,8 +184,10 @@ export const buildReviewQuestions = (testData, userAnswers = {}, partNumber = nu
                     displayUser = resolveOptionDisplay(uAns, options) || uAns;
                 }
 
+                // Sarlavha moslashtirish ham shu yerga kiradi: talabaning javobi "iv"
+                // ko'rinishida saqlanadi, review'da esa sarlavhaning o'zi ko'rinishi kerak.
                 const typeLower = String(currentType || '').toLowerCase();
-                const isMatchingType = typeLower.includes('matching') && !typeLower.includes('headings');
+                const isMatchingType = typeLower.includes('matching');
                 if (isMatchingType && hasOptions) {
                     if (answer) displayCorrect = resolveMatchingText(answer, options);
                     if (uAns) displayUser = resolveMatchingText(uAns, options);

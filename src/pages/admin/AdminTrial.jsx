@@ -8,13 +8,15 @@
 // noto'g'ri (to'liq) test ID sini tanlashning iloji yo'q.
 
 import React, { useEffect, useState, useMemo } from "react";
-import { db } from "../../firebase/firebase";
+import { db, functions } from "../../firebase/firebase";
 import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../../context/ThemeContext";
 import { getTestScope } from "../../utils/subscription";
 import {
   Gift, BookOpen, Headphones, Loader2, Save, AlertTriangle, Power, Clock, Info,
+  RefreshCw,
 } from "lucide-react";
 
 const CONFIG_REF = ["config", "trial"];
@@ -23,10 +25,10 @@ const DEFAULTS = {
   enabled: false,
   minOverallBand: 0,
   // ⚠️ `functions/signupDiscount.js` dagi `DISCOUNT_CONFIG.percent` bilan
-  // bir xil. Chegirma endi dastlabki 3 oyni qoplaydi, shuning uchun 50 emas 30.
+  // bir xil. Chegirma dastlabki 2 oyni qoplaydi, shuning uchun 50 emas 30.
   discountPercent: 30,
   discountDays: 7,
-  discountCycles: 3,
+  discountCycles: 2,
   stages: {
     reading: { testId: "", durationSeconds: 1200 },
     listening: { testId: "", durationSeconds: 900 },
@@ -48,6 +50,8 @@ export default function AdminTrial() {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [regrantUid, setRegrantUid] = useState("");
+  const [regranting, setRegranting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -118,7 +122,7 @@ export default function AdminTrial() {
         discountPercent: Number(config.discountPercent) || 0,
         discountDays: Number(config.discountDays) || 0,
         // ⚠️ Bu maydon `functions/trial.js` uchun migratsiya bayrog'i ham:
-        // u yozilmagan hujjat "3 oylik modeldan oldingi" deb qaraladi va
+        // u yozilmagan hujjat "ko'p oylik modeldan oldingi" deb qaraladi va
         // undagi foiz e'tiborsiz qoldiriladi. Shuning uchun har saqlashda
         // yoziladi, hatto qiymat o'zgarmagan bo'lsa ham.
         discountCycles: Number(config.discountCycles) || 1,
@@ -139,6 +143,44 @@ export default function AdminTrial() {
       toast.error("Saqlab bo'lmadi: " + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Amaldagi taklifni yangi sozlama bilan qayta berish.
+  //
+  // NEGA KERAK: taklif `users/{uid}.signupDiscount` ga BERILGAN PAYTDAGI
+  // raqamlar bilan yoziladi. Sozlama keyin o'zgarsa (3 oy → 2 oy), eski
+  // takliflarda 3 qotib qoladi va sayt "dastlabki 3 oy" deb ko'rsatib turadi.
+  // Bu tugma o'sha hujjatni hozirgi sozlama bilan qayta yozadi.
+  const handleRegrant = async () => {
+    const uid = regrantUid.trim();
+    if (!uid) {
+      toast.error("UID kiritilmagan");
+      return;
+    }
+    setRegranting(true);
+    try {
+      const call = httpsCallable(functions, "grantSignupDiscount");
+      const res = await call({
+        uid,
+        percent: Number(config.discountPercent) || undefined,
+        days: Number(config.discountDays) || undefined,
+        cycles: Number(config.discountCycles) || undefined,
+        force: true,
+      });
+      if (res.data?.granted) {
+        toast.success(`Taklif qayta berildi: ${config.discountPercent}% × ${config.discountCycles} oy`);
+        setRegrantUid("");
+      } else {
+        // Server sababni aytadi: `used` (chegirma allaqachon sarflangan),
+        // `existing_subscriber`, `user_not_found`.
+        toast.error(`Berilmadi: ${res.data?.reason || "noma'lum sabab"}`);
+      }
+    } catch (err) {
+      console.error("grantSignupDiscount:", err);
+      toast.error(err?.message || "Xatolik");
+    } finally {
+      setRegranting(false);
     }
   };
 
@@ -305,8 +347,8 @@ export default function AdminTrial() {
               className={`w-full px-3 py-2.5 rounded-xl border text-sm font-medium outline-none focus:border-violet-500 ${input}`}
             />
             <p className={`mt-1 text-[11px] ${muted}`}>
-              Obunaning dastlabki shuncha oyi chegirmali bo'ladi. 1 oylik tarifda
-              har to'lov 1 oyni, 3 oylik tarifda bitta to'lov 3 oyni yeydi.
+              Obunaning dastlabki shuncha oyi chegirmali bo'ladi. Chegirma
+              1 oylik tarifda ishlaydi — har to'lov 1 oyni yeydi.
             </p>
           </div>
           <div>
@@ -344,10 +386,44 @@ export default function AdminTrial() {
                 (natijaga emas, harakatga bog'langan model).
               </>
             )}
-            {" "}Chegirma 3 oylik paketda amal qiladi va to'lov paytida
-            telefon raqami bo'yicha bir marta ishlatiladi.
+            {" "}Chegirma <b>1 oylik</b> paketda amal qiladi (3 oylik paket
+            {" "}{config.discountCycles} oydan ko'proqni yeydi) va to'lov paytida
+            telefon raqami bo'yicha hisoblanadi.
           </span>
         </div>
+      </div>
+
+      {/* ── Amaldagi taklifni qayta berish ── */}
+      <div className={`rounded-2xl border p-5 mt-4 ${card}`}>
+        <h2 className={`text-sm font-bold mb-1.5 ${label}`}>Taklifni qayta berish</h2>
+        <p className={`text-[12px] mb-4 ${muted}`}>
+          Taklif berilgan paytdagi raqamlar bilan muzlab qoladi. Yuqoridagi
+          sozlamani o'zgartirgandan keyin allaqachon chegirma olgan o'quvchida
+          eski qiymat (masalan "dastlabki 3 oy") ko'rinib turadi — bu tugma
+          uning taklifini hozirgi sozlama bilan qayta yozadi. Avval
+          <b> Saqlash</b>ni bosing.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            placeholder="Foydalanuvchi UID"
+            value={regrantUid}
+            onChange={(e) => setRegrantUid(e.target.value)}
+            className={`flex-1 px-3 py-2.5 rounded-xl border text-sm font-medium outline-none focus:border-violet-500 ${input}`}
+          />
+          <button
+            onClick={handleRegrant}
+            disabled={regranting || !regrantUid.trim()}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-violet-500/40 text-violet-500 hover:bg-violet-500/10 text-sm font-bold transition-colors disabled:opacity-50 shrink-0"
+          >
+            {regranting ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+            Qayta berish
+          </button>
+        </div>
+        <p className={`mt-2 text-[11px] ${muted}`}>
+          Sarflangan oylar reyestrda qoladi — bu tugma chegirmani "qayta
+          to'ldirmaydi", faqat taklif shartlarini yangilaydi.
+        </p>
       </div>
     </div>
   );

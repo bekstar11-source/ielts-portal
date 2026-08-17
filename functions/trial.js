@@ -102,13 +102,13 @@ const STAGES = ["reading", "listening"];
  * Chegirma sozlamalarini saqlangan hujjatdan xavfsiz o'qiydi.
  *
  * ⚠️ MUAMMO: chegirma ilgari BIR MARTALIK edi va `config/trial` da 50%
- * turardi. Endi u dastlabki 3 OYNI qoplaydi — o'sha eski 50% saqlanib qolsa
- * har bir yangi o'quvchi 50% × 3 oy olardi, ya'ni deploydan keyin narx
+ * turardi. Endi u dastlabki 2 OYNI qoplaydi — o'sha eski 50% saqlanib qolsa
+ * har bir yangi o'quvchi 50% × 2 oy olardi, ya'ni deploydan keyin narx
  * jimgina yarmiga tushardi. Buni "admin qo'lda o'zgartirsin" deb qoldirib
  * bo'lmaydi: unutilsa zarar darhol va sezilmasdan boshlanadi.
  *
  * YECHIM: `discountCycles` bir vaqtda ham sozlama, ham MIGRATSIYA BAYROG'I.
- * U yo'q bo'lsa hujjat 3 oylik modeldan oldin yozilgan, demak undagi foiz
+ * U yo'q bo'lsa hujjat ko'p oylik modeldan oldin yozilgan, demak undagi foiz
  * ham eski modelga tegishli — bunday hujjatning butun chegirma bloki
  * e'tiborsiz qoldiriladi va koddagi qiymatlar ishlaydi. Admin panelidan
  * bir marta saqlansa `discountCycles` yoziladi va sozlama yana kuchga kiradi.

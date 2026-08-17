@@ -3,6 +3,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { Check } from 'lucide-react';
 import { stripRomanNumerals } from './CommonComponents';
 import { getHeadingOptionLabels } from '../RightPane/RightPaneUtils';
+import { findOptionIndex } from '../../../utils/ieltsScoring';
 
 export const ReadingDraggableHeading = ({ optionKey, label, text, isUsed, isReviewMode }) => {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -48,10 +49,20 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
 
     const headingLabels = React.useMemo(() => getHeadingOptionLabels(options), [options]);
 
-    const selectedOption = options?.find((opt, idx) => {
-        const optText = typeof opt === 'object' ? opt.text : opt;
-        return cleanStr(headingLabels[idx]) === cleanStr(value) || cleanStr(optText) === cleanStr(value);
-    });
+    // Eski urinishlarda javob yorliq emas, sarlavha matni ko'rinishida saqlangan
+    // bo'lishi mumkin — `findOptionIndex` ikkala ko'rinishni ham topadi.
+    const findOption = React.useCallback((val) => {
+        if (!val) return null;
+        const direct = options?.find((opt, idx) => {
+            const optText = typeof opt === 'object' ? opt.text : opt;
+            return cleanStr(headingLabels[idx]) === cleanStr(val) || cleanStr(optText) === cleanStr(val);
+        });
+        if (direct) return direct;
+        const idx = findOptionIndex(val, options || []);
+        return idx === -1 ? null : options[idx];
+    }, [options, headingLabels]);
+
+    const selectedOption = findOption(value);
 
     const getOptionFullContent = () => {
         if (!value) return null;
@@ -128,10 +139,7 @@ export const ReadingDroppableSlot = ({ id, questionId, value, options, isReviewM
                 <div className="mt-2 w-full bg-green-600 text-white text-[11px] px-2.5 py-1.5 rounded-none shadow-sm whitespace-normal font-bold border border-green-700 animate-in slide-in-from-top-1">
                     <span className="opacity-80 mr-1">Correct:</span>
                     {(() => {
-                        const found = options?.find((o, idx) => {
-                            const optText = typeof o === 'object' ? o.text : o;
-                            return cleanStr(headingLabels[idx]) === cleanStr(correctAnswer) || cleanStr(optText) === cleanStr(correctAnswer);
-                        });
+                        const found = findOption(correctAnswer);
                         const finalText = found ? (typeof found === 'object' ? found.text : found) : correctAnswer;
                         return stripRomanNumerals(finalText);
                     })()}

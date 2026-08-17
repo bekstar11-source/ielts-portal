@@ -208,7 +208,7 @@ exports.grantSignupDiscount = functions
     .https.onCall(grantSignupDiscountCallable);
 
 // Chegirma zanjirini tirik saqlaydigan kunlik eslatma (10:00, Toshkent).
-// Chegirma 3 oyni qoplaydi, lekin to'lov qo'lda — 2- va 3-oy o'z-o'zidan
+// Chegirma 2 oyni qoplaydi, lekin to'lov qo'lda — 2-oy o'z-o'zidan
 // kelmaydi. Batafsil: functions/discountReminders.js.
 const { discountReminders } = require("./discountReminders");
 exports.discountReminders = discountReminders;
