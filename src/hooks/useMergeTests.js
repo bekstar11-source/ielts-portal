@@ -2,6 +2,7 @@ import { useState } from "react";
 import { db } from "../firebase/firebase";
 import toast from "react-hot-toast";
 import { invalidateAdminTestsCache } from "../utils/adminTestsCache";
+import { parseAudioTime } from "../utils/audioTime";
 
 const formatListeningQType = (t) => {
     const lower = t.toLowerCase();
@@ -159,8 +160,8 @@ export function useMergeTests({ onSaved, onClose }) {
                         title: passage.title || `Part ${partNum}`,
                         difficulty: passage.difficulty || mergedPayload.difficulty || "medium",
                         qTypes: Array.from(new Set(qTypes.map(formatListeningQType))),
-                        startSec: passage.startTime != null ? Number(passage.startTime) : 0,
-                        endSec: passage.endTime != null ? Number(passage.endTime) : 0,
+                        startSec: parseAudioTime(passage.startTime),
+                        endSec: parseAudioTime(passage.endTime),
                         audioUrl: passage.audio || mergedPayload.audioUrl || mergedPayload.audio_url || ""
                     };
                 });

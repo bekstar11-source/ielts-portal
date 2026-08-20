@@ -69,6 +69,39 @@ export function normalizeSpotlight(id, data = {}) {
 }
 
 /**
+ * Yuklangan slaydlar modul darajasida keshlanadi — shunda sahifadan sahifaga
+ * o'tganda komponent qayta o'rnatilsa ham "loading" holati takrorlanmaydi
+ * (aks holda spotlight bo'lmaganda ham har safar skelet karta chaqnab o'tardi).
+ *
+ * Kesh ikkita ko'rinish uchun alohida: o'quvchi (faqat aktiv) va admin (hammasi).
+ */
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const cache = { public: null, admin: null }; // { fetchedAt, all }
+
+// Kesh sahifa yangilanganda yo'qoladi, shuning uchun "aktiv slayd yo'q" holatini
+// sessiyada alohida eslab qolamiz: shunda bo'sh kolleksiyada skelet karta
+// birinchi yuklashda ham chaqnamaydi.
+const EMPTY_FLAG = 'promo_spotlights_empty';
+
+const readEmptyFlag = () => {
+    try { return sessionStorage.getItem(EMPTY_FLAG) === '1'; } catch { return false; }
+};
+
+const writeEmptyFlag = (isEmpty) => {
+    try {
+        if (isEmpty) sessionStorage.setItem(EMPTY_FLAG, '1');
+        else sessionStorage.removeItem(EMPTY_FLAG);
+    } catch { /* private mode */ }
+};
+
+/** Admin slayd saqlagach keshni bekor qiladi. */
+export function invalidatePromoSpotlights() {
+    cache.public = null;
+    cache.admin = null;
+    writeEmptyFlag(false);
+}
+
+/**
  * Bosh sahifadagi spotlight slaydlari.
  *
  * `isActive` filtri klientda bajariladi — shunda Firestore'da qo'shimcha
@@ -80,18 +113,41 @@ export function normalizeSpotlight(id, data = {}) {
  * @param {boolean} opts.enabled          false bo'lsa — so'rov yuborilmaydi.
  */
 export function usePromoSpotlights({ includeInactive = false, fallbackToStatic = false, enabled = true } = {}) {
-    const [slides, setSlides] = useState([]);
-    const [loading, setLoading] = useState(enabled);
+    const scope = includeInactive ? 'admin' : 'public';
+
+    const select = useCallback((all) => {
+        const visible = includeInactive ? all : all.filter(s => s.isActive);
+        return visible.length === 0 && fallbackToStatic ? PROMO_SPOTLIGHTS : visible;
+    }, [includeInactive, fallbackToStatic]);
+
+    const cached = enabled && cache[scope] && Date.now() - cache[scope].fetchedAt < CACHE_TTL_MS
+        ? cache[scope]
+        : null;
+
+    const [slides, setSlides] = useState(() => (cached ? select(cached.all) : []));
+    // Oldingi so'rov bo'sh natija bergan bo'lsa — skelet ko'rsatmaymiz.
+    const [loading, setLoading] = useState(
+        enabled && !cached && !(scope === 'public' && !fallbackToStatic && readEmptyFlag())
+    );
     const [error, setError] = useState(null);
 
-    const fetchSlides = useCallback(async () => {
+    const fetchSlides = useCallback(async ({ force = false } = {}) => {
         if (!enabled) { setLoading(false); return; }
-        setLoading(true);
+
+        const hit = !force && cache[scope] && Date.now() - cache[scope].fetchedAt < CACHE_TTL_MS
+            ? cache[scope]
+            : null;
+        if (hit) { setSlides(select(hit.all)); setError(null); setLoading(false); return; }
+
+        // "Bo'sh" deb belgilangan holatda jim yuklaymiz — skelet chaqnamasin.
+        const quiet = scope === 'public' && !fallbackToStatic && readEmptyFlag();
+        if (!quiet) setLoading(true);
         try {
             const snap = await getDocs(query(collection(db, SPOTLIGHTS_COLLECTION), orderBy('order', 'asc')));
             const all = snap.docs.map(d => normalizeSpotlight(d.id, d.data()));
-            const visible = includeInactive ? all : all.filter(s => s.isActive);
-            setSlides(visible.length === 0 && fallbackToStatic ? PROMO_SPOTLIGHTS : visible);
+            cache[scope] = { fetchedAt: Date.now(), all };
+            if (scope === 'public') writeEmptyFlag(all.filter(s => s.isActive).length === 0);
+            setSlides(select(all));
             setError(null);
         } catch (err) {
             console.error('Spotlightlarni yuklashda xatolik:', err);
@@ -100,9 +156,11 @@ export function usePromoSpotlights({ includeInactive = false, fallbackToStatic =
         } finally {
             setLoading(false);
         }
-    }, [includeInactive, fallbackToStatic, enabled]);
+    }, [enabled, scope, select, fallbackToStatic]);
 
     useEffect(() => { fetchSlides(); }, [fetchSlides]);
 
-    return { slides, loading, error, refresh: fetchSlides };
+    const refresh = useCallback(() => fetchSlides({ force: true }), [fetchSlides]);
+
+    return { slides, loading, error, refresh };
 }

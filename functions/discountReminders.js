@@ -4,14 +4,20 @@
 //
 // ─── NEGA BU UMUMAN KERAK ───────────────────────────────────────────────────
 //
-// Chegirma dastlabki 3 OYNI qoplaydi, lekin to'lov QO'LDA ishlaydi (kartaga
-// o'tkazma + chek + admin ✅). Ya'ni 2- va 3-oy — bu avtomatik yechib
-// olinadigan pul emas, har safar noldan boshlanadigan sotuv. Eslatmasiz
-// 1 oylik tarif tushumni oshirmaydi, faqat oldindan olinadigan pulni uchga
-// bo'lib tashlaydi va uchdan ikkisini tasodifga qoldiradi:
+// ⚠️ HOZIR AMALDA UYQUDA: `DISCOUNT_CONFIG.cycles` = 1, ya'ni yangi chegirma
+// birinchi to'lovda to'liq sarflanadi va `cyclesRemaining` darhol 0 bo'ladi —
+// pastdagi so'rov (`cyclesRemaining > 0`) ularni umuman ko'rmaydi. Fayl
+// o'chirilmadi, chunki ESKI takliflar (30% × 2 oy bilan berilganlar) hamon
+// ikkinchi oyga haqli va ularga va'da bajarilishi kerak.
 //
-//   3 tsikl ham yopilsa   73 500   (eski bir martalik tri chegirmasidan yuqori)
-//   1 tsiklda uzilsa      24 500   (undan ancha past)
+// Chegirma bir necha OYNI qoplaganda to'lov QO'LDA ishlaydi (kartaga
+// o'tkazma + chek + admin ✅). Ya'ni 2-oy — bu avtomatik yechib olinadigan
+// pul emas, noldan boshlanadigan yangi sotuv. Eslatmasiz bunday model
+// tushumni oshirmaydi, faqat oldindan olinadigan pulni ikkiga bo'lib
+// tashlaydi va yarmini tasodifga qoldiradi (standard, 30% da):
+//
+//   2 tsikl ham yopilsa   49 000
+//   1 tsiklda uzilsa      24 500
 //
 // Farq — aynan shu fayl.
 //

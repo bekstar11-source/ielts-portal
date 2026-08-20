@@ -1,59 +1,83 @@
 import React from "react";
-import { Search, ChevronLeft, ChevronRight, Home, Sun, Moon } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ArrowLeft, Sun, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../context/LanguageContext";
 import Logo from "../common/Logo";
 
-export default function PodcastMainHeader({ 
-    isDark, 
-    isSidebarCollapsed, 
-    setIsSidebarCollapsed, 
-    searchTerm, 
-    setSearchTerm, 
-    toggleTheme 
+export default function PodcastMainHeader({
+    isDark,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    searchTerm,
+    setSearchTerm,
+    toggleTheme
 }) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
+
+    const iconButton = `w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+        isDark
+            ? "bg-white/5 text-warm-on-dark-soft hover:text-warm-on-dark hover:bg-white/10"
+            : "bg-warm-surface text-warm-muted hover:text-warm-ink hover:bg-warm-card"
+    }`;
 
     return (
-        <div className={`sticky top-0 z-30 px-6 py-4 flex items-center relative h-16 border-b backdrop-blur-xl ${isDark ? 'bg-[#121212]/40 border-transparent' : 'bg-white/80 border-zinc-100'}`}>
-            <div className="flex items-center gap-4 z-10">
-                <button 
+        <div
+            className={`sticky top-0 z-30 px-4 md:px-6 flex items-center gap-3 min-h-16 border-b backdrop-blur-xl pt-[env(safe-area-inset-top,0px)] ${
+                isDark
+                    ? "bg-warm-dark-elevated/85 border-white/5"
+                    : "bg-white/85 border-warm-hairline"
+            }`}
+        >
+            <div className="flex items-center gap-3 shrink-0">
+                {/* Desktop: sidebar toggle */}
+                <button
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className={`hidden md:flex w-8 h-8 rounded-full items-center justify-center transition ${isDark ? 'bg-black/60 text-zinc-400 hover:text-white' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                    aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    className={`hidden md:flex ${iconButton}`}
                 >
-                    {isSidebarCollapsed ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}
+                    {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                 </button>
-                <button 
-                    onClick={() => navigate('/dashboard')}
-                    className={`md:hidden w-10 h-10 rounded-full flex items-center justify-center transition ${isDark ? 'bg-zinc-800 text-white' : 'bg-zinc-100 text-zinc-900'}`}
+                {/* Mobile: dashboardga qaytish — avval mobil sarlavha umuman yo'q edi */}
+                <button
+                    onClick={() => navigate("/dashboard")}
+                    aria-label={t("podcastPage.backToDashboard")}
+                    className={`md:hidden ${iconButton}`}
                 >
-                    <Home size={20} />
+                    <ArrowLeft size={18} />
                 </button>
             </div>
 
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <Logo size="md" tone={isDark ? 'light' : 'ink'} suffix="Podcasts" />
+            <div className="flex-1 min-w-0 flex md:justify-center">
+                <Logo size="md" tone={isDark ? "light" : "ink"} suffix={t("podcastPage.title")} />
             </div>
-            
-            <div className="flex-1 flex justify-end items-center gap-4 z-10">
-                <div className="w-full max-w-[200px] relative hidden md:block">
-                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+
+            <div className="flex justify-end items-center gap-2 shrink-0">
+                <div className="w-[220px] relative hidden md:block">
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? "text-warm-on-dark-soft" : "text-warm-muted"}`}>
                         <Search size={14} />
                     </div>
-                    <input 
-                        type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search..." 
-                        className={`w-full rounded-full py-2 pl-9 pr-4 outline-none border transition text-[12px] ${
-                            isDark 
-                                ? 'bg-[#242424] hover:bg-[#2a2a2a] text-white border-transparent focus:border-white/20 placeholder:text-zinc-500' 
-                                : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border-zinc-200 focus:border-zinc-300 placeholder:text-zinc-400'
+                    <input
+                        type="search"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        aria-label={t("podcastPage.search")}
+                        placeholder={t("podcastPage.searchPlaceholder")}
+                        className={`w-full rounded-full py-2 pl-9 pr-4 outline-none border transition-colors text-[13px] ${
+                            isDark
+                                ? "bg-white/5 text-warm-on-dark border-white/10 focus:border-warm-primary placeholder:text-warm-on-dark-soft"
+                                : "bg-warm-surface text-warm-ink border-warm-hairline focus:border-warm-primary placeholder:text-warm-muted"
                         }`}
                     />
                 </div>
-                <button 
+                {/* Ikonka almashtiriladigan rejimni bildiradi (qorong'ida quyosh) —
+                    avval mobil va desktop tugmalari bir-biriga teskari edi. */}
+                <button
                     onClick={toggleTheme}
-                    className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                    aria-label={isDark ? t("podcastPage.lightMode") : t("podcastPage.darkMode")}
+                    className={iconButton}
                 >
-                    {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
             </div>
         </div>

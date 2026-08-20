@@ -56,10 +56,48 @@ function applyDiscount(price, percent) {
   return Math.floor(discounted / 100) * 100;
 }
 
+/**
+ * O'QITUVCHI GURUH OBUNALARI.
+ *
+ * ⚠️ `src/utils/pricing.js` dagi `TEACHER_TIERS` bilan QO'LDA sinxron bo'lishi
+ * shart. Ilgari bu jadval ikki joyda — `telegramBot.js` va
+ * `src/pages/teacher/TeacherSubscription.jsx` da — mustaqil yozilgan edi.
+ *
+ * NARX MANTIG'I: o'quvchi Pro'ni O'ZI 49 000 so'mga oladi. Shu sababli
+ * o'qituvchi tarifi bir o'quvchi hisobiga undan SEZILARLI arzon bo'lishi
+ * kerak, aks holda guruh obunasini sotib olishning ma'nosi yo'q — ilgari
+ * jadval chiziqli edi (har uch tarifda ham 50 000/o'quvchi), ya'ni chakana
+ * narxdan qimmat. Endi hajm oshgani sari bir o'quvchi narxi tushadi.
+ */
+const TEACHER_TIERS = {
+  tier_10: { name: "Kichik Guruh", maxStudents: 10, price: 300000 },
+  tier_20: { name: "O'rta Guruh", maxStudents: 20, price: 500000 },
+  tier_30: { name: "Katta Guruh", maxStudents: 30, price: 660000 },
+  tier_50: { name: "O'quv Markaz", maxStudents: 50, price: 1000000 },
+};
+
+/** O'qituvchi obunasining muddati (kun) — bir oylik davr. */
+const TEACHER_BILLING_DAYS = 30;
+
+/** Noma'lum tarif uchun `null` qaytaradi — chaqiruvchi tekshirsin. */
+function getTeacherTier(tierId) {
+  return TEACHER_TIERS[tierId] || null;
+}
+
+/** Bir o'quvchi uchun narx — kartada "so'm / o'quvchi" ko'rinishida chiqadi. */
+function teacherPricePerStudent(tier) {
+  if (!tier || !tier.maxStudents) return 0;
+  return Math.round(tier.price / tier.maxStudents);
+}
+
 module.exports = {
   PLAN_PRICES,
   BILLING_DAYS,
+  TEACHER_TIERS,
+  TEACHER_BILLING_DAYS,
   formatSom,
   getPlanPrice,
+  getTeacherTier,
+  teacherPricePerStudent,
   applyDiscount,
 };

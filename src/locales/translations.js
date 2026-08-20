@@ -5,6 +5,8 @@ export const translations = {
     common: {
       error: "Xatolik",
       success: "Muvaffaqiyatli",
+      home: "Bosh sahifa",
+      sort: "Saralash",
       save: "Saqlash",
       cancel: "Bekor qilish",
       delete: "O'chirish",
@@ -33,7 +35,10 @@ export const translations = {
       signin: "Kirish",
       signup: "Ro'yxatdan o'tish",
       home: "Asosiy",
-      features: "Xususiyatlar",
+      features: "Imkoniyatlar",
+      pricing: "Narxlar",
+      forTeachers: "O'qituvchilar",
+      forInstitutions: "Biznes uchun",
       dashboard: "Bosh sahifa"
     },
     footer: {
@@ -84,78 +89,135 @@ export const translations = {
       wordbank: "WordBank"
     },
     landing: {
-      title: "IELTS dan yuqori ball olishning eng zamonaviy usuli.",
-      description: "Real imtihon muhiti, sun'iy intellekt yordamida chuqur tahlil va aniq natijalar.",
-      activeStudents: "Faol O'quvchilar",
-      averageBand: "O'rtacha Ball",
-      reviews: "1,280+ Fikrlar",
-      recommends: "Tavsiya qiladi",
-      start: "Boshlash",
-      seeSample: "Namuna ko'rish",
-      examEnvironment: "Haqiqiy Imtihon Muhiti",
-      envDescription: "Reading va Listening bo'limlari xuddi rasmiy imtihondagidek ko'rinishda.",
-      readingPractice: "Reading Practice",
-      readingPracticeDesc: "Split-screen interfeysi, matnni belgilash (highlight) imkoniyati.",
-      listeningPractice: "Listening Practice",
-      listeningPracticeDesc: "Yuqori sifatli audio va real vaqt rejimidagi savollar.",
-      whyUs: "Nega aynan biz?",
-      fullMockExams: "Full Mock Exams",
-      fullMockExamsDesc: "Reading, Listening va Writing bo'limlari xuddi real imtihondagidek.",
-      simulationActive: "Simulyatsiya faol",
-      inDepthAnalysis: "Chuqur Tahlil",
-      inDepthAnalysisDesc: "Har bir testdan so'ng xatolaringizni ko'rib chiqing.",
-      accessKeys: "Maxsus Kodlar",
-      accessKeysDesc: "O'qituvchingiz bergan kalit (Access Key) orqali yopiq testlarga kiring.",
-      fastAndConvenient: "Tez va Qulay",
-      fastAndConvenientDesc: "Hech qanday qotishlarsiz, yuqori tezlikdagi interfeys.",
-      howItWorks: "Bu qanday ishlaydi?",
-      step1Title: "Ro'yxatdan o'ting",
-      step1Desc: "Shaxsiy kabinet yarating",
-      step2Title: "Testni tanlang",
-      step2Desc: "Yoki Access Key kiriting",
-      step3Title: "Natijani oling",
-      step3Desc: "Avtomatik tekshirish va tahlil",
-      startCTA: "Tayyorgarlikni bugun boshlang.",
-      createAccount: "Hisob ochish",
-      aiPowered: "Sun'iy Intellekt",
-      heroTitle: "CD IELTS tayyorgarligi uchun barchasi bitta joyda",
-      heroSubtitle: "Minglab o'quvchilarga qo'shiling va bizning mukammal IELTS platformamiz orqali mashq qiling, darajangizni oshiring va muvaffaqiyatga erishing.",
-      getStarted: "Boshlash",
-      learnMore: "Batafsil",
-      completeExamExp: "Mukammal Imtihon Tajribasi",
-      featuresTitle: "Barcha ko'nikmalar bitta imtihon interfeysida",
-      featuresSubtitle: "Reading, Listening mashq qiling va javoblarni tahlil qiling - barchasi imtihon muhitidagi qulay interfeysda.",
-      readingTests: "Reading Testlari",
-      readingTestsDesc: "Matnlar va savollar aks etgan split-screen interfeysimizda o'qish qobiliyatini mashq qiling",
-      listeningTests: "Listening Testlari",
-      listeningTestsDesc: "Eshitish bo'yicha mashqlarni audio pleyerli maxsus interfeysda bajaring",
-      answerReview: "Javoblar Tahlili",
-      answerReviewDesc: "Batafsil tahlillar va tushuntirishlar yordamida o'z xatolaringiz ustida ishlang",
-      seeMoreFeatures: "Batafsil xususiyatlar",
-      listeningInterface: "Listening Imtihon Interfeysi",
-      listeningInterfaceDesc: "Kompyuterlashtirilgan listening test interfeysimiz orqali eshitib tushunishni rivojlantiring va real imtihonga mukammal tayyorlaning.",
-      readingInterface: "Reading Imtihon Interfeysi",
-      readingInterfaceDesc: "Split-screen ko'rinishidagi reading test interfeysimiz orqali matnlarni tezroq va samaraliroq tahlil qilishni o'rganing.",
-      trackProgress: "Natijalarni Kuzatib Boring",
-      trackProgressDesc: "Batafsil tahlillar paneli orqali o'z ko'rsatkichlaringizni kuzating. Kuchli va zaif tomonlaringizni aniqlang va doimiy rivojlanib boring.",
-      newsTitle: "Yangiliklar va E'lonlar",
-      newsSubtitle: "Platformadagi so'nggi o'zgarishlar, yangi funksiyalar va CD IELTS bo'yicha foydali yangiliklar.",
-      newsItem1Title: "Sun'iy Intellektli Speaking yordamchisi",
-      newsItem1Desc: "Endi Speaking bo'limini ham platformada sun'iy intellekt orqali mashq qilishingiz va darhol IELTS band natijasini olishingiz mumkin.",
-      newsItem2Title: "Yangi 2026-yilgi Mock testlar",
-      newsItem2Desc: "Haqiqiy imtihon darajasidagi 2026-yilgi eng yangi Reading va Listening testlari bazasi to'liq yangilandi.",
-      newsItem3Title: "Lug'at (WordBank) takrorlash tizimi",
-      newsItem3Desc: "Xatolar ustida ishlash jarayonida yangi so'zlarni saqlang va ularni Flashcard hamda Match o'yini orqali oson yodlang.",
-      faqTitle: "Tez-tez beriladigan savollar",
-      faqSubtitle: "Platforma haqida eng ko'p beriladigan savollarga javoblar.",
-      faqQ1: "Platformada qanday qilib ro'yxatdan o'tish mumkin?",
-      faqA1: "Kirish (Sign In) tugmasini bosing va o'z Google profilingiz yoki emailingiz yordamida bir soniyada hisob yarating.",
-      faqQ2: "Platforma bepulmi?",
-      faqA2: "Ha, platformada ko'plab bepul testlar, maqolalar va audio resurslar mavjud. Premium tarifga o'tib, to'liq Mock testlar va AI tahlillaridan foydalanishingiz mumkin.",
-      faqQ3: "Imtihon muhiti rasmiy CD IELTS bilan bir xilmi?",
-      faqA3: "Albatta, bizning split-screen Reading interfeysimiz va audio pleyerli Listening sahifamiz rasmiy IDP/British Council CD IELTS imtihoni bilan 100% mos keladi.",
-      faqQ4: "O'qituvchilar uchun qanday imkoniyatlar bor?",
-      faqA4: "O'qituvchilar o'quvchilar uchun maxsus guruhlar yaratishi, ularga test topshiriqlarini yuborishi va barcha natijalarni kuzatib borishi mumkin."
+      heroTag: "Sun'iy intellekt asosida IELTS tayyorgarligi",
+      heroHeadingPre: "IELTS",
+      heroHeadingPost: "bo'yicha aniq natijaga erishing",
+      heroWords: ["Reading", "Listening", "Mock Exam"],
+      heroDesc: "Englev — Reading, Listening va to'liq Mock Exam'larni real imtihon formatida onlayn mashq qildiruvchi platforma. Har bir xatoni aniq tahlil qiling va band ballingizni oshirish uchun shaxsiy reja oling.",
+      heroCtaTrial: "Bepul darajangizni aniqlang →",
+      heroCtaRegister: "Ro'yxatdan o'tish",
+      heroSubtext: "~35 daqiqa · ro'yxatdan o'tmasdan · karta ma'lumoti so'ralmaydi",
+      // `config/trial.minOverallBand` = 0 → chegirma testni YAKUNLAGAN har
+      // kimga beriladi, ya'ni bu shartli emas, aniq va'da.
+      heroDiscountNote: "Testni yakunlaganingizda dastlabki 1 oy uchun 20% chegirma ochiladi",
+      heroScreenshotNotice: "// platforma skrinshoti — rasmni shu yerga tashlang",
+      heroReadingPassage: "Reading · Passage 2",
+      heroReadingScore: "13/13 to'g'ri javob",
+      heroMockCompleted: "Mock Exam yakunlandi",
+      heroMockBand: "Band 7.5",
+
+      logosTrust: "O'zbekiston bo'ylab til markazlari ishonch bildirgan",
+
+      statUsers: "15k+",
+      statUsersLabel: "Foydalanuvchilar",
+      statQuestions: "2.5M+",
+      statQuestionsLabel: "Bajarilgan savollar",
+      statBand: "7.5",
+      statBandLabel: "O'rtacha band ball",
+
+      featuresTitle: "Har bir modul uchun alohida yondashuv",
+      featReadingTitle: "Reading: har bir javobni asoslab bering",
+      featReading1: "Band 5 dan 9 gacha real Cambridge formatidagi matnlar",
+      featReading2: "Har bir noto'g'ri javob uchun matndan aynan qaysi qatorda javob borligi ko'rsatiladi",
+      featReading3: "O'qish tezligi va vaqt boshqaruvi bo'yicha statistika",
+      featListeningTitle: "Listening: talaffuz va tezlikka o'rganing",
+      featListening1: "4 ta qism, turli aksentlar — Britan, Avstraliya, Amerika",
+      featListening2: "Har bir savolni qayta tinglab, transkriptdan tekshiring",
+      featListening3: "Eshitib tushunish tezligingiz vaqt bo'yicha kuzatiladi",
+      featMockTitle: "Mock Exam: real imtihon holatida sinang",
+      featMock1: "Reading + Listening to'liq 2 soat 40 daqiqalik format",
+      featMock2: "Imtihondan so'ng batafsil band ball tahlili",
+      featMock3: "Zaif tomonlaringiz bo'yicha keyingi hafta uchun reja",
+      featMockTimeBadge: "Reading + Listening",
+
+      testimonials: [
+        {
+          text: "Englev'dagi Mock Exam'lar aynan haqiqiy imtihondagidek his qildi. 6 haftada 6.5 dan 7.5 ballga chiqdim.",
+          name: "Dilnoza R.",
+          role: "Englev talabasi"
+        },
+        {
+          text: "Reading bo'limidagi izohlar tufayli qaysi savol turida ko'proq xato qilishimni tushunib, strategiyamni o'zgartirdim.",
+          name: "Javlon M.",
+          role: "Englev talabasi"
+        }
+      ],
+
+      pricingTitle: "Har bir bosqich uchun mos tarif",
+      pricingSubtitle: "Istalgan vaqt bekor qilish mumkin — uzoq muddatli shartnoma yo'q.",
+      pricingMonthSuffix: "so'm/oy",
+      pricingSelect: "Tanlash",
+      // ⚠️ Narx MATN sifatida saqlanmaydi — `src/utils/pricing.js` dagi
+      // `PLAN_PRICES` dan olinadi. Ilgari bu yerda 149 000 / 299 000 / 549 000
+      // turardi va haqiqiy narx (0 / 35 000 / 49 000) bilan mos emasdi: landing
+      // 299 000 deb ko'rsatib, "Tanlash" tugmasi 35 000 turadigan sahifaga
+      // olib borardi.
+      pricingDiscountTitle: "Bepul testni yakunlaganlarga — 20% chegirma",
+      pricingDiscountDesc: "Reading va Listening bo'limlarini yechib chiqing: obunangizning dastlabki 1 oyi 20% arzon bo'ladi. Chegirma 1 oylik tarifda amal qiladi va ro'yxatdan o'tganingizdan keyin 7 kun ichida ishlatilishi kerak.",
+      pricingDiscountCta: "Bepul testni boshlash →",
+      pricingDiscountLine: "so'm/oy — dastlabki 1 oy (bepul test bilan)",
+      pricingStarter: "Bepul",
+      pricingStarterSuffix: "so'm — doimiy bepul",
+      pricingStarterFeatures: [
+        "Reading va Listening'dan cheklangan mashqlar",
+        "Podkastlar, maqolalar va lug'at bazasi",
+        "Asosiy natija ko'rsatkichlari"
+      ],
+      pricingStandard: "Standard",
+      pricingStandardBadge: "Eng ommabop",
+      pricingStandardFeatures: [
+        "Cheksiz Reading passage va Listening section",
+        "Batafsil javob tahlili va progress statistikasi",
+        "To'liq Mock Exam (oylik limit bilan)",
+        "AI Writing tekshiruvi (oylik limit bilan)"
+      ],
+      pricingPro: "Pro",
+      pricingProFeatures: [
+        "Standard tarifidagi barcha imkoniyatlar",
+        "To'liq Reading va Listening testlari, test to'plamlari",
+        "Xatolar tahlili va band ball prognozi",
+        "Mock Exam va Writing uchun kengaytirilgan limit"
+      ],
+
+      faqTitle: "Ko'p so'raladigan savollar",
+      faqs: [
+        {
+          q: "Bepul sinab ko'rsam bo'ladimi?",
+          // Eski javob "ro'yxatdan o'tganingizda" deb boshlanardi va bu bepul
+          // trialning asosiy ustunligiga (ro'yxatdan o'tish TALAB QILINMAYDI)
+          // qarshi ma'no berardi.
+          a: "Ha. Ro'yxatdan o'tmasdan ham bepul testni yechib, IELTS band ballingizni bilib olasiz — Reading va Listening bo'limlari, taxminan 35 daqiqa. Ro'yxatdan o'tgandan keyin esa cheklangan mashqlar, podkastlar va maqolalar doimiy bepul qoladi."
+        },
+        {
+          q: "20% chegirma qanday ishlaydi?",
+          a: "Bepul testni yakunlaganingizda chegirma ochiladi va ro'yxatdan o'tganingizda hisobingizga biriktiriladi. U obunangizning dastlabki 1 oyini qoplaydi: 1 oylik tarifni tanlasangiz, birinchi to'lovingiz 20% arzon bo'ladi, keyingi oylar esa to'liq narxda davom etadi. Taklifni ro'yxatdan o'tganingizdan keyin 7 kun ichida ishlatish kerak."
+        },
+        {
+          q: "Band ball qanday hisoblanadi?",
+          a: "Englev platformasi real IELTS baholash tizimi asosida ishlaydi. Har bir noto'g'ri javob tekshirilib, umumiy band ballingiz chiqarib beriladi."
+        },
+        {
+          q: "To'lovni istalgan payt bekor qilsam bo'ladimi?",
+          a: "Albatta, hech qanday uzoq muddatli shartnomalar yo'q. Istalgan vaqtda tarifingizni o'zgartirishingiz yoki bekor qilishingiz mumkin."
+        },
+        {
+          q: "Writing va Speaking ham bormi?",
+          a: "Tez orada Writing va Speaking modullari ham sun'iy intellekt orqali tekshirish imkoniyati bilan qo'shiladi."
+        }
+      ],
+
+      footerCtaTitle: "Darajangizni bugun bepul aniqlang",
+      footerCtaButton: "Bepul testni boshlash",
+      footerDesc: "Sun'iy intellekt asosidagi IELTS Reading, Listening va Mock Exam tayyorgarlik platformasi.",
+      footerProduct: "Mahsulot",
+      footerCompany: "Kompaniya",
+      footerHelp: "Yordam",
+      footerAboutUs: "Biz haqimizda",
+      footerBlog: "Blog",
+      footerContact: "Aloqa",
+      footerFaq: "FAQ",
+      footerSupport: "Qo'llab-quvvatlash",
+      footerRights: "Barcha huquqlar himoyalangan."
     },
     questionTypes: {
       multiple_choice: "Multiple Choice",
@@ -199,6 +261,18 @@ export const translations = {
       extra_words: {
         label: "Ortiqcha so'z",
         advice: "Javobga keraksiz so'z qo'shgansiz. Topshiriq shartidagi so'z limitiga (\"NO MORE THAN TWO WORDS\") har safar e'tibor bering."
+      },
+      tf_flip: {
+        label: "TRUE ↔ FALSE almashgan",
+        advice: "Matnning kerakli joyini topgansiz, lekin mazmunini teskari o'qigansiz. Odatda sabab — \"all\", \"only\", \"always\" kabi cheklovchi so'zlar: ular gapning ma'nosini butunlay o'zgartiradi."
+      },
+      ng_missed: {
+        label: "NOT GIVEN deb o'tkazib yuborgan",
+        advice: "Ma'lumot matnda BOR edi, lekin boshqa so'zlar bilan aytilgani uchun topa olmagansiz. Javob berishdan oldin savolning kalit so'zlariga sinonim qidiring — matnda savoldagi so'z aynan takrorlanmaydi."
+      },
+      ng_overclaim: {
+        label: "Yo'q ma'lumotni \"bor\" degan",
+        advice: "Kalit NOT GIVEN edi — matnda bu haqda hech nima aytilmagan. Eng ko'p uchraydigan IELTS xatosi: mavzu tanish bo'lgani uchun javob \"mantiqan to'g'ri\" tuyuladi. Qoida — TRUE yoki FALSE ni faqat matndagi aniq jumlani ko'rsata olsangiz belgilang."
       },
       wrong_option: {
         label: "Noto'g'ri variant",
@@ -248,6 +322,11 @@ export const translations = {
       quickWin: "Eng tez natija",
       nearMissLead: "Xatolaringizning",
       nearMissTail: "javobni bilgansiz, faqat yozilishida adashgansiz. Bularni tuzatish ballni eng tez ko'taradi.",
+      bandImpactTitle: "Bu xatolar sizga qancha turdi",
+      bandImpactLead: "Javobni bilgansiz, faqat yozilishida adashgansiz —",
+      bandImpactTail: "ta savol. Ularning yozilishini tuzatish — sizga ochiq bo'lgan eng tez band o'sishi.",
+      bandImpactAlso: "Boshqa bo'limlarda ham:",
+      bandImpactNote: "Hisob umrbod natijalaringiz o'rtachasiga asoslangan.",
       emptyMistakesTitle: "Xatolar tarixi hali bo'sh",
       emptyMistakesSubtitle: "Reading yoki Listening testini yakunlang — har bir noto'g'ri javob shu yerda saqlanadi va tahlil qilinadi.",
 
@@ -257,6 +336,16 @@ export const translations = {
       allReasons: "Barcha sabablar",
       blankAnswer: "(bo'sh)",
       showMore: "Yana ko'rsatish",
+      loadingMore: "Yuklanmoqda…",
+      confidenceRange: "Ishonch oralig'i",
+      trendTitle: "O'sish dinamikasi",
+      trendHintLong: "Oxirgi 12 hafta: aniqligingiz qaysi tomonga siljiyapti.",
+      trendOverall: "Umumiy aniqlik",
+      trendWeeks: "12 hafta",
+      trendNote: "Har bir nuqta — bir haftalik natija. Mashq qilinmagan hafta chiziqda uzilish bo'lib qoladi, 5 tadan kam savol berilgan hafta esa umuman hisobga olinmaydi.",
+      lockedTrendTitle: "O'sishni Pro bilan kuzating",
+      emptyTrendTitle: "Trend uchun ma'lumot yetarli emas",
+      emptyTrendSubtitle: "Kamida ikki xil haftada test ishlang — shundan keyin bu yerda o'sish chizig'i paydo bo'ladi.",
       noMatchTitle: "Bu filtr bo'yicha xato yo'q",
       noMatchSubtitle: "Boshqa savol turini yoki xato sababini tanlab ko'ring.",
 
@@ -269,6 +358,9 @@ export const translations = {
       stepNearMissB: "aynan shundan — bu eng arzon ballar.",
       stepWeakA: "Eng kuchsiz turlarga alohida mashq ajrating:",
       stepWeakB: "haftada kamida 2 ta shu turdagi topshiriq.",
+      stepNgLead: "ta xatoyingiz TRUE/FALSE/NOT GIVEN chalkashuvidan.",
+      stepNgOverclaim: "Ko'pincha matnda yo'q narsani \"bor\" deb belgilagansiz — TRUE yoki FALSE ni faqat aniq jumlani ko'rsata olsangiz tanlang.",
+      stepNgMissed: "Ko'pincha ma'lumot matnda bo'lsa ham NOT GIVEN qo'ygansiz — savolning kalit so'zlariga sinonim qidiring.",
       stepTiming: "Savollarning sezilarli qismi javobsiz qolyapti — vaqt taqsimotini mashq qiling va bilmagan savolga ham taxminiy javob yozing.",
       stepOptions: "Variant tanlash savollarida matndagi aynan shu jumlani topib, javobni shundan tasdiqlang — taassurot bilan tanlamang.",
       stepSkillA: "Orqada qolayotgan bo'lim —",
@@ -335,6 +427,11 @@ export const translations = {
       som: "so'm",
       perMonth: "/ oyiga",
       perTriMonth: "/ 3 oyga",
+      // 3 oylik paket "−20%" deb ko'rsatiladi, lekin 20% chegirma bilan
+      // 1 oylik tarif OYIGA arzonroq tushadi (28 000 ↔ 29 667). Oylik
+      // ekvivalentni yozmasak, o'quvchi qimmatroq variantni "arzonroq" deb
+      // tanlab, chegirmasini ham yo'qotardi.
+      perMonthEquivalent: "oyiga {price} so'm",
       compareTitle: "Tariflarni solishtirish",
       compareSubtitle: "Qaysi funksiyalar qaysi tarifda mavjudligini ko'ring.",
       feature: "Funksiya",
@@ -639,7 +736,11 @@ export const translations = {
     library: {
       chooseModule: "Modulni tanlang",
       loading: "Resurslar yuklanmoqda...",
-      section: "bo'limi"
+      section: "bo'limi",
+      writingTask1: "Task 1 (Hisobot)",
+      writingTask2: "Task 2 (Insho)",
+      speakingAi: "Speaking AI",
+      speakingPractice: "Speaking mashqi"
     },
     settings: {
       title: "Sozlamalar",
@@ -1080,22 +1181,42 @@ export const translations = {
       onlyMistakes: "Faqat xatolar",
       onlyCorrect: "Faqat to'g'rilar",
       noAnswer: "Javob berilmagan",
-      jumpToQuestion: "O'tish"
+      jumpToQuestion: "O'tish",
+      reportIssue: "Xabar berish",
+      reportPlaceholder: "Bu savolda qanday xato yoki kamchilik bor? Batafsil yozing...",
+      reportSubmit: "Yuborish",
+      reportCancel: "Bekor qilish",
+      reportSubmitted: "Xabar yuborildi",
+      reportError: "Xato yuz berdi. Qayta urinib ko'ring."
     },
     teacher: {
       portal: "O'qituvchi portali",
       nav: {
         dashboard: "Boshqaruv paneli",
-        tests: "Testlar",
-        results: "Natijalar",
+        tests: "Tayinlangan testlar",
+        results: "Barcha natijalar",
         groupStats: "Guruh statistikasi",
+        students: "O'quvchilar",
         writingReview: "Insholarni tekshirish",
+        speakingReview: "Speaking tekshirish",
         createWriting: "Insho yaratish",
-        subscription: "Obuna"
+        subscription: "Obuna va to'lovlar",
+        sections: {
+          groups: "Guruhlarim",
+          tasks: "Vazifalar",
+          review: "Tekshirish",
+          account: "Natija va hisob"
+        }
       },
       dashboard: {
         roleBadge: "O'qituvchi",
         welcomeBack: "Xush kelibsiz",
+        welcomeName: "Xush kelibsiz, {name}",
+        groupsCount: "{count} ta guruh",
+        studentsTotal: "{count} ta o'quvchi",
+        pendingEssays: "{count} ta insho tekshirilmagan",
+        assignedTests: "Tayinlangan testlar",
+        reviewWritingCount: "Insho tekshirish ({count})",
         quickActions: "Tezkor amallar",
         assignTest: "Test topshirish",
         createGroup: "Guruh ochish",
@@ -1252,6 +1373,8 @@ export const translations = {
       },
       tests: {
         title: "Testlar & Vazifalar",
+        assignmentsCount: "{count} ta tayinlov",
+        testsCount: "{count} ta test",
         subtitle: "O'quvchilaringizga tayinlangan testlar va ularning topshirish holati",
         assignTestBtn: "Test topshirish",
         assignNewTask: "Yangi vazifa tayinlash",
@@ -1306,6 +1429,10 @@ export const translations = {
         confirmBulkDeleteDesc: "{count} ta vazifani o'chirishni tasdiqlaysizmi?",
         unassignSuccess: "Tayinlov muvaffaqiyatli olib tashlandi!",
         bulkDeleteSuccess: "{count} ta vazifa o'chirildi!",
+        bulkDeleteFailed: "{count} tasini o'chirib bo'lmadi.",
+        unassignFailed: "Tayinlovni olib tashlab bo'lmadi.",
+        monitorNotFoundTitle: "Tayinlov topilmadi",
+        monitorNotFoundDesc: "Bu tayinlov o'chirilgan yoki havola eskirgan.",
         copySuccessToast: "{tests} ta vazifa {groups} ta guruhga nusxalandi!",
         assignSuccessToast: "{tests} ta vazifa {groups} ta guruhga tayinlandi!",
         updateSuccessToast: "Tayinlov muvaffaqiyatli yangilandi!",
@@ -1367,6 +1494,22 @@ export const translations = {
           save: "Saqlash",
           saving: "Saqlanmoqda..."
         }
+      },
+      assignmentSettings: {
+        deadline: "Muddat",
+        plus1Day: "+1 kun",
+        plus3Days: "+3 kun",
+        plus1Week: "+1 hafta",
+        clear: "Tozalash",
+        attempts: "Urinishlar soni",
+        attemptsDecrease: "Kamaytirish",
+        attemptsIncrease: "Ko'paytirish",
+        priority: "Muhimlik",
+        priorityLow: "Past",
+        priorityMedium: "O'rtacha",
+        priorityHigh: "Yuqori",
+        note: "Izoh",
+        notePlaceholder: "O'quvchilarga eslatma (ixtiyoriy)"
       },
       assignForm: {
         title: "Test topshirig'i berish",
@@ -1624,20 +1767,22 @@ export const translations = {
         upgradePlan: "Tarifni oshirish",
         subscribeNow: "Obuna bo'lish",
         buyNewTitle: "Yangi Obuna Xarid Qilish",
-        buyNewDesc: "Guruhingiz hajmidan kelib chiqqan holda mos tarifni tanlang. Xarid qilingan obuna bilan guruhingizdagi o'quvchilarga avtomatik PRO imtiyozlari taqdim etiladi.",
+        buyNewDesc: "Guruhingiz hajmidan kelib chiqqan holda mos tarifni tanlang. Guruh qancha katta bo'lsa, bir o'quvchi uchun narx shuncha arzon. Obuna faol bo'lgan davrda o'quvchilaringiz avtomatik PRO darajasini oladi.",
         popular: "Eng Mashhur",
         currency: "so'm",
         per1Month: "1 oy uchun",
+        perStudent: "{price} so'm / o'quvchi — chakana narxdan {savings}% arzon",
         upToStudents: "{count} tagacha o'quvchi",
-        allStudentsPro: "Barcha o'quvchilarga PRO status",
+        allStudentsPro: "Barcha o'quvchilarga PRO darajasi",
         teacherPanelControl: "O'qituvchi paneli orqali cheksiz nazorat",
         payBtn: "To'lov qilish",
         infoTitle: "Ma'lumot",
-        infoDesc: "Siz tanlagan tarif faqatgina 1 oy davomida amal qiladi. Limitdan ortiq o'quvchini guruhingizga qo'shib bo'lmaydi. To'lov amalga oshirilgandan so'ng, pullar qaytarilmaydi. Texnik yordam uchun admin bilan bog'laning.",
+        infoDesc: "Tarif 30 kun davomida amal qiladi. Obuna faol bo'lgan davrda guruhingizdagi har bir o'quvchi PRO darajasini oladi — obuna tugagach bu huquq avtomatik to'xtaydi. Limit barcha guruhlaringizdagi jami (takrorlanmas) o'quvchilar bo'yicha hisoblanadi. To'lov amalga oshirilgandan so'ng, pullar qaytarilmaydi. Texnik yordam uchun admin bilan bog'laning.",
         tiers: {
           small: "Kichik Guruh",
           medium: "O'rta Guruh",
-          large: "Katta Guruh"
+          large: "Katta Guruh",
+          center: "O'quv Markaz"
         },
         featuresTitle: "Imkoniyatlar:",
         perMonth: "/ oyiga",
@@ -1718,12 +1863,68 @@ export const translations = {
       allArticles: "Barcha maqolalar",
       savedArticles: "Saqlangan maqolalar",
       readTime: "O'qish vaqti: {time}",
+    },
+    podcastPage: {
+      title: "Podkastlar",
+      backToDashboard: "Bosh sahifa",
+      searchPlaceholder: "Qidirish...",
+      searchLong: "Nimani tinglamoqchisiz?",
+      lightMode: "Yorug' rejimga o'tish",
+      darkMode: "Qorong'i rejimga o'tish",
+      allLevels: "Barchasi",
+      continueListening: "Davom ettirish",
+      timeLeft: "{time} qoldi",
+      resume: "Davom ettirish",
+      officialAlbums: "Albomlar",
+      newEpisodes: "Yangi epizodlar",
+      showAll: "Barchasi",
+      showMore: "Yana ko'rsatish ({count})",
+      noAlbums: "Hozircha albomlar yo'q.",
+      noEpisodes: "Hozircha epizodlar yo'q.",
+      noMatch: "Tanlangan filtrlarga mos epizod topilmadi.",
+      clearFilters: "Filtrlarni tozalash",
+      search: "Qidiruv",
+      results: "Natijalar ({count})",
+      noResultsFor: "«{query}» bo'yicha hech narsa topilmadi.",
+      browseAll: "Ko'rib chiqish",
+      yourLibrary: "Kutubxonangiz",
+      albums: "Albomlar",
+      episodes: "Epizodlar",
+      album: "Albom",
+      episode: "Epizod",
+      likedPodcasts: "Yoqtirganlar",
+      episodesCount: "{count} ta epizod",
+      noLikedTitle: "Hali yoqtirilgan podkast yo'q",
+      noLikedText: "Epizoddagi yurakcha belgisini bosib, uni shu yerga saqlang.",
+      emptyLibrary: "Kutubxonangiz hozircha bo'sh.",
+      play: "Ijro etish",
+      pause: "To'xtatish",
+      nowPlaying: "Hozir ijroda",
+      episodeNotFound: "Epizod topilmadi.",
+      backToPodcasts: "Podkastlarga qaytish",
+      completed: "Tinglab bo'lingan",
+      restart: "Boshidan",
+      description: "Epizod tavsifi",
+      descShowMore: "Ko'proq",
+      descShowLess: "Kamroq",
+      seeAllEpisodes: "Barcha epizodlar",
+      download: "Yuklab olish",
+      downloadUnavailable: "Bu epizod uchun yuklab olish mavjud emas.",
+      noTranscript: "Bu epizod uchun transkript qo'shilmagan.",
+      fullTranscript: "To'liq transkript",
+      close: "Yopish",
+      back: "Orqaga",
+      like: "Yoqtirish",
+      unlike: "Yoqtirishni bekor qilish",
+      share: "Ulashish",
     }
   },
   en: {
     common: {
       error: "Error",
       success: "Success",
+      home: "Home",
+      sort: "Sort",
       save: "Save",
       cancel: "Cancel",
       delete: "Delete",
@@ -1753,6 +1954,9 @@ export const translations = {
       signup: "Register",
       home: "Home",
       features: "Features",
+      pricing: "Pricing",
+      forTeachers: "For Teachers",
+      forInstitutions: "For Business",
       dashboard: "Dashboard"
     },
     footer: {
@@ -1803,78 +2007,125 @@ export const translations = {
       wordbank: "WordBank"
     },
     landing: {
-      title: "The most modern way to achieve your target IELTS score.",
-      description: "Real exam simulation, detailed AI-powered scoring feedback, and precise tracking.",
-      activeStudents: "Active Students",
-      averageBand: "Average Band",
-      reviews: "1,280+ Reviews",
-      recommends: "Would Recommend",
-      start: "Get Started",
-      seeSample: "View Sample",
-      examEnvironment: "Real Exam Environment",
-      envDescription: "Reading and Listening sections look exactly like the computer-delivered exam.",
-      readingPractice: "Reading Practice",
-      readingPracticeDesc: "Split-screen reading interface with built-in text highlighting support.",
-      listeningPractice: "Listening Practice",
-      listeningPracticeDesc: "High-fidelity audio streaming with real-time question responses.",
-      whyUs: "Why Choose Us?",
-      fullMockExams: "Full Mock Exams",
-      fullMockExamsDesc: "Authentic Reading, Listening, and Writing sections matching official tests.",
-      simulationActive: "Simulation Active",
-      inDepthAnalysis: "In-depth Analysis",
-      inDepthAnalysisDesc: "Review every mistake with detailed step-by-step solutions and tips.",
-      accessKeys: "Access Keys",
-      accessKeysDesc: "Access private group exams using the entry code given by your teacher.",
-      fastAndConvenient: "Fast & Reliable",
-      fastAndConvenientDesc: "A lightweight, lag-free user experience optimized for slow connections.",
-      howItWorks: "How It Works",
-      step1Title: "Sign Up",
-      step1Desc: "Create your student portal profile",
-      step2Title: "Pick an Exam",
-      step2Desc: "Choose any test or enter an access key",
-      step3Title: "Get Graded",
-      step3Desc: "Receive automated instant band scores",
-      startCTA: "Start your preparation journey today.",
-      createAccount: "Create Account",
-      aiPowered: "AI-Powered",
-      heroTitle: "Everything you need for CD IELTS preparation in one place",
-      heroSubtitle: "Join thousands of students using our comprehensive IELTS resource hub, complete with advanced tools to help you practice, improve, and succeed in your examination.",
-      getStarted: "Get started",
-      learnMore: "Learn more",
-      completeExamExp: "Complete Exam Experience",
-      featuresTitle: "All skills in one exam interface",
-      featuresSubtitle: "Practice reading, listening, and review your answers - all in a familiar computer-delivered test interface designed to build your confidence.",
-      readingTests: "Reading Tests",
-      readingTestsDesc: "Practice reading comprehension with our exam interface showing passages and questions",
-      listeningTests: "Listening Tests",
-      listeningTestsDesc: "Master listening skills with audio playback in our computer-delivered test environment",
-      answerReview: "Answer Review",
-      answerReviewDesc: "Analyze your performance with detailed answer reviews and explanations",
-      seeMoreFeatures: "See more features",
-      listeningInterface: "Listening Test Interface",
-      listeningInterfaceDesc: "Master listening comprehension with our computer-delivered listening test interface. Practice with comprehensive audio practice materials designed for effective exam preparation.",
-      readingInterface: "Reading Test Interface",
-      readingInterfaceDesc: "Master reading comprehension with our computer-delivered reading test interface. Practice with comprehensive reading passages and interactive questions designed to simulate the official exam environment.",
-      trackProgress: "Track Your Progress",
-      trackProgressDesc: "Visualize your improvement with a detailed performance dashboard. See your strengths, spot your weaknesses, and stay motivated.",
-      newsTitle: "Latest Updates",
-      newsSubtitle: "Stay updated with the latest platform features, updates, and useful IELTS resources.",
-      newsItem1Title: "AI Speaking Examiner",
-      newsItem1Desc: "Now you can practice the Speaking section using our AI examiner and get instant IELTS band scores.",
-      newsItem2Title: "Fresh 2026 Mock Exams",
-      newsItem2Desc: "Our test library has been updated with the latest 2026-level Reading and Listening exam materials.",
-      newsItem3Title: "Spaced Repetition WordBank",
-      newsItem3Desc: "Save difficult words during reviews and master them easily using Flashcards and our Match game.",
+      heroTag: "AI-Powered IELTS Preparation",
+      heroHeadingPre: "Achieve precise results in IELTS",
+      heroHeadingPost: "",
+      heroWords: ["Reading", "Listening", "Mock Exam"],
+      heroDesc: "Englev is an online platform for practicing Reading, Listening, and full Mock Exams in the real exam format. Accurately analyze every mistake and get a personalized study plan to boost your band score.",
+      heroCtaTrial: "Find your level for free →",
+      heroCtaRegister: "Sign up",
+      heroSubtext: "~35 minutes · no registration needed · no card required",
+      heroDiscountNote: "Finish the test and unlock 20% off your first month",
+      heroScreenshotNotice: "// platform screenshot — drop image here",
+      heroReadingPassage: "Reading · Passage 2",
+      heroReadingScore: "13/13 correct answers",
+      heroMockCompleted: "Mock Exam completed",
+      heroMockBand: "Band 7.5",
+
+      logosTrust: "Trusted by language centers across Uzbekistan",
+
+      statUsers: "15k+",
+      statUsersLabel: "Users",
+      statQuestions: "2.5M+",
+      statQuestionsLabel: "Questions Solved",
+      statBand: "7.5",
+      statBandLabel: "Average Band Score",
+
+      featuresTitle: "A dedicated approach for every module",
+      featReadingTitle: "Reading: justify every answer",
+      featReading1: "Authentic Cambridge-format passages from Band 5 to 9",
+      featReading2: "For every mistake, the exact supporting line in the text is revealed",
+      featReading3: "Reading speed and time management analytics",
+      featListeningTitle: "Listening: master accents and pacing",
+      featListening1: "4 sections with diverse accents — British, Australian, American",
+      featListening2: "Replay every question and verify with audio transcripts",
+      featListening3: "Your listening comprehension speed is tracked over time",
+      featMockTitle: "Mock Exam: test in real exam conditions",
+      featMock1: "Reading + Listening full 2 hour 40 minute format",
+      featMock2: "Comprehensive band score breakdown after the exam",
+      featMock3: "Personalized action plan targeting your weak points",
+      featMockTimeBadge: "Reading + Listening",
+
+      testimonials: [
+        {
+          text: "The Mock Exams on Englev felt just like the real test. I improved from 6.5 to 7.5 in 6 weeks.",
+          name: "Dilnoza R.",
+          role: "Englev student"
+        },
+        {
+          text: "Thanks to the detailed Reading explanations, I understood which question types I missed most and refined my strategy.",
+          name: "Javlon M.",
+          role: "Englev student"
+        }
+      ],
+
+      pricingTitle: "Flexible plans for every stage",
+      pricingSubtitle: "Cancel anytime — no long-term contracts.",
+      pricingMonthSuffix: "UZS/mo",
+      pricingSelect: "Select",
+      pricingDiscountTitle: "Finish the free test — get 20% off",
+      pricingDiscountDesc: "Complete the Reading and Listening sections and your first month is 20% cheaper. The discount applies to the monthly plan and must be used within 7 days of signing up.",
+      pricingDiscountCta: "Start the free test →",
+      pricingDiscountLine: "UZS for the first month (with the free test)",
+      pricingStarter: "Free",
+      pricingStarterSuffix: "UZS — free forever",
+      pricingStarterFeatures: [
+        "Limited Reading & Listening practice",
+        "Podcasts, articles and the word bank",
+        "Basic score breakdown"
+      ],
+      pricingStandard: "Standard",
+      pricingStandardBadge: "Most Popular",
+      pricingStandardFeatures: [
+        "Unlimited Reading passages & Listening sections",
+        "Detailed answer analysis and progress stats",
+        "Full Mock Exams (monthly limit)",
+        "AI Writing review (monthly limit)"
+      ],
+      pricingPro: "Pro",
+      pricingProFeatures: [
+        "Everything in Standard",
+        "Full Reading & Listening tests and test sets",
+        "Mistake analysis and band score forecast",
+        "Higher Mock Exam and Writing limits"
+      ],
+
       faqTitle: "Frequently Asked Questions",
-      faqSubtitle: "Find answers to the most common questions about the platform.",
-      faqQ1: "How do I register on the platform?",
-      faqA1: "Click Sign In and create an account in a second using your Google profile or email.",
-      faqQ2: "Is the platform free?",
-      faqA2: "Yes, there are many free tests, articles, and audio resources. You can upgrade to a Premium plan to access full Mock tests and AI feedback.",
-      faqQ3: "Is the exam environment identical to the official CD IELTS?",
-      faqA3: "Absolutely, our split-screen Reading interface and Listening setup are 100% identical to the official IDP/British Council CD IELTS exam.",
-      faqQ4: "What features are available for teachers?",
-      faqA4: "Teachers can create groups, assign mock tests using Access Keys, and track student performance statistics in real-time."
+      faqs: [
+        {
+          q: "Can I try it for free?",
+          a: "Yes. You can take the free test without registering at all — Reading and Listening, about 35 minutes — and see your estimated IELTS band. After you sign up, limited practice, podcasts and articles stay free forever."
+        },
+        {
+          q: "How does the 20% discount work?",
+          a: "Completing the free test unlocks the discount, and it is attached to your account when you sign up. It covers the first month of your subscription: on the monthly plan, your first payment is 20% cheaper and later months continue at full price. The offer must be used within 7 days of signing up."
+        },
+        {
+          q: "How is the band score calculated?",
+          a: "Englev operates using the official IELTS scoring system. Every answer is evaluated to calculate your overall band score accurately."
+        },
+        {
+          q: "Can I cancel my subscription anytime?",
+          a: "Absolutely, there are no long-term contracts. You can upgrade, downgrade, or cancel your subscription at any time."
+        },
+        {
+          q: "Are Writing and Speaking included?",
+          a: "Writing and Speaking modules are available with AI-assisted grading and feedback."
+        }
+      ],
+
+      footerCtaTitle: "Find your level for free today",
+      footerCtaButton: "Start free test",
+      footerDesc: "AI-powered IELTS Reading, Listening, and Mock Exam preparation platform.",
+      footerProduct: "Product",
+      footerCompany: "Company",
+      footerHelp: "Support",
+      footerAboutUs: "About Us",
+      footerBlog: "Blog",
+      footerContact: "Contact",
+      footerFaq: "FAQ",
+      footerSupport: "Support",
+      footerRights: "All rights reserved."
     },
     questionTypes: {
       multiple_choice: "Multiple Choice",
@@ -1918,6 +2169,18 @@ export const translations = {
       extra_words: {
         label: "Extra words",
         advice: "You added words the answer doesn't need. Check the word limit (\"NO MORE THAN TWO WORDS\") on every task."
+      },
+      tf_flip: {
+        label: "TRUE ↔ FALSE swapped",
+        advice: "You found the right part of the text but read its meaning backwards. The usual cause is a limiting word — \"all\", \"only\", \"always\" — which flips the whole statement."
+      },
+      ng_missed: {
+        label: "Marked NOT GIVEN, but it was there",
+        advice: "The information WAS in the text, just worded differently. Look for synonyms of the question's key words before you answer — the passage almost never repeats them verbatim."
+      },
+      ng_overclaim: {
+        label: "Claimed something the text never said",
+        advice: "The key was NOT GIVEN — the passage says nothing about this. The most common IELTS mistake: the topic feels familiar, so the answer seems \"logically true\". The rule: only mark TRUE or FALSE if you can point at the exact sentence."
       },
       wrong_option: {
         label: "Wrong option",
@@ -1967,6 +2230,11 @@ export const translations = {
       quickWin: "Quickest win",
       nearMissLead: "Of your mistakes,",
       nearMissTail: "you knew the answer and only got the writing wrong. Fixing these lifts your band fastest.",
+      bandImpactTitle: "What these mistakes cost you",
+      bandImpactLead: "You knew these answers but lost the mark on form —",
+      bandImpactTail: "questions. Fixing how you write them is the fastest band gain available to you.",
+      bandImpactAlso: "In your other sections too:",
+      bandImpactNote: "Based on the average across all your results so far.",
       emptyMistakesTitle: "No mistake history yet",
       emptyMistakesSubtitle: "Finish a Reading or Listening test — every wrong answer is stored and analysed here.",
 
@@ -1976,6 +2244,16 @@ export const translations = {
       allReasons: "All causes",
       blankAnswer: "(blank)",
       showMore: "Show more",
+      loadingMore: "Loading…",
+      confidenceRange: "Confidence range",
+      trendTitle: "Progress over time",
+      trendHintLong: "The last 12 weeks: which way your accuracy is moving.",
+      trendOverall: "Overall accuracy",
+      trendWeeks: "12 weeks",
+      trendNote: "Each point is one week. Weeks you didn't practise show as a break in the line, and weeks with fewer than 5 questions are left out entirely.",
+      lockedTrendTitle: "Track your progress with Pro",
+      emptyTrendTitle: "Not enough data for a trend",
+      emptyTrendSubtitle: "Take tests in at least two different weeks and your progress line will appear here.",
       noMatchTitle: "No mistakes match this filter",
       noMatchSubtitle: "Try a different question type or cause.",
 
@@ -1988,6 +2266,9 @@ export const translations = {
       stepNearMissB: "of your mistakes are exactly that — the cheapest marks available.",
       stepWeakA: "Give your weakest types dedicated practice:",
       stepWeakB: "at least 2 tasks of that type per week.",
+      stepNgLead: "of your mistakes come from TRUE/FALSE/NOT GIVEN confusion.",
+      stepNgOverclaim: "Most often you marked something the passage never said — only choose TRUE or FALSE when you can point at the exact sentence.",
+      stepNgMissed: "Most often you chose NOT GIVEN when the information was there — look for synonyms of the question's key words.",
       stepTiming: "A noticeable share of questions is left blank — practise pacing and always write a guess instead of nothing.",
       stepOptions: "On choice questions, find the exact sentence in the text and confirm the answer from it rather than picking on impression.",
       stepSkillA: "The section falling behind is",
@@ -2054,6 +2335,7 @@ export const translations = {
       som: "UZS",
       perMonth: "/ month",
       perTriMonth: "/ 3 months",
+      perMonthEquivalent: "{price} UZS per month",
       compareTitle: "Compare Plans",
       compareSubtitle: "See which features are included in each tier.",
       feature: "Feature",
@@ -2357,7 +2639,11 @@ export const translations = {
     library: {
       chooseModule: "Choose a module",
       loading: "Loading resources...",
-      section: "section"
+      section: "section",
+      writingTask1: "Task 1 (Report)",
+      writingTask2: "Task 2 (Essay)",
+      speakingAi: "Speaking AI",
+      speakingPractice: "Speaking Practice"
     },
     settings: {
       title: "Settings",
@@ -2798,22 +3084,42 @@ export const translations = {
        onlyMistakes: "Only Mistakes",
        onlyCorrect: "Only Correct",
        noAnswer: "No Answer",
-       jumpToQuestion: "Go to"
+       jumpToQuestion: "Go to",
+       reportIssue: "Report issue",
+       reportPlaceholder: "What's wrong or missing in this question? Describe it in detail...",
+       reportSubmit: "Submit",
+       reportCancel: "Cancel",
+       reportSubmitted: "Report submitted",
+       reportError: "Something went wrong. Please try again."
      },
      teacher: {
        portal: "Teacher Portal",
        nav: {
          dashboard: "Dashboard",
-         tests: "Tests",
-         results: "Results",
+         tests: "Assigned Tests",
+         results: "All Results",
          groupStats: "Group Analytics",
+         students: "Students",
          writingReview: "Writing Review",
+         speakingReview: "Speaking Review",
          createWriting: "Create Writing",
-         subscription: "Subscription"
+         subscription: "Subscription & Billing",
+         sections: {
+           groups: "My groups",
+           tasks: "Assignments",
+           review: "Review",
+           account: "Results & billing"
+         }
        },
        dashboard: {
          roleBadge: "Teacher",
          welcomeBack: "Welcome back",
+         welcomeName: "Welcome back, {name}",
+         groupsCount: "{count} groups",
+         studentsTotal: "{count} students",
+         pendingEssays: "{count} essays pending",
+         assignedTests: "Assigned tests",
+         reviewWritingCount: "Review Writing ({count})",
          quickActions: "Quick Actions",
          assignTest: "Assign Test",
          createGroup: "Create Group",
@@ -2970,6 +3276,8 @@ export const translations = {
        },
        tests: {
          title: "Tests & Assignments",
+         assignmentsCount: "{count} assignments",
+         testsCount: "{count} tests",
          subtitle: "Assigned tests and student submission status across your groups",
          assignTestBtn: "Assign Test",
          assignNewTask: "Assign New Test",
@@ -3024,6 +3332,10 @@ export const translations = {
          confirmBulkDeleteDesc: "Are you sure you want to delete {count} assignments?",
          unassignSuccess: "Assignment removed successfully!",
          bulkDeleteSuccess: "{count} assignments deleted!",
+         bulkDeleteFailed: "{count} could not be deleted.",
+         unassignFailed: "Could not remove the assignment.",
+         monitorNotFoundTitle: "Assignment not found",
+         monitorNotFoundDesc: "This assignment was removed or the link is outdated.",
          copySuccessToast: "{tests} tasks copied to {groups} groups!",
          assignSuccessToast: "{tests} tasks assigned to {groups} groups!",
          updateSuccessToast: "Assignment updated successfully!",
@@ -3085,6 +3397,22 @@ export const translations = {
            save: "Save",
            saving: "Saving..."
          }
+       },
+       assignmentSettings: {
+         deadline: "Deadline",
+         plus1Day: "+1 day",
+         plus3Days: "+3 days",
+         plus1Week: "+1 week",
+         clear: "Clear",
+         attempts: "Max attempts",
+         attemptsDecrease: "Decrease",
+         attemptsIncrease: "Increase",
+         priority: "Priority",
+         priorityLow: "Low",
+         priorityMedium: "Medium",
+         priorityHigh: "High",
+         note: "Teacher note",
+         notePlaceholder: "Note for students (optional)"
        },
        assignForm: {
          title: "Assign Test",
@@ -3342,20 +3670,22 @@ export const translations = {
           upgradePlan: "Upgrade Plan",
           subscribeNow: "Subscribe Now",
           buyNewTitle: "Purchase New Subscription",
-          buyNewDesc: "Choose a suitable plan based on your group size. Purchased subscription automatically grants PRO benefits to your students.",
+          buyNewDesc: "Choose a plan based on your group size — the larger the group, the lower the price per student. While the plan is active your students automatically get PRO access.",
           popular: "Most Popular",
           currency: "UZS",
           per1Month: "for 1 month",
+          perStudent: "{price} UZS / student — {savings}% below retail",
           upToStudents: "Up to {count} students",
-          allStudentsPro: "PRO status for all students",
+          allStudentsPro: "PRO access for all students",
           teacherPanelControl: "Unlimited control via Teacher Portal",
           payBtn: "Make Payment",
           infoTitle: "Information",
-          infoDesc: "The selected plan is valid for 1 month. You cannot exceed the student limit. Payments are non-refundable. Contact admin for support.",
+          infoDesc: "The plan is valid for 30 days. While it is active, every student in your groups gets PRO access, which stops automatically when the plan expires. The limit counts unique students across all of your groups. Payments are non-refundable. Contact admin for support.",
           tiers: {
             small: "Small Group",
             medium: "Medium Group",
-            large: "Large Group"
+            large: "Large Group",
+            center: "Learning Centre"
           },
           featuresTitle: "Features:",
           perMonth: "/ month",
@@ -3436,6 +3766,60 @@ export const translations = {
       allArticles: "All articles",
       savedArticles: "Saved articles",
       readTime: "Read time: {time}",
+    },
+    podcastPage: {
+      title: "Podcasts",
+      backToDashboard: "Home",
+      searchPlaceholder: "Search...",
+      searchLong: "What do you want to listen to?",
+      lightMode: "Switch to light mode",
+      darkMode: "Switch to dark mode",
+      allLevels: "All",
+      continueListening: "Continue listening",
+      timeLeft: "{time} left",
+      resume: "Resume",
+      officialAlbums: "Albums",
+      newEpisodes: "New episodes",
+      showAll: "Show all",
+      showMore: "Show more ({count})",
+      noAlbums: "No albums available yet.",
+      noEpisodes: "No episodes yet.",
+      noMatch: "No episodes match the selected filters.",
+      clearFilters: "Clear filters",
+      search: "Search",
+      results: "Results ({count})",
+      noResultsFor: "Nothing found for \"{query}\".",
+      browseAll: "Browse all",
+      yourLibrary: "Your library",
+      albums: "Albums",
+      episodes: "Episodes",
+      album: "Album",
+      episode: "Episode",
+      likedPodcasts: "Liked podcasts",
+      episodesCount: "{count} episodes",
+      noLikedTitle: "No liked podcasts yet",
+      noLikedText: "Tap the heart on any episode to save it here.",
+      emptyLibrary: "Your library is empty for now.",
+      play: "Play",
+      pause: "Pause",
+      nowPlaying: "Now playing",
+      episodeNotFound: "Episode not found.",
+      backToPodcasts: "Back to podcasts",
+      completed: "Completed",
+      restart: "Start over",
+      description: "Episode description",
+      descShowMore: "Show more",
+      descShowLess: "Show less",
+      seeAllEpisodes: "See all episodes",
+      download: "Download",
+      downloadUnavailable: "Download is not available for this episode.",
+      noTranscript: "No transcript has been added for this episode.",
+      fullTranscript: "Full transcript",
+      close: "Close",
+      back: "Back",
+      like: "Like",
+      unlike: "Remove like",
+      share: "Share",
     }
   }
 };

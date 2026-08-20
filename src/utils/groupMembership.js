@@ -1,27 +1,37 @@
 /**
- * Guruhga o'quvchi qo'shish / chiqarish uchun YAGONA manba.
+ * Guruhga o'quvchi qo'shish / chiqarish uchun YAGONA klient manbasi.
  *
- * Ilgari bu ikki sahifada ikki xil bajarilardi:
- *   • TeacherStudents  — faqat `groups.studentIds` ni yangilardi, tarif
- *     limitini umuman tekshirmasdi;
- *   • TeacherGroupStats — limitni tekshirardi, lekin `users.groupId` ni ham
- *     yozardi. `groupId` esa `firestore.rules` da HIMOYALANGAN maydon
- *     (faqat Admin SDK yozadi), shuning uchun o'qituvchi uchun bu chaqiruv
- *     doim "Missing or insufficient permissions" bilan yiqilardi — ya'ni
- *     Guruh statistikasi sahifasidagi "Qo'shish" tugmasi ishlamas edi.
+ * ─── NEGA ENDI CALLABLE ─────────────────────────────────────────────────────
  *
- * A'zolikning yagona haqiqiy manbasi — `groups.studentIds`. Server tarafdagi
- * `checkEntitlement` ham aynan shu maydonni tekshiradi
- * (`where('studentIds','array-contains', uid)`), shuning uchun `users.groupId`
- * ga umuman tegmaymiz.
+ * Ilgari bu yerda `updateDoc(groups/{id}, { studentIds: arrayUnion(...) })`
+ * turardi va tarif limiti FAQAT shu fayldagi `canAddStudent` bilan, ya'ni
+ * brauzerda tekshirilardi. Firestore qoidalari esa istalgan o'qituvchiga
+ * istalgan guruhni yozishga ruxsat berardi — konsolga bitta buyruq yozib
+ * limitni ham, obuna talabini ham chetlab o'tsa bo'lardi.
+ *
+ * Endi a'zolik `manageGroupStudent` Cloud Function orqali o'zgaradi: u guruh
+ * egaligini, obuna faolligini va limitni serverda tekshiradi, `users.groupId`
+ * va `groupPro` (guruh Pro huquqi) ni ham o'zi yozadi — bu maydonlarga
+ * klientdan umuman tegib bo'lmaydi (`firestore.rules` → `protectedUserFields`).
+ *
+ * ⚠️ `canAddStudent` saqlanib qoldi, lekin u endi faqat UI uchun: tugmani
+ * oldindan bloklab, keraksiz tarmoq so'rovini va noaniq xatoni oldini oladi.
+ * Haqiqiy qaror — serverda.
  */
 
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase/firebase';
 import { hasActiveTeacherSubscription } from './subscription';
 
+const manageGroupStudent = httpsCallable(functions, 'manageGroupStudent');
+
+/** O'qituvchining barcha guruhlaridagi UNIQUE o'quvchilar soni (band joylar). */
+export function countSeatsUsed(groups) {
+  return new Set((groups || []).flatMap((g) => g.studentIds || [])).size;
+}
+
 /**
- * O'qituvchi yana bitta o'quvchi qo'sha oladimi.
+ * O'qituvchi yana bitta o'quvchi qo'sha oladimi (UI uchun oldindan tekshiruv).
  * @returns {{ ok: true } | { ok: false, reason: string }}
  */
 export function canAddStudent(userData, groups) {
@@ -34,7 +44,7 @@ export function canAddStudent(userData, groups) {
     return { ok: false, reason: "Tarifingizda o'quvchilar limiti belgilanmagan. Admin bilan bog'laning." };
   }
 
-  const currentCount = new Set((groups || []).flatMap(g => g.studentIds || [])).size;
+  const currentCount = countSeatsUsed(groups);
   if (currentCount >= maxStudents) {
     return { ok: false, reason: `Tarif limiti to'ldi (${currentCount}/${maxStudents}). Kattaroq tarifga o'ting.` };
   }
@@ -42,16 +52,33 @@ export function canAddStudent(userData, groups) {
   return { ok: true };
 }
 
-/** O'quvchini guruhga qo'shadi. */
-export async function addStudentToGroup(groupId, studentId) {
-  await updateDoc(doc(db, 'groups', groupId), {
-    studentIds: arrayUnion(studentId),
-  });
+/**
+ * Callable xatosini o'qiladigan matnga aylantiradi.
+ * `HttpsError.message` allaqachon o'zbekcha — faqat texnik xatolarni yopamiz.
+ */
+function toReadableError(error) {
+  if (error?.code === 'functions/internal' || !error?.message) {
+    return "Server xatosi. Birozdan so'ng qayta urinib ko'ring.";
+  }
+  return error.message;
 }
 
-/** O'quvchini guruhdan chiqaradi. */
+/** O'quvchini guruhga qo'shadi. Limit/obuna tekshiruvi serverda. */
+export async function addStudentToGroup(groupId, studentId) {
+  try {
+    const res = await manageGroupStudent({ action: 'add', groupId, studentId });
+    return res.data;
+  } catch (error) {
+    throw new Error(toReadableError(error));
+  }
+}
+
+/** O'quvchini guruhdan chiqaradi (guruh Pro huquqi ham shu zahoti olinadi). */
 export async function removeStudentFromGroup(groupId, studentId) {
-  await updateDoc(doc(db, 'groups', groupId), {
-    studentIds: arrayRemove(studentId),
-  });
+  try {
+    const res = await manageGroupStudent({ action: 'remove', groupId, studentId });
+    return res.data;
+  } catch (error) {
+    throw new Error(toReadableError(error));
+  }
 }

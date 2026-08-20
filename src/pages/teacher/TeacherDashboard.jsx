@@ -53,7 +53,14 @@ export default function TeacherDashboard() {
     ).length, [results]);
 
     const firstName = userData?.fullName?.split(' ')[0] || t('teacher.dashboard.roleBadge');
-    const totalStudents = groups.reduce((acc, g) => acc + (g.studentIds?.length || 0), 0);
+
+    // Bir o'quvchi bir nechta guruhda bo'lishi mumkin — guruhlar bo'yicha
+    // oddiy yig'indi uni har safar qaytadan sanardi va bu son GroupStats
+    // dagi tarif hisobidan (u `Set` bilan ishlaydi) farq qilardi.
+    const totalStudents = useMemo(
+        () => new Set(groups.flatMap((g) => g.studentIds || [])).size,
+        [groups]
+    );
 
     const recentResults = useMemo(() => results.slice(0, 6), [results]);
 
@@ -93,7 +100,9 @@ export default function TeacherDashboard() {
             to: '/teacher/group-stats?view=students',
             hint: insights.activeStudents ? t('teacher.groupStats.statsTiles.activeCountHint').replace('{count}', insights.activeStudents) : null,
         },
-        { label: t('teacher.dashboard.totalTests'), value: assignedTestsCount, to: '/teacher/tests' },
+        // Qiymat — TAYINLANGAN testlar soni; "Topshirilgan testlar" yorlig'i
+        // uni topshirilganlar soni deb o'qitardi.
+        { label: t('teacher.dashboard.assignedTests'), value: assignedTestsCount, to: '/teacher/tests' },
         {
             label: t('teacher.dashboard.pendingReviews'),
             value: pendingWritings,
@@ -116,19 +125,26 @@ export default function TeacherDashboard() {
             <div className="flex flex-wrap items-end justify-between gap-4 mb-lg">
                 <div>
                     <h1 className="font-serif-display text-warm-display-sm md:text-warm-display-md font-semibold tracking-tight">
-                        Welcome back, {firstName}
+                        {t('teacher.dashboard.welcomeName', { name: firstName })}
                     </h1>
                     <p className="text-warm-body-sm text-warm-muted dark:text-warm-on-dark-soft mt-1">
-                        {groups.length} group{groups.length !== 1 ? 's' : ''} · {totalStudents} students
-                        {pendingWritings > 0 && ` · ${pendingWritings} pending essays`}
+                        {t('teacher.dashboard.groupsCount', { count: groups.length })}
+                        {' · '}
+                        {t('teacher.dashboard.studentsTotal', { count: totalStudents })}
+                        {pendingWritings > 0 && ` · ${t('teacher.dashboard.pendingEssays', { count: pendingWritings })}`}
                     </p>
                 </div>
 
+                {/* Tekshirilmagan insho bo'lsa — u birinchi ish; aks holda
+                    tayinlash sahifasi (ilgari bu tugma "Assign Test" deb
+                    yozilib, insho YARATISH sahifasiga olib borardi). */}
                 <button
-                    onClick={() => navigate(pendingWritings > 0 ? '/teacher/writing-review' : '/teacher/create-writing')}
+                    onClick={() => navigate(pendingWritings > 0 ? '/teacher/writing-review' : '/teacher/tests')}
                     className="inline-flex items-center gap-xs px-lg py-sm rounded-full text-[14px] font-medium bg-warm-primary text-white hover:bg-warm-primary-active active:scale-[0.98] transition-all"
                 >
-                    {pendingWritings > 0 ? `Review Writing (${pendingWritings})` : 'Assign Test'}
+                    {pendingWritings > 0
+                        ? t('teacher.dashboard.reviewWritingCount', { count: pendingWritings })
+                        : t('teacher.dashboard.assignTest')}
                     <ArrowRight size={15} weight="bold" />
                 </button>
             </div>

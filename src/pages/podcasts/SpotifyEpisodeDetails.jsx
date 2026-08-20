@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTheme } from "../../context/ThemeContext";
+import { useTranslation } from "../../context/LanguageContext";
 import { usePodcast } from "../../context/PodcastContext";
 import { useAuth } from "../../context/AuthContext";
 import { useEpisodeDetails } from "../../hooks/usePodcastData";
@@ -25,6 +26,7 @@ export default function SpotifyEpisodeDetails() {
     const { podcastId } = useParams();
     const navigate = useNavigate();
     const { theme } = useTheme();
+    const { t } = useTranslation();
     const isDark = theme === 'dark';
     const {
         currentTrack, setCurrentTrack, isPlaying, setIsPlaying,
@@ -119,7 +121,7 @@ export default function SpotifyEpisodeDetails() {
     const handleDownload = () => {
         // Avval tugma hech nima qilmasdi
         if (!podcast?.audioUrl) {
-            toast.error("Bu epizod uchun yuklab olish mavjud emas.");
+            toast.error(t('podcastPage.downloadUnavailable'));
             return;
         }
         const a = document.createElement('a');
@@ -141,20 +143,20 @@ export default function SpotifyEpisodeDetails() {
     };
 
     return (
-        <div ref={containerRef} className={`h-screen w-full flex flex-col font-sans select-none overflow-y-auto custom-scrollbar relative transition-colors duration-300 gpu-accelerated ${isDark ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
+        <div ref={containerRef} className={`h-screen w-full flex flex-col font-sans overflow-y-auto custom-scrollbar relative transition-colors duration-300 gpu-accelerated ${isDark ? 'bg-warm-dark text-warm-on-dark' : 'bg-warm-canvas text-warm-ink'}`}>
             {/* Top Header */}
-            <div className={`sticky top-0 z-50 px-6 md:px-10 py-4 flex items-center justify-between border-b transition-colors ${isDark ? 'bg-[#121212] border-white/5' : 'bg-white border-zinc-100'}`}>
+            <div className={`sticky top-0 z-50 px-4 md:px-10 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] flex items-center justify-between border-b transition-colors ${isDark ? 'bg-warm-dark/90 border-white/5' : 'bg-warm-canvas/90 border-warm-hairline'}`}>
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
                             navigate('/podcasts');
                         }} 
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition shrink-0 ${isDark ? 'bg-black/60 text-zinc-400 hover:text-white' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition shrink-0 ${isDark ? 'bg-white/5 text-warm-on-dark-soft hover:text-warm-on-dark hover:bg-white/10' : 'bg-warm-surface text-warm-muted hover:text-warm-ink hover:bg-warm-card'}`}
                     >
                         <ChevronLeft size={22} />
                     </button>
-                    <h2 className={`text-xl font-black truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>Episode</h2>
+                    <h2 className={`text-lg font-bold tracking-tight truncate ${isDark ? 'text-warm-on-dark' : 'text-warm-ink'}`}>{t('podcastPage.episode')}</h2>
                 </div>
             </div>
 
@@ -170,21 +172,21 @@ export default function SpotifyEpisodeDetails() {
                 ) : !podcast ? (
                     /* Epizod topilmaganda avval podcast.title o'qilib sahifa qulab tushardi */
                     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
-                        <p className={`font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Epizod topilmadi.</p>
+                        <p className={`font-bold ${isDark ? 'text-warm-on-dark' : 'text-warm-ink'}`}>{t('podcastPage.episodeNotFound')}</p>
                         <button
                             onClick={() => navigate('/podcasts')}
-                            className="px-5 py-2 rounded-full bg-[#1ed760] text-black font-bold text-sm"
+                            className="px-5 py-2 rounded-full bg-warm-primary hover:bg-warm-primary-active text-warm-on-primary font-semibold text-sm transition-colors"
                         >
-                            Podcastlarga qaytish
+                            {t('podcastPage.backToPodcasts')}
                         </button>
                     </div>
                 ) : (
                     <>
                         {/* Scroll Animated Header */}
                         <div 
-                            className="fixed top-[65px] left-0 w-full z-40 px-6 md:px-10 py-3 flex items-center gap-4 border-b shadow-2xl transition-opacity"
+                            className="fixed top-[calc(65px+env(safe-area-inset-top,0px))] left-0 w-full z-40 px-6 md:px-10 py-3 flex items-center gap-4 border-b shadow-lg transition-opacity"
                             style={{ 
-                                backgroundColor: isDark ? '#08504B' : '#E6F4F1',
+                                backgroundColor: isDark ? '#252320' : '#f5f0e8',
                                 opacity: scrollOpacity, 
                                 pointerEvents: scrollOpacity > 0.3 ? 'auto' : 'none',
                                 transition: 'opacity 0.2s ease-out'
@@ -192,39 +194,39 @@ export default function SpotifyEpisodeDetails() {
                         >
                             <button 
                                 onClick={handlePlay}
-                                className="w-10 h-10 bg-[#1ed760] rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 text-black shadow-lg shrink-0"
+                                className="w-10 h-10 bg-warm-primary hover:bg-warm-primary-active text-warm-on-primary rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md shrink-0"
                             >
-                                {isPlayingThis ? <Pause fill="black" size={18} /> : <Play fill="black" size={18} className="ml-0.5" />}
+                                {isPlayingThis ? <Pause fill="currentColor" size={18} /> : <Play fill="currentColor" size={18} className="ml-0.5" />}
                             </button>
                             <div className="min-w-0">
-                                <h2 className={`text-[15px] font-black truncate tracking-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{podcast.title}</h2>
-                                <p className={`text-[11px] font-medium leading-none mt-0.5 ${isDark ? 'text-white/60' : 'text-zinc-500'}`}>Now playing</p>
+                                <h2 className={`text-[15px] font-bold truncate tracking-tight ${isDark ? 'text-warm-on-dark' : 'text-warm-ink'}`}>{podcast.title}</h2>
+                                <p className={`text-[11px] font-medium leading-none mt-0.5 ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-muted'}`}>{t('podcastPage.nowPlaying')}</p>
                             </div>
                         </div>
 
                         <EpisodeHero podcast={podcast} album={album} isDark={isDark} />
 
                         {/* Content section */}
-                        <div className="px-6 md:px-10 pb-48">
+                        <div className="px-6 md:px-10 pb-[calc(11rem+env(safe-area-inset-bottom,0px))]">
                             {/* Date and listening progress */}
-                            <div className={`flex items-center gap-2 mb-6 mt-8 text-sm font-medium ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-500'}`}>
+                            <div className={`flex items-center gap-2 mb-6 mt-8 text-sm font-medium ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-muted'}`}>
                                 <span>{getPodcastDate(podcast)}</span>
                                 <span aria-hidden>•</span>
                                 {isCompleted ? (
-                                    <span className="flex items-center gap-1.5 text-emerald-500 font-bold">
-                                        <CheckCircle2 size={15} /> Tinglab bo'lingan
+                                    <span className="flex items-center gap-1.5 text-warm-success font-semibold">
+                                        <CheckCircle2 size={15} /> {t('podcastPage.completed')}
                                     </span>
                                 ) : (
                                     <span className="tabular-nums">
                                         {progressPct > 0
-                                            ? `${formatTime(remaining)} qoldi`
+                                            ? t('podcastPage.timeLeft', { time: formatTime(remaining) })
                                             : formatTime(totalDuration)}
                                     </span>
                                 )}
                                 {totalDuration > 0 && (
-                                    <div className={`w-24 h-1 rounded-full ml-2 overflow-hidden ${isDark ? 'bg-white/20' : 'bg-zinc-200'}`}>
+                                    <div className={`w-24 h-1 rounded-full ml-2 overflow-hidden ${isDark ? 'bg-white/10' : 'bg-warm-card'}`}>
                                         <div
-                                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                            className="h-full bg-warm-primary rounded-full transition-all duration-500"
                                             style={{ width: `${isCompleted ? 100 : progressPct}%` }}
                                         />
                                     </div>
@@ -235,31 +237,31 @@ export default function SpotifyEpisodeDetails() {
                             <div className="flex items-center gap-5 md:gap-6 mb-10 flex-wrap">
                                 <button
                                     onClick={handlePlay}
-                                    aria-label={isPlayingThis ? "Pauza" : (canResume ? "Davom ettirish" : "Ijro etish")}
-                                    className="w-14 h-14 bg-[#1ed760] rounded-full flex items-center justify-center hover:scale-105 transition-transform active:scale-95 text-black shadow-xl shrink-0"
+                                    aria-label={isPlayingThis ? t('podcastPage.pause') : (canResume ? t('podcastPage.resume') : t('podcastPage.play'))}
+                                    className="w-14 h-14 bg-warm-primary hover:bg-warm-primary-active text-warm-on-primary rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg shrink-0"
                                 >
-                                    {isPlayingThis ? <Pause fill="black" size={28} /> : <Play fill="black" size={28} className="ml-1" />}
+                                    {isPlayingThis ? <Pause fill="currentColor" size={28} /> : <Play fill="currentColor" size={28} className="ml-1" />}
                                 </button>
 
                                 {/* Qayerdan davom etishi endi ochiq ko'rsatiladi */}
                                 {(canResume || isCompleted) && (
                                     <button
                                         onClick={handleRestart}
-                                        className={`flex items-center gap-2 px-4 h-9 rounded-full border text-[13px] font-bold transition-colors ${isDark ? 'border-white/20 text-white hover:border-white' : 'border-zinc-300 text-zinc-700 hover:border-zinc-900'}`}
+                                        className={`flex items-center gap-2 px-4 h-9 rounded-full border text-[13px] font-bold transition-colors ${isDark ? 'border-white/15 text-warm-on-dark hover:border-white/40' : 'border-warm-hairline text-warm-body hover:border-warm-muted'}`}
                                     >
-                                        <RotateCcw size={15} /> Boshidan
+                                        <RotateCcw size={15} /> {t('podcastPage.restart')}
                                     </button>
                                 )}
 
                                 <button
                                     onClick={handleLike}
                                     aria-pressed={isLiked}
-                                    aria-label={isLiked ? "Saralanganlardan olib tashlash" : "Saralanganlarga qo'shish"}
-                                    title={isLiked ? "Saralanganlardan olib tashlash" : "Saralanganlarga qo'shish"}
+                                    aria-label={isLiked ? t('podcastPage.unlike') : t('podcastPage.like')}
+                                    title={isLiked ? t('podcastPage.unlike') : t('podcastPage.like')}
                                     className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
                                         isLiked
-                                            ? 'border-emerald-500 text-emerald-500'
-                                            : (isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900')
+                                            ? 'border-warm-primary text-warm-primary'
+                                            : (isDark ? 'border-white/15 text-warm-on-dark-soft hover:text-warm-on-dark hover:border-white/40' : 'border-warm-hairline text-warm-muted hover:text-warm-ink hover:border-warm-muted')
                                     }`}
                                 >
                                     <Heart size={16} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
@@ -267,18 +269,18 @@ export default function SpotifyEpisodeDetails() {
 
                                 <button
                                     onClick={handleDownload}
-                                    aria-label="Yuklab olish"
-                                    title="Yuklab olish"
-                                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}
+                                    aria-label={t('podcastPage.download')}
+                                    title={t('podcastPage.download')}
+                                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-white/15 text-warm-on-dark-soft hover:text-warm-on-dark hover:border-white/40' : 'border-warm-hairline text-warm-muted hover:text-warm-ink hover:border-warm-muted'}`}
                                 >
                                     <Download size={16} />
                                 </button>
 
                                 <button
                                     onClick={() => setIsShareOpen(true)}
-                                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-[#a7a7a7] text-[#a7a7a7] hover:text-white hover:border-white' : 'border-zinc-300 text-zinc-500 hover:text-zinc-900 hover:border-zinc-900'}`}
-                                    title="Ulashish"
-                                    aria-label="Ulashish"
+                                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${isDark ? 'border-white/15 text-warm-on-dark-soft hover:text-warm-on-dark hover:border-white/40' : 'border-warm-hairline text-warm-muted hover:text-warm-ink hover:border-warm-muted'}`}
+                                    title={t('podcastPage.share')}
+                                    aria-label={t('podcastPage.share')}
                                 >
                                     <Share2 size={16} />
                                 </button>
@@ -286,26 +288,26 @@ export default function SpotifyEpisodeDetails() {
 
                             {/* Description */}
                             <div className="mb-10 max-w-3xl">
-                                <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-zinc-900'}`}>Episode Description</h2>
-                                <div className={`text-[15px] leading-relaxed whitespace-pre-wrap ${isDark ? 'text-[#a7a7a7]' : 'text-zinc-600'}`}>
+                                <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-warm-on-dark' : 'text-warm-ink'}`}>{t('podcastPage.description')}</h2>
+                                <div className={`text-[15px] leading-relaxed whitespace-pre-wrap ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-body'}`}>
                                     {showMoreDesc ? podcast.description : (podcast.description?.substring(0, 250) + (podcast.description?.length > 250 ? "..." : ""))}
                                     {podcast.description && podcast.description.length > 250 && (
-                                        <button onClick={() => setShowMoreDesc(!showMoreDesc)} className={`font-bold ml-2 hover:underline ${isDark ? 'text-white' : 'text-emerald-600'}`}>
-                                            {showMoreDesc ? "Show less" : "Show more"}
+                                        <button onClick={() => setShowMoreDesc(!showMoreDesc)} className={`font-bold ml-2 hover:underline ${isDark ? 'text-warm-primary' : 'text-warm-primary'}`}>
+                                            {showMoreDesc ? t('podcastPage.descShowLess') : t('podcastPage.descShowMore')}
                                         </button>
                                     )}
                                 </div>
                                 {album && (
                                     <button 
                                         onClick={() => navigate(`/podcast/album/${podcast.collectionId}`)}
-                                        className={`mt-6 px-4 py-1.5 border rounded-full text-sm font-bold transition-all hover:scale-105 ${isDark ? 'border-white/30 text-white hover:border-white' : 'border-zinc-200 text-zinc-900 hover:border-zinc-900'}`}
+                                        className={`mt-6 px-4 py-1.5 border rounded-full text-sm font-bold transition-all hover:scale-105 ${isDark ? 'border-white/15 text-warm-on-dark hover:border-white/40' : 'border-warm-hairline text-warm-ink hover:border-warm-muted'}`}
                                     >
-                                        See all episodes
+                                        {t('podcastPage.seeAllEpisodes')}
                                     </button>
                                 )}
                             </div>
 
-                            <hr className={`mb-10 ${isDark ? 'border-white/10' : 'border-zinc-100'}`} />
+                            <hr className={`mb-10 ${isDark ? 'border-white/5' : 'border-warm-hairline'}`} />
 
                             <div className="max-w-3xl space-y-4">
                                 <ExerciseAccordion 

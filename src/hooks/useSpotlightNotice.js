@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
-import { SPOTLIGHTS_COLLECTION, toMillis } from './usePromoSpotlights';
+import { invalidatePromoSpotlights, SPOTLIGHTS_COLLECTION, toMillis } from './usePromoSpotlights';
 
 /**
  * "Bosh sahifada yangi e'lon bor" signali.
@@ -68,6 +68,7 @@ async function fetchLatest() {
 /** Admin panel slayd saqlaganda keshni majburan bekor qiladi. */
 export function invalidateSpotlightNotice() {
     cache = null;
+    invalidatePromoSpotlights();
     emit();
 }
 

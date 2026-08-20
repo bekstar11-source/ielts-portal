@@ -13,23 +13,10 @@ export const getFileNameFromUrl = (url) => {
     }
 };
 
-export const toMMSS = (seconds) => {
-    if (seconds === undefined || seconds === null || seconds === "") return "";
-    const s = Number(seconds);
-    if (isNaN(s)) return seconds;
-    const min = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${min}:${sec.toString().padStart(2, '0')}`;
-};
-
-export const processTime = (val) => {
-    if (val === undefined || val === null || val === '') return 0;
-    if (typeof val === 'string' && val.includes(':')) {
-        const parts = val.split(':');
-        return (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0);
-    }
-    return Number(val) || 0;
-};
+// Vaqt bilan ishlash faqat bitta joyda — src/utils/audioTime.js da. Admin va
+// o'quvchi tomonlari bir xil parser/format ishlatishi shart, aks holda partlar
+// chegarasi soniyalab surilib ketadi.
+export { parseAudioTime as processTime, formatAudioTimePrecise as toMMSS, formatAudioTime, roundAudioTime } from "../../../utils/audioTime";
 
 export const detectSectionFromQuestions = (testType, questions) => {
     if (!questions || !Array.isArray(questions) || questions.length === 0) return null;

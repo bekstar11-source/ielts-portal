@@ -2,6 +2,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { evaluateTest, calculateBandScore, calculateOverallBand } = require("./ieltsScoring");
+const { applyRollup, buildTestDelta } = require("./analyticsRollup");
 const { mergeTypeStats } = require("./questionTypes");
 
 /**
@@ -202,6 +203,30 @@ async function submitMockExam(data, context) {
             receipt(readingId),
             receipt(writingId)
         ]);
+
+        // 6.6. Analitika jamlanmasi. Mock'da Listening va Reading alohida
+        //      baholanadi, shuning uchun rollupga ham ikkita alohida delta
+        //      tushadi — o'quvchi "Listening'da orqadaman" degan xulosani
+        //      mock natijasidan ham ko'ra olsin.
+        //
+        //      `resultId` deterministik (mockKey asosida), ya'ni takroran
+        //      chaqirilsa `sourceId` bir xil bo'ladi va rollup ikkinchi marta
+        //      qo'llanmaydi.
+        const mockDate = new Date();
+        for (const [skill, evaluation, moduleBand] of [
+            ['listening', lEval, lBand],
+            ['reading', rEval, rBand]
+        ]) {
+            await applyRollup(db, userId, buildTestDelta({
+                skill,
+                typeStats: evaluation.typeStats || {},
+                mistakes: evaluation.mistakes || [],
+                band: moduleBand,
+                date: mockDate,
+                isFirstAttempt: true,
+                sourceId: `${resRef.id}_${skill}`
+            }));
+        }
 
         // 7. Tayinlovni "completed" ga o'tkazamiz. Tranzaksiya kerak, chunki `mockTests`
         //    butun massiv sifatida qayta yoziladi — parallel `verifyAccessKey` (arrayUnion)

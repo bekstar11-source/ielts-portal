@@ -1496,6 +1496,7 @@ export default function ArticleReading() {
                       ref={(el) => { blockRefs.current[i] = el; }}
                       className={`article-body-block article-serif transition-colors duration-300 ${isActiveBlock ? 'is-speaking' : ''}`}
                       style={{
+                        color: 'var(--r-ink)',
                         fontSize: blockFontSize,
                         lineHeight: blockLineHeight,
                         marginBottom: blockMarginBottom,
@@ -1656,7 +1657,7 @@ export default function ArticleReading() {
                 onClick={() => navigate('/auth/login')}
                 className="px-5 py-2 r-accent-bg rounded-full text-[13px] font-semibold transition-transform active:scale-95"
               >
-                {t('auth.login') || "Kirish"}
+                {t('auth.signInNow', 'Kirish')}
               </button>
             </div>
           )}
@@ -1831,6 +1832,13 @@ export default function ArticleReading() {
         }
         .article-container ::selection {
           background-color: var(--r-selection);
+        }
+        /* Muharrirdan saqlangan HTML'da ba'zan qattiq kodlangan rang (masalan
+           qora matn) inline style sifatida keladi — night mode'da fon bilan
+           bir xil bo'lib, matn ko'rinmay qolishiga sabab bo'ladi. Shu tufayli
+           kontent ichidagi barcha rangni majburan mavzu ranggiga bog'laymiz. */
+        .article-body-block, .article-body-block * {
+          color: var(--r-ink) !important;
         }
 
         /* --- Tanlangan so'z menyusi --- */

@@ -1,28 +1,32 @@
 import React, { useRef, useState, useEffect } from "react";
-import { toMMSS, processTime } from "./CreateTestUtils";
+import { toMMSS, processTime, formatAudioTime } from "./CreateTestUtils";
 import PartWaveformEditor from "./PartWaveformEditor";
 import { getCdnUrl } from "../../../utils/cdnUtils";
 
-const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark, onMark }) => {
+const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, extraSilentTime = 0, isDark, onMark }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [absTime, setAbsTime] = useState(0);      // audio faylidagi haqiqiy pozitsiya
     const [fileDuration, setFileDuration] = useState(0);
     // "Belgilash rejimi" — butun audio bo'ylab yurib, vaqtlarni playhead'dan olish uchun
     const [markMode, setMarkMode] = useState(false);
-    const progressInterval = useRef(null);
+    const rafRef = useRef(null);
 
     const start = processTime(startTimeStr);
     const end = processTime(endTimeStr);
+    const silence = Number(extraSilentTime) || 0;
 
     const segmentDuration = (end > start)
         ? (end - start)
         : (fileDuration > start ? fileDuration - start : 0);
-    const viewDuration = markMode ? fileDuration : segmentDuration;
+    // O'quvchi tomonda part davomiyligi sukunat bilan birga hisoblanadi —
+    // preview ham xuddi shu raqamni ko'rsatishi kerak, aks holda admin bu yerda
+    // 7:30 ko'rib, imtihonda 7:40 ni ko'rardi.
+    const viewDuration = markMode ? fileDuration : segmentDuration + silence;
     const viewTime = markMode ? absTime : Math.max(0, absTime - start);
 
     useEffect(() => {
-        return () => { if (progressInterval.current) clearInterval(progressInterval.current); };
+        return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
     }, []);
 
     const handleProgressClick = (e) => {
@@ -30,20 +34,26 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark,
         if (!audioUrl || !audio || viewDuration <= 0) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-        const target = markMode ? pct * fileDuration : start + pct * segmentDuration;
-        audio.currentTime = target;
-        setAbsTime(target);
+        const target = markMode ? pct * fileDuration : start + pct * viewDuration;
+        audio.currentTime = Math.min(target, end > start ? end : fileDuration);
+        setAbsTime(audio.currentTime);
     };
 
+    // Segment chegarasi rAF bilan kuzatiladi — o'quvchi player'idagi bilan bir xil
+    // aniqlik. 100ms lik interval segmentni ~0.1s uzaytirib yuborardi va preview
+    // imtihondan boshqa joyda to'xtardi.
     const startTicker = (audio) => {
-        if (progressInterval.current) clearInterval(progressInterval.current);
-        progressInterval.current = setInterval(() => {
+        if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+        const tick = () => {
+            rafRef.current = requestAnimationFrame(tick);
+            if (audio.paused) return;
             if (!markMode && end > start && audio.currentTime >= end) {
                 audio.pause();
-                clearInterval(progressInterval.current);
+                try { audio.currentTime = end; } catch { /* seek imkonsiz */ }
             }
             setAbsTime(audio.currentTime);
-        }, 100);
+        };
+        tick();
     };
 
     const togglePlay = () => {
@@ -67,13 +77,14 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark,
 
     const handlePause = () => {
         setIsPlaying(false);
-        if (progressInterval.current) clearInterval(progressInterval.current);
+        if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     };
 
+    // `Math.floor` yo'q: playhead qayerda bo'lsa, o'sha nuqta saqlanadi.
     const mark = (field) => {
         const audio = audioRef.current;
         if (!audio || !onMark) return;
-        onMark(field, toMMSS(Math.floor(audio.currentTime)));
+        onMark(field, toMMSS(audio.currentTime));
     };
 
     const markBtn = `h-6 px-2 rounded-lg border text-[9px] font-black transition active:scale-95 ${isDark ? 'border-white/10 hover:bg-white/10 text-gray-300' : 'border-gray-200 hover:bg-white text-gray-600'}`;
@@ -110,7 +121,7 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark,
                     )}
                 </button>
                 <div className="flex-1 flex items-center gap-1.5 text-[9px] font-mono tabular-nums opacity-60">
-                    <span>{toMMSS(viewTime)}</span>
+                    <span>{formatAudioTime(viewTime)}</span>
                     <div
                         onClick={handleProgressClick}
                         className={`flex-1 h-2 -my-0.5 rounded-full relative cursor-pointer ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}
@@ -127,7 +138,7 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark,
                             style={{ width: `${viewDuration > 0 ? Math.min(100, (viewTime / viewDuration) * 100) : 0}%` }}
                         />
                     </div>
-                    <span>{toMMSS(viewDuration)}</span>
+                    <span>{formatAudioTime(viewDuration)}</span>
                 </div>
             </div>
 
@@ -154,7 +165,7 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, isDark,
                             <button type="button" onClick={() => mark('endTime')} className={markBtn} title="Joriy vaqtni tugash deb belgilash">
                                 Tugash ⇥
                             </button>
-                            <span className="text-[9px] font-mono opacity-40 ml-auto">{toMMSS(Math.floor(absTime))}</span>
+                            <span className="text-[9px] font-mono opacity-40 ml-auto">{toMMSS(absTime)}</span>
                         </>
                     )}
                 </div>
@@ -422,6 +433,7 @@ const MediaManager = ({
                                         audioUrl={getCdnUrl(partAudioUrl)}
                                         startTimeStr={passage.startTime || ""}
                                         endTimeStr={passage.endTime || ""}
+                                        extraSilentTime={passage.extraSilentTime}
                                         isDark={isDark}
                                         onMark={(field, value) => onPassageTimeChange(i, field, value)}
                                     />

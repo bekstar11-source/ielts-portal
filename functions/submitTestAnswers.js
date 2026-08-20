@@ -3,6 +3,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { evaluateTest } = require("./ieltsScoring");
 const { checkEntitlement } = require("./subscription");
+const { applyRollup, buildTestDelta, summarizeMistakeBatch } = require("./analyticsRollup");
 
 /**
  * Cloud Function to securely grade test answers on the backend, 
@@ -110,13 +111,36 @@ async function submitTestAnswers(data, context) {
             typeStats: typeStats || {}
         };
 
+        // Yaqin marra xatolari soni natija hujjatida saqlanadi: qayta urinishda
+        // jamlanmaga FARQNI qo'shish uchun oldingi urinishning shu soni kerak
+        // (xuddi `typeStats` kabi). Bu son "xatolarni tuzatsangiz band qancha
+        // ko'tariladi" hisobining asosi.
+        const mistakeStats = summarizeMistakeBatch(mistakes);
+
+        // Rollup uchun kerak bo'ladigan "oldingi holat". Tranzaksiya ichida
+        // o'qiladi, chunki hujjat baribir o'sha yerda o'qilyapti — alohida
+        // `get()` qo'shimcha o'qish bo'lardi.
+        let previousTypeStats = null;
+        let previousPartBreakdown = null;
+        let previousMistakeStats = null;
+        let isFirstAttempt = true;
+
         await db.runTransaction(async (transaction) => {
             const resultSnap = await transaction.get(resultRef);
             let bestScore = correctCount;
             let bestBandScore = band || 0;
 
+            // Tranzaksiya qayta urinishi mumkin — qiymatlar har safar qaytadan o'rnatiladi.
+            previousTypeStats = null;
+            previousPartBreakdown = null;
+            previousMistakeStats = null;
+            isFirstAttempt = !resultSnap.exists;
+
             if (resultSnap.exists) {
                 const existingData = resultSnap.data();
+                previousTypeStats = existingData.typeStats || null;
+                previousPartBreakdown = existingData.partBreakdown || null;
+                previousMistakeStats = existingData.mistakeStats || null;
                 if (existingData.bestScore > bestScore) {
                     bestScore = existingData.bestScore;
                     bestBandScore = existingData.bestBandScore || bestBandScore;
@@ -145,6 +169,13 @@ async function submitTestAnswers(data, context) {
                 // testni qayta-qayta ishlagan o'quvchi umumiy manzarani buzib yuborardi.
                 typeStats: typeStats || {},
 
+                // Passage/section kesimi. Ilgari faqat javobda qaytardi va
+                // natija ekrani yopilishi bilan yo'qolardi — analitikada
+                // "qaysi bo'limda qiynalyapman" savoli javobsiz qolardi.
+                partBreakdown: partBreakdown,
+
+                // Oxirgi urinishdagi tasniflangan va "yaqin marra" xatolar soni.
+                mistakeStats: mistakeStats,
 
                 attempts: admin.firestore.FieldValue.arrayUnion(currentAttempt),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -189,10 +220,42 @@ async function submitTestAnswers(data, context) {
             await mistakeSessionRef.set({
                 mistakes,
                 typeStats: typeStats || {},
+                // Ko'nikma ochiq yoziladi: ilgari uni faqat `testId` orqali natija
+                // hujjatiga ulanib aniqlash mumkin edi.
+                skill: testType,
                 date: now,
                 testId: testId,
                 testTitle: testData.title || 'Untitled Test'
             });
+        }
+
+        // 7. Analitika jamlanmasi. `/analytics` sahifasi shu bitta hujjatni o'qiydi.
+        //    Xatolik bo'lsa ham topshiriq muvaffaqiyatli hisoblanadi — `applyRollup`
+        //    o'zi log yozadi va `false` qaytaradi.
+        if (testType === 'reading' || testType === 'listening') {
+            // Alohida part topshirilganda `partBreakdown` bitta elementli bo'ladi va
+            // u 0-indeksda turadi. Jamlanmada indeks — bo'lim raqami, shuning uchun
+            // yozuv o'z o'rniga suriladi: Part 3 natijasi Part 1 ustiga tushmasin.
+            let rollupParts = partBreakdown;
+            if (parsedPartNumber) {
+                rollupParts = new Array(parsedPartNumber).fill(null);
+                rollupParts[parsedPartNumber - 1] = partBreakdown[0] || null;
+            }
+
+            await applyRollup(db, userId, buildTestDelta({
+                skill: testType,
+                typeStats,
+                prevTypeStats: previousTypeStats,
+                mistakes,
+                partBreakdown: rollupParts,
+                prevPartBreakdown: previousPartBreakdown,
+                prevMistakeStats: previousMistakeStats,
+                band: band || 0,
+                timeSpent: cleanTimeSpent,
+                date: new Date(now),
+                isFirstAttempt,
+                sourceId: currentAttempt.attemptId
+            }));
         }
 
         return {

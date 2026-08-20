@@ -2,6 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { OpenAI } = require('openai');
 const fetch = require('node-fetch');
+const { applyRollup, buildWritingDelta } = require('./analyticsRollup');
 
 // Task 1 rasmi (grafik/diagramma) modelga base64 sifatida yuboriladi. 10MB dan
 // katta fayl Vision uchun ham keraksiz, ham funksiya xotirasini yeydi.
@@ -399,6 +400,17 @@ Notes:
             aiReview: normalized,
             aiReviewCompletedAt: admin.firestore.FieldValue.serverTimestamp()
         });
+
+        // 7. Analitika jamlanmasi — Writing mezonlari va xato turlari.
+        //    Egasi `resultData.userId`: tekshiruvni ustoz ham ishga tushirishi
+        //    mumkin, jamlanma esa o'quvchiniki bo'lishi kerak.
+        const writingDelta = buildWritingDelta({
+            aiReview: normalized,
+            sourceId: `${resultId}_aiReview`
+        });
+        if (writingDelta && resultData.userId) {
+            await applyRollup(db, resultData.userId, writingDelta);
+        }
 
         return { success: true, aiReview: normalized };
 

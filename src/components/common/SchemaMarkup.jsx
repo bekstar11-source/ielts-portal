@@ -1,5 +1,6 @@
 // src/components/common/SchemaMarkup.jsx
 import React from 'react';
+import { getPlanPrice } from '../../utils/pricing';
 
 /**
  * SchemaMarkup Component
@@ -69,8 +70,19 @@ export default function SchemaMarkup() {
       {
         "@type": "Offer",
         "category": "Paid",
-        "name": "Premium Plan",
-        "price": "149000",
+        "name": "Standard Plan (monthly)",
+        // ⚠️ Narx `src/utils/pricing.js` dagi `PLAN_PRICES` dan olinadi.
+        // Ilgari bu yerda 149 000 qotib turardi — ya'ni Google natijalarida
+        // haqiqiy narxdan (35 000) 4 baravar yuqori summa ko'rinardi.
+        "price": String(getPlanPrice('standard', 'monthly')),
+        "priceCurrency": "UZS",
+        "url": `${currentUrl}/pricing`
+      },
+      {
+        "@type": "Offer",
+        "category": "Paid",
+        "name": "Pro Plan (monthly)",
+        "price": String(getPlanPrice('pro', 'monthly')),
         "priceCurrency": "UZS",
         "url": `${currentUrl}/pricing`
       }

@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Search, ChevronDown, MoreVertical, Crown, Zap, Loader2 } from 'lucide-react';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase/firebase';
 import { useStudentSearch } from '../../../hooks/useStudentSearch';
 import { getTier } from '../../../utils/subscription';
 import UserDetailPanel from '../UserDetailPanel';
+import { addStudentToGroup, removeStudentFromGroup } from '../../../utils/groupMembership';
 
 const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, hasMore, onLoadMore, totalCount }) => {
     const isDark = theme === 'dark';
@@ -75,10 +76,11 @@ const StudentsTab = ({ students, groups = [], onRefresh, onUpdateLocal, theme, h
                 const student = students.find(s => s.id === id);
                 const prevGroupId = student?.groupId;
                 if (prevGroupId && prevGroupId !== bulkGroupId) {
-                    await updateDoc(doc(db, 'groups', prevGroupId), { studentIds: arrayRemove(id) });
+                    await removeStudentFromGroup(prevGroupId, id);
                 }
-                await updateDoc(doc(db, 'groups', bulkGroupId), { studentIds: arrayUnion(id) });
-                await updateDoc(doc(db, 'users', id), { studentType: 'group', groupId: bulkGroupId });
+                // `manageGroupStudent` a'zolik bilan birga `groupId` va guruh
+                // Pro huquqini ham yozadi — ular klientdan yopilgan maydonlar.
+                await addStudentToGroup(bulkGroupId, id);
             }
             setSelectedIds([]);
             setBulkGroupId("");

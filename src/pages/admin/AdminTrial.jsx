@@ -25,10 +25,10 @@ const DEFAULTS = {
   enabled: false,
   minOverallBand: 0,
   // ⚠️ `functions/signupDiscount.js` dagi `DISCOUNT_CONFIG.percent` bilan
-  // bir xil. Chegirma dastlabki 2 oyni qoplaydi, shuning uchun 50 emas 30.
-  discountPercent: 30,
+  // bir xil. Chegirma faqat dastlabki 1 oyni qoplaydi, shuning uchun 20.
+  discountPercent: 20,
   discountDays: 7,
-  discountCycles: 2,
+  discountCycles: 1,
   stages: {
     reading: { testId: "", durationSeconds: 1200 },
     listening: { testId: "", durationSeconds: 900 },

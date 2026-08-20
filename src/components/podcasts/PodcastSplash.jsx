@@ -9,14 +9,14 @@ export default function PodcastSplash() {
       initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[1000] bg-warm-dark flex flex-col items-center justify-center overflow-hidden"
     >
       {/* Background Glow */}
       <motion.div 
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1.2, opacity: 0.3 }}
         transition={{ duration: 2, repeat: Infinity, repeatType: "mirror" }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#1ed760]/20 blur-[120px] rounded-full" 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#cc785c]/20 blur-[120px] rounded-full" 
       />
       
       <motion.div
@@ -34,9 +34,9 @@ export default function PodcastSplash() {
             damping: 20,
             delay: 0.1
           }}
-          className="w-24 h-24 bg-gradient-to-tr from-[#1ed760] to-[#1db954] rounded-[2rem] flex items-center justify-center mb-8 shadow-[0_20px_50px_rgba(30,215,96,0.3)]"
+          className="w-24 h-24 bg-gradient-to-tr from-[#cc785c] to-[#a9583e] rounded-[2rem] flex items-center justify-center mb-8 shadow-[0_20px_50px_rgba(204,120,92,0.35)]"
         >
-          <Headphones className="text-black" size={48} strokeWidth={2.5} />
+          <Headphones className="text-warm-on-primary" size={48} strokeWidth={2.5} />
         </motion.div>
         
         <div className="overflow-hidden">
@@ -54,14 +54,14 @@ export default function PodcastSplash() {
           initial={{ width: 0, opacity: 0 }}
           animate={{ width: "100%", opacity: 1 }}
           transition={{ delay: 0.6, duration: 1, ease: "circOut" }}
-          className="h-[1px] bg-gradient-to-r from-transparent via-[#1ed760] to-transparent mt-6 w-48"
+          className="h-[1px] bg-gradient-to-r from-transparent via-[#cc785c] to-transparent mt-6 w-48"
         />
         
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ delay: 0.8 }}
-          className="text-[#1ed760] text-[10px] font-black uppercase tracking-[0.3em] mt-4"
+          className="text-[#cc785c] text-[10px] font-bold uppercase tracking-[0.3em] mt-4"
         >
           Premium Audio Experience
         </motion.p>
@@ -82,7 +82,7 @@ export default function PodcastSplash() {
               delay: i * 0.1,
               ease: "easeInOut"
             }}
-            className="w-1 bg-[#1ed760] rounded-full"
+            className="w-1 bg-[#cc785c] rounded-full"
           />
         ))}
       </div>

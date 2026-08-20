@@ -261,10 +261,12 @@ export default function TestReview() {
                 <div className="fixed inset-0 z-[100] flex justify-end">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCommentsOpen(false)} />
                     <div className="relative w-full max-w-md h-full bg-white shadow-2xl animate-in slide-in-from-right duration-300">
-                        <TestCommentSection 
-                            testId={testData.id} 
+                        <TestCommentSection
+                            testId={testData.id}
                             testTitle={testData.title}
-                            onClose={() => setIsCommentsOpen(false)} 
+                            user={user}
+                            userData={userData}
+                            onClose={() => setIsCommentsOpen(false)}
                         />
                     </div>
                 </div>
@@ -276,6 +278,7 @@ export default function TestReview() {
                     isOpen={isAnswersListOpen}
                     onClose={() => setIsAnswersListOpen(false)}
                     testData={testData}
+                    resultId={id}
                     userAnswers={currentAnswers}
                     {...getSectionScoreAndBand()}
                     onJumpToQuestion={handleJumpToQuestion}

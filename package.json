@@ -7,6 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "mirror": "node scripts/mirror-shared.mjs",
+    "check:mirror": "node scripts/mirror-shared.mjs --check",
+    "test:functions": "node --test functions/*.test.js",
+    "test:utils": "node --test src/utils/*.test.js",
+    "test": "npm run test:functions && npm run test:utils",
     "preview": "vite preview"
   },
   "dependencies": {

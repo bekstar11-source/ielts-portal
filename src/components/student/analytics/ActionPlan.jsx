@@ -29,12 +29,24 @@ const TEASER_REPEATED = ['government', 'children', 'temperature', 'library'];
  */
 function buildSteps(analytics, t) {
   const steps = [];
-  const { patterns, weakest, skills, mistakes } = analytics;
+  const { patterns, weakest, skills, totalMistakes } = analytics;
 
   if (patterns.nearMissShare !== null && patterns.nearMissShare >= 25) {
     steps.push({
       text: `${t('analytics.stepNearMissA')} ${patterns.nearMissShare}% ${t('analytics.stepNearMissB')}`
     });
+  }
+
+  // NOT GIVEN tuzog'i. Ataylab kuchsiz turlar ro'yxatidan OLDIN turadi: u
+  // "shu turni ko'proq ishlang" degan umumiy maslahat emas, aniq qoida beradi
+  // va IELTS'da eng ko'p ball yeydigan xato aynan shu.
+  const ngOverclaim = patterns.counts?.ng_overclaim || 0;
+  const ngMissed = patterns.counts?.ng_missed || 0;
+  if (ngOverclaim + ngMissed >= 4) {
+    const rule = ngOverclaim >= ngMissed
+      ? t('analytics.stepNgOverclaim')
+      : t('analytics.stepNgMissed');
+    steps.push({ text: `${ngOverclaim + ngMissed} ${t('analytics.stepNgLead')} ${rule}` });
   }
 
   if (weakest.length > 0) {
@@ -62,7 +74,10 @@ function buildSteps(analytics, t) {
     }
   }
 
-  if (steps.length === 0 && mistakes.length > 0) {
+  // Zaxira qadam jamlanmadagi songa tayanadi, `mistakes` ro'yxatiga emas: u
+  // kechiktirilgan yuklanadi va foydalanuvchi "Xatolar jurnali"gacha
+  // aylantirmaguncha bo'sh bo'ladi.
+  if (steps.length === 0 && totalMistakes > 0) {
     steps.push({ text: t('analytics.stepFallback') });
   }
 

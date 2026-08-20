@@ -4,27 +4,29 @@ import { useNavigate } from "react-router-dom";
 import LazyImage from "../common/LazyImage";
 import { usePodcast } from "../../context/PodcastContext";
 import { useAuth } from "../../context/AuthContext";
+import { useTranslation } from "../../context/LanguageContext";
 import ShareModal from "../common/ShareModal";
 import { formatTime, getPodcastDuration } from "../../utils/podcastUtils";
 
 const DIFF_COLORS = {
-    easy: "bg-emerald-500",
-    medium: "bg-blue-500",
-    hard: "bg-orange-500",
-    super_hard: "bg-rose-500",
+    easy: "bg-warm-success",
+    medium: "bg-warm-accent-teal",
+    hard: "bg-warm-accent-amber",
+    super_hard: "bg-warm-error",
 };
 
-export default function EpisodeGridItem({ 
-    p, 
+export default function EpisodeGridItem({
+    p,
     isDark,
-    currentTrack, 
-    isPlaying, 
-    setIsExpanded, 
+    currentTrack,
+    isPlaying,
+    setIsExpanded,
     playTrack,
     setCurrentTrack,
     setIsPlaying
 }) {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const { likedPodcasts, toggleLike } = usePodcast();
     const isLiked = likedPodcasts.includes(p?.id);
     const navigate = useNavigate();
@@ -35,7 +37,7 @@ export default function EpisodeGridItem({
     if (!p) return null;
     const isPlayingThis = currentTrack?.id === p.id && isPlaying;
 
-    const handleContainerClick = () => {
+    const openEpisode = () => {
         setCurrentTrack(p);
         setIsExpanded(true);
     };
@@ -65,79 +67,101 @@ export default function EpisodeGridItem({
 
     const likeCount = Math.max(0, (p.likesCount || 0) + likeDelta);
     const episodeDuration = getPodcastDuration(p);
+    const mutedText = isDark ? "text-warm-on-dark-soft" : "text-warm-muted";
 
     return (
-        <div 
-            onClick={handleContainerClick}
-            className={`group rounded-lg p-4 cursor-pointer relative overflow-hidden flex flex-col transition-all duration-300 ${
-                isDark 
-                    ? 'bg-[#181818] hover:bg-[#282828] border border-white/5' 
-                    : 'bg-white border border-zinc-200 hover:shadow-xl'
+        <div
+            role="button"
+            tabIndex={0}
+            aria-label={p.title}
+            onClick={openEpisode}
+            // Karta faqat sichqoncha bilan ochilardi — klaviatura foydalanuvchisi uchun yopiq edi
+            onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openEpisode();
+                }
+            }}
+            className={`group rounded-xl p-3 cursor-pointer relative flex flex-col transition-colors duration-200 border focus:outline-none focus-visible:ring-2 focus-visible:ring-warm-primary ${
+                isDark
+                    ? 'bg-white/[0.04] hover:bg-white/[0.08] border-white/5'
+                    : 'bg-white border-warm-hairline hover:border-warm-primary/40 hover:shadow-md'
             }`}
         >
-            <div className="relative aspect-square w-full mb-4 shadow-lg rounded-md overflow-hidden">
-                <LazyImage src={p.thumbnail} alt="" className="w-full h-full object-cover transition-transform duration-500" />
-                
-                {/* Difficulty Badge */}
-                <div className={`absolute top-2 left-2 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest text-white shadow-lg ${DIFF_COLORS[p.difficulty] || 'bg-blue-500'}`}>
+            <div className="relative aspect-square w-full mb-3 rounded-lg overflow-hidden bg-warm-card dark:bg-white/5">
+                <LazyImage src={p.thumbnail} alt="" className="w-full h-full object-cover" />
+
+                {/* Level Badge */}
+                <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider text-white shadow-sm ${DIFF_COLORS[p.difficulty] || 'bg-warm-primary'}`}>
                     {p.level || "IELTS"}
                 </div>
 
-                {/* Play Button Overlay */}
-                <div 
+                {/* Play Button Overlay — mobil qurilmada hover yo'q, shuning uchun doim ko'rinadi */}
+                <button
+                    type="button"
                     onClick={handlePlayClick}
-                    className={`absolute bottom-2 right-2 w-10 h-10 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl transition-all duration-300 transform ${
-                        isPlayingThis ? 'scale-100' : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
-                    } hover:scale-110`}
+                    aria-label={`${isPlayingThis ? t('podcastPage.pause') : t('podcastPage.play')}: ${p.title}`}
+                    className={`absolute bottom-2 right-2 w-10 h-10 bg-warm-primary hover:bg-warm-primary-active text-warm-on-primary rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                        isPlayingThis ? 'opacity-100' : 'opacity-100 md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0 md:group-focus-within:opacity-100'
+                    }`}
                 >
-                    {isPlayingThis ? <Pause size={20} fill="black" stroke="black" /> : <Play size={20} fill="black" stroke="black" className="ml-0.5" />}
-                </div>
+                    {isPlayingThis
+                        ? <Pause size={18} fill="currentColor" stroke="currentColor" />
+                        : <Play size={18} fill="currentColor" stroke="currentColor" className="ml-0.5" />}
+                </button>
             </div>
-            
-            <div className="flex items-center justify-between mt-auto">
-                <div className="flex flex-col gap-1 overflow-hidden flex-1 mr-2">
-                    <h3 className={`font-bold text-[14px] leading-tight line-clamp-1 transition-colors ${
-                        isDark ? 'text-white' : 'text-zinc-900'
-                    } group-hover:text-emerald-500`}>
+
+            <div className="flex flex-col gap-2 mt-auto">
+                <div className="min-w-0">
+                    <h3 className={`font-semibold text-[13px] leading-snug line-clamp-2 transition-colors ${
+                        isDark ? 'text-warm-on-dark' : 'text-warm-ink'
+                    } group-hover:text-warm-primary`}>
                         {p.title}
                     </h3>
                     {/* `p.duration` — soniyalardagi son; avval xom holda "912" deb chiqardi */}
-                    <p className={`text-[11px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    <p className={`text-[11px] font-medium mt-0.5 tabular-nums ${mutedText}`}>
                         {episodeDuration > 0 ? formatTime(episodeDuration) : '—'}
                     </p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center justify-between">
                     <button
+                        type="button"
                         onClick={handleLikeClick}
-                        className={`flex items-center gap-1 p-1 rounded-full transition-all active:scale-125 ${
-                            isLiked ? 'text-emerald-500' : (isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900')
+                        aria-pressed={isLiked}
+                        aria-label={isLiked ? t('podcastPage.unlike') : t('podcastPage.like')}
+                        className={`flex items-center gap-1 py-1 pr-1 rounded-full transition-colors active:scale-110 ${
+                            isLiked ? 'text-warm-primary' : `${mutedText} hover:text-warm-primary`
                         }`}
                     >
                         <Heart size={14} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
-                        <span className="text-[11px] font-bold">{likeCount}</span>
+                        <span className="text-[11px] font-semibold tabular-nums">{likeCount}</span>
                     </button>
-                    <button 
+                    <button
+                        type="button"
                         onClick={(e) => {
                             e.stopPropagation();
                             setIsShareOpen(true);
                         }}
-                        className={`p-1 rounded-full transition-all active:scale-125 ${
-                            isDark ? 'text-zinc-500 hover:text-white' : 'text-zinc-400 hover:text-zinc-900'
-                        }`}
-                        title="Share"
+                        className={`p-1 rounded-full transition-colors active:scale-110 ${mutedText} hover:text-warm-primary`}
+                        aria-label={t('podcastPage.share')}
+                        title={t('podcastPage.share')}
                     >
                         <Share2 size={14} />
                     </button>
                 </div>
             </div>
-            
-            <ShareModal
-                isOpen={isShareOpen}
-                onClose={() => setIsShareOpen(false)}
-                testId={p.id}
-                testTitle={p.title}
-                testType="podcast"
-            />
+
+            {/* ShareModal portalda chizilsa ham React hodisalari shu kartaga ko'tariladi —
+                to'xtatilmasa modal ichidagi har bir klik pleyerni ham ochib yuborardi. */}
+            <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                <ShareModal
+                    isOpen={isShareOpen}
+                    onClose={() => setIsShareOpen(false)}
+                    testId={p.id}
+                    testTitle={p.title}
+                    testType="podcast"
+                />
+            </div>
         </div>
     );
 }

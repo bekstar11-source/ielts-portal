@@ -1,9 +1,7 @@
 import { useEffect, useState, useMemo, Fragment } from "react";
 import { toDate } from "../../utils/subscription";
-import { detectViolation, formatDuration, getLatestAttempt } from "../../utils/teacherResults";
-import {
-  useTeacherWorkspace, RESULTS_CAP, RESULTS_CAP_WIDE,
-} from "../../hooks/useTeacherWorkspace";
+import { detectViolation, formatDuration, getLatestAttempt, isAwaitingReview } from "../../utils/teacherResults";
+import { useTeacherWorkspace, useResultsCap } from "../../hooks/useTeacherWorkspace";
 import {
   TeacherResultsSkeleton, RefreshBar,
 } from "../../components/teacher/TeacherSkeletons";
@@ -12,7 +10,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "../../context/LanguageContext";
 import {
-  ArrowLeft,
   Eye,
   CaretLeft,
   CaretRight,
@@ -55,18 +52,17 @@ export default function TeacherAllResults() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  // "Ko'proq yuklash" — standart chegara panelning qolgan sahifalari bilan
-  // BIR XIL, shuning uchun bu sahifaga o'tishda odatda umuman o'qish bo'lmaydi
-  // (kesh ishlaydi). Faqat o'qituvchi ataylab bosgandagina kengroq so'rov
-  // yuboriladi.
-  const [resultsCap, setResultsCap] = useState(RESULTS_CAP);
+  // "Ko'proq yuklash" — chegara butun panel uchun umumiy, shuning uchun bu
+  // sahifaga o'tishda odatda umuman o'qish bo'lmaydi (kesh ishlaydi) va
+  // kengaytirilganda qolgan sahifalar ham o'sha keshdan foydalanadi.
+  const { canWiden, widen } = useResultsCap();
 
   const {
     groups, results: rawResults, resultsTruncated,
     loading, isRefreshing,
-  } = useTeacherWorkspace({ uid: userData?.uid, resultsCap });
+  } = useTeacherWorkspace({ uid: userData?.uid });
 
-  const hasMore = resultsTruncated && resultsCap < RESULTS_CAP_WIDE;
+  const hasMore = resultsTruncated && canWiden;
 
   // O'quvchi → guruh nomlari. Ilgari bu fetch ichida qurilardi; endi u
   // guruhlardan kelib chiqadigan sof hosila.
@@ -128,12 +124,14 @@ export default function TeacherAllResults() {
       temp = temp.filter((item) => item.type === typeFilter);
     }
 
+    // "Kutilmoqda" — o'qituvchi tekshiruvini kutayotgan natijalar, ya'ni
+    // faqat writing/mock. Ikkala bo'lak to'plamni to'liq bo'lib beradi,
+    // shuning uchun yuqoridagi "Tekshirish kutilmoqda" kartasi bilan raqam
+    // doim mos keladi.
     if (statusFilter !== "all") {
-      if (statusFilter === 'graded') {
-        temp = temp.filter((item) => item.status === 'graded' || item.status === 'published');
-      } else {
-        temp = temp.filter((item) => item.status !== 'graded' && item.status !== 'published');
-      }
+      temp = statusFilter === 'pending'
+        ? temp.filter(isAwaitingReview)
+        : temp.filter((item) => !isAwaitingReview(item));
     }
 
     if (groupFilter !== "all") {
@@ -196,9 +194,7 @@ export default function TeacherAllResults() {
 
   // Computed stats from filteredResults
   const totalCount = filteredResults.length;
-  const pendingCount = filteredResults.filter(
-    (r) => (r.status === "pending" || r.status === "pending_review") && (r.type === "writing" || r.type === "mock_full")
-  ).length;
+  const pendingCount = filteredResults.filter(isAwaitingReview).length;
   const violationsCount = filteredResults.filter((r) => r.hasViolation).length;
 
   const bandScores = filteredResults
@@ -216,7 +212,7 @@ export default function TeacherAllResults() {
 
   const statsList = [
     {
-      label: t('teacher.results.totalSolved') || (lang === 'uz' ? "Jami Yechilgan" : "Total Solved"),
+      label: t('teacher.results.stats.totalCompleted') || (lang === 'uz' ? "Jami Yechilgan" : "Total Solved"),
       value: totalCount,
       icon: FileIcon,
       color: isDark ? "text-indigo-400" : "text-indigo-600",
@@ -224,7 +220,7 @@ export default function TeacherAllResults() {
       iconBg: isDark ? "bg-indigo-500/20" : "bg-indigo-50",
     },
     {
-      label: t('teacher.results.pendingReview') || (lang === 'uz' ? "Tekshirish Kutilmoqda" : "Pending Review"),
+      label: t('teacher.results.stats.pendingReview') || (lang === 'uz' ? "Tekshirish Kutilmoqda" : "Pending Review"),
       value: pendingCount,
       icon: ClockIcon,
       color: isDark ? "text-amber-400" : "text-amber-600",
@@ -232,7 +228,7 @@ export default function TeacherAllResults() {
       iconBg: isDark ? "bg-amber-500/20" : "bg-amber-50",
     },
     {
-      label: t('teacher.results.avgBand') || (lang === 'uz' ? "O'rtacha Band" : "Avg Band"),
+      label: t('teacher.results.stats.avgBand') || (lang === 'uz' ? "O'rtacha Band" : "Avg Band"),
       value: avgBand,
       icon: GradIcon,
       color: isDark ? "text-emerald-400" : "text-emerald-600",
@@ -240,7 +236,7 @@ export default function TeacherAllResults() {
       iconBg: isDark ? "bg-emerald-500/20" : "bg-emerald-50",
     },
     {
-      label: t('teacher.results.violations') || (lang === 'uz' ? "Qoidabuzarliklar" : "Violations"),
+      label: t('teacher.results.stats.violations') || (lang === 'uz' ? "Qoidabuzarliklar" : "Violations"),
       value: violationsCount,
       icon: AlertIcon,
       color: isDark ? "text-rose-400" : "text-rose-600",
@@ -259,19 +255,6 @@ export default function TeacherAllResults() {
     <div className={`py-6 font-sans animate-content-in ${isDark ? 'text-white' : 'text-slate-800'}`}>
       <RefreshBar active={isRefreshing} />
       <div className="max-w-7xl mx-auto flex flex-col gap-6 px-4">
-        {/* Back navigation */}
-        <div className="mb-2">
-          <button
-            onClick={() => navigate('/teacher')}
-            className={`flex items-center gap-2 transition-colors font-semibold text-sm group ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
-          >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm transition-all ${isDark ? 'bg-white/5 border-white/10 group-hover:border-white/20' : 'bg-white border-gray-200 group-hover:border-gray-300'}`}>
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            {t('common.home') || (lang === 'uz' ? 'Bosh sahifa' : 'Home')}
-          </button>
-        </div>
-
         {/* Title Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <div>
@@ -293,11 +276,7 @@ export default function TeacherAllResults() {
           {statsList.map((stat, idx) => (
             <div
               key={idx}
-              className={`rounded-3xl border p-5 flex items-center gap-4 transition-all duration-300 ${isDark ? 'bg-[#2C2C2C]/50 border-white/5 hover:border-white/10' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'}`}
-              style={{
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-              }}
+              className={`rounded-2xl border p-5 flex items-center gap-4 transition-colors ${isDark ? 'bg-[#2C2C2C]/50 border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300'}`}
             >
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.iconBg} ${stat.color} flex-shrink-0`}>
                 <stat.icon size={24} weight="bold" />
@@ -315,15 +294,7 @@ export default function TeacherAllResults() {
         </div>
 
         {/* Filter Section */}
-        <div 
-          className="rounded-3xl p-5 flex flex-col md:flex-row justify-between items-center gap-4"
-          style={{
-            background: isDark ? 'rgba(44, 44, 44, 0.4)' : 'rgba(255, 255, 255, 0.5)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)',
-          }}
-        >
+        <div className={`rounded-2xl border p-5 flex flex-col md:flex-row justify-between items-center gap-4 ${isDark ? 'bg-[#2C2C2C]/40 border-white/5' : 'bg-white border-gray-200'}`}>
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 md:flex-initial min-w-[200px] group">
@@ -412,27 +383,21 @@ export default function TeacherAllResults() {
         </div>
 
         {/* Table Card */}
-        <div 
-          className="rounded-[2rem] shadow-sm overflow-hidden" 
-          style={{
-            background: isDark ? 'rgba(44,44,44,0.7)' : 'rgba(255,255,255,0.55)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.7)',
-            boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.06)',
-          }}
-        >
+        {/* Mobil brauzerlarda scroll'ni sekinlashtiradigan `backdrop-filter`
+            qatlamlari olib tashlandi — panelning qolgan sahifalarida ham
+            oddiy sirt ishlatiladi. */}
+        <div className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-[#2C2C2C]/70 border-white/5' : 'bg-white border-gray-200'}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse font-sans">
               <thead>
                 <tr className={`border-b ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-200 bg-gray-50/50'}`}>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider w-32 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colDate') || (lang === 'uz' ? 'Sana' : 'Date')}</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colStudent') || (lang === 'uz' ? "O'quvchi" : 'Student')}</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colTestTitle') || (lang === 'uz' ? 'Test Nomi' : 'Test Title')}</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colDuration') || (lang === 'uz' ? 'Sarf Vaqti' : 'Duration')}</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colScore') || (lang === 'uz' ? 'Natija' : 'Score')}</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colStatus') || (lang === 'uz' ? 'Status / Qoida' : 'Status / Rule')}</th>
-                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.colAction') || (lang === 'uz' ? 'Amal' : 'Action')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider w-32 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.table.date') || (lang === 'uz' ? 'Sana' : 'Date')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.table.student') || (lang === 'uz' ? "O'quvchi" : 'Student')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.table.test') || (lang === 'uz' ? 'Test Nomi' : 'Test Title')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.table.duration') || (lang === 'uz' ? 'Sarf Vaqti' : 'Duration')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.table.score') || (lang === 'uz' ? 'Natija' : 'Score')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.table.status') || (lang === 'uz' ? 'Status / Qoida' : 'Status / Rule')}</th>
+                  <th className={`py-4 px-5 text-[13px] font-bold uppercase tracking-wider text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{t('teacher.results.table.actions') || (lang === 'uz' ? 'Amal' : 'Action')}</th>
                 </tr>
               </thead>
 
@@ -449,6 +414,7 @@ export default function TeacherAllResults() {
                 ) : (
                   currentItems.map((res) => {
                     const { date, time } = formatDateTime(res.date);
+                    const awaitingReview = isAwaitingReview(res);
 
                     return (
                       <Fragment key={res.id}>
@@ -480,7 +446,7 @@ export default function TeacherAllResults() {
                                 ))}
                               </div>
                             ) : (
-                              <span className={`text-[11px] font-medium mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('teacher.results.noGroup') || (lang === 'uz' ? 'Guruhsiz' : 'No Group')}</span>
+                              <span className={`text-[11px] font-medium mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('teacher.results.ungrouped') || (lang === 'uz' ? 'Guruhsiz' : 'No Group')}</span>
                             )}
                           </div>
                         </td>
@@ -517,7 +483,7 @@ export default function TeacherAllResults() {
                                     ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100')
                                     : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse')
                                 }`} title="Writing">
-                                  W: {res.scores.writingBand ?? res.writingBand ?? (t('teacher.results.pending') || (lang === 'uz' ? 'kutilmoqda' : 'pending'))}
+                                  W: {res.scores.writingBand ?? res.writingBand ?? (t('teacher.results.statusPending') || (lang === 'uz' ? 'kutilmoqda' : 'pending'))}
                                 </span>
                                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-700 border-rose-100'}`} title="Speaking">
                                   S: {res.scores.speakingBand ?? res.speakingBand ?? '-'}
@@ -550,7 +516,7 @@ export default function TeacherAllResults() {
                                 onClick={() => toggleExpand(res.id)}
                                 className={`flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${isDark ? 'text-gray-400 hover:text-blue-400' : 'text-gray-500 hover:text-blue-600'}`}
                               >
-                                {t('teacher.results.attempts', { count: res.attemptsCount }) || (lang === 'uz' ? `${res.attemptsCount} urinish` : `${res.attemptsCount} attempts`)}
+                                {t('teacher.results.attemptsCount', { count: res.attemptsCount }) || (lang === 'uz' ? `${res.attemptsCount} urinish` : `${res.attemptsCount} attempts`)}
                                 <CaretDown className={`w-3 h-3 transition-transform duration-200 ${expandedRows.has(res.id) ? 'rotate-180' : ''}`} />
                               </button>
                             )}
@@ -561,16 +527,14 @@ export default function TeacherAllResults() {
                         <td className="py-4 px-5 align-middle text-center">
                           <div className="flex flex-col items-center gap-1.5">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                              res.status === 'graded' || res.status === 'published'
-                                ? (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
-                                : (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200')
+                              awaitingReview
+                                ? (isDark ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200')
+                                : (isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
                             }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                res.status === 'graded' || res.status === 'published' ? 'bg-emerald-500' : 'bg-amber-500'
-                              }`} />
-                              {res.status === 'graded' || res.status === 'published'
-                                ? (t('teacher.results.statusGraded') || (lang === 'uz' ? 'Baholangan' : 'Graded'))
-                                : (t('teacher.results.statusPending') || (lang === 'uz' ? 'Kutilmoqda' : 'Pending'))}
+                              <span className={`w-1.5 h-1.5 rounded-full ${awaitingReview ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                              {awaitingReview
+                                ? t('teacher.results.statusPending', lang === 'uz' ? 'Kutilmoqda' : 'Pending')
+                                : t('teacher.results.statusGraded', lang === 'uz' ? 'Baholangan' : 'Graded')}
                             </span>
                             
                             {res.hasViolation && (
@@ -579,7 +543,7 @@ export default function TeacherAllResults() {
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border cursor-help ${isDark ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-100 text-rose-700 border-rose-200'}`}
                               >
                                 <AlertIcon className="w-3 h-3 flex-shrink-0 text-rose-500" />
-                                {t('teacher.results.violation') || (lang === 'uz' ? 'Qoidabuzarlik' : 'Violation')}
+                                {t('teacher.results.violationDetected') || (lang === 'uz' ? 'Qoidabuzarlik' : 'Violation')}
                               </span>
                             )}
                           </div>
@@ -597,15 +561,15 @@ export default function TeacherAllResults() {
                                 }
                               }}
                               className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
-                                (res.status !== 'graded' && res.status !== 'published') && (res.type === 'writing' || res.type === 'mock_full')
+                                awaitingReview
                                   ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-blue-500/20 active:scale-95'
                                   : (isDark ? 'bg-[#1E1E1E] border border-white/5 text-gray-300 hover:bg-white/10 hover:text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
                               }`}
                             >
                               <Eye className="w-4 h-4" />
-                              {((res.status === 'pending' || res.status === 'pending_review') && (res.type === 'writing' || res.type === 'mock_full'))
-                                ? (t('teacher.results.grade') || (lang === 'uz' ? 'Baholash' : 'Grade'))
-                                : (t('teacher.results.view') || (lang === 'uz' ? "Ko'rish" : 'View'))}
+                              {awaitingReview
+                                ? t('teacher.results.table.gradeWriting', lang === 'uz' ? 'Baholash' : 'Grade')
+                                : t('teacher.results.table.viewDetails', lang === 'uz' ? "Ko'rish" : 'View')}
                             </button>
                           </div>
                         </td>
@@ -617,7 +581,7 @@ export default function TeacherAllResults() {
                           <td colSpan="7" className="px-5 pb-4 pt-1">
                             <div className={`rounded-2xl border p-3 flex flex-col gap-2 ${isDark ? 'bg-[#1E1E1E]/60 border-white/5' : 'bg-white border-gray-200'}`}>
                               <p className={`text-[11px] font-bold uppercase tracking-wider px-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {t('teacher.results.allAttempts', { count: res.attempts.length }) || (lang === 'uz' ? `Barcha urinishlar (${res.attempts.length})` : `All attempts (${res.attempts.length})`)}
+                                {t('teacher.results.allAttemptsCount', { count: res.attempts.length }) || (lang === 'uz' ? `Barcha urinishlar (${res.attempts.length})` : `All attempts (${res.attempts.length})`)}
                               </p>
                               {[...res.attempts].reverse().map((attempt, idx) => {
                                 const attemptDateObj = attempt.date ? (attempt.date.toDate ? attempt.date.toDate() : new Date(attempt.date)) : null;
@@ -650,7 +614,7 @@ export default function TeacherAllResults() {
                                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${isDark ? 'bg-[#2C2C2C] border border-white/10 text-gray-300 hover:bg-white/10 hover:text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'}`}
                                       >
                                         <Eye className="w-3.5 h-3.5" />
-                                        {t('teacher.results.view') || (lang === 'uz' ? "Ko'rish" : 'View')}
+                                        {t('teacher.results.table.viewDetails') || (lang === 'uz' ? "Ko'rish" : 'View')}
                                       </button>
                                     </div>
                                   </div>
@@ -672,7 +636,7 @@ export default function TeacherAllResults() {
           {hasMore && (
             <div className={`flex justify-center p-4 border-t ${isDark ? 'border-white/5' : 'border-[#e5e7eb]/50'}`}>
               <button
-                onClick={() => setResultsCap(RESULTS_CAP_WIDE)}
+                onClick={widen}
                 disabled={isRefreshing}
                 className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-200 inline-flex items-center gap-2 disabled:opacity-60 ${
                   isDark

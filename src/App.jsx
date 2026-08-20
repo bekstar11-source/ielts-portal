@@ -31,6 +31,8 @@ const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const TeacherTests = lazy(() => import('./pages/teacher/TeacherTests'));
+const TeacherAssignTest = lazy(() => import('./pages/teacher/TeacherAssignTest'));
+const TeacherMonitorTest = lazy(() => import('./pages/teacher/TeacherMonitorTest'));
 const TeacherWritingReview = lazy(() => import('./pages/teacher/TeacherWritingReview'));
 const TeacherSpeakingReview = lazy(() => import('./pages/teacher/TeacherSpeakingReview'));
 const TeacherGroupStats = lazy(() => import('./pages/teacher/TeacherGroupStats'));
@@ -50,6 +52,7 @@ const DiagnosticResult = lazy(() => import('./pages/diagnostic/DiagnosticResult'
 const CreateTest = lazy(() => import('./pages/admin/CreateTest'));
 const AdminResults = lazy(() => import('./pages/admin/AdminResults'));
 const AdminAnnouncements = lazy(() => import('./pages/admin/AdminAnnouncements'));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminFeedManagement = lazy(() => import('./pages/admin/AdminFeedManagement'));
 const AdminSpotlights = lazy(() => import('./pages/admin/AdminSpotlights'));
 const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
@@ -200,11 +203,21 @@ function App() {
             <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherLayout /></ProtectedRoute>}>
               <Route index element={<TeacherDashboard />} />
               <Route path="tests" element={<TeacherTests />} />
+              {/* Tayinlash va kuzatish — o'z manzillari bilan: "Orqaga" ro'yxatga
+                  qaytaradi va monitoring havolasini ulashsa ham bo'ladi. */}
+              <Route path="tests/assign" element={<TeacherAssignTest />} />
+              <Route path="tests/monitor/:groupId/:testId" element={<TeacherMonitorTest />} />
               <Route path="writing-review" element={<TeacherWritingReview />} />
               <Route path="speaking-review" element={<TeacherSpeakingReview />} />
               <Route path="create-writing" element={<TeacherCreateWriting />} />
               <Route path="group-stats" element={<TeacherGroupStats />} />
-              <Route path="group/:groupId" element={<TeacherGroupDetail />} />
+              {/* Davomat ekrani namuna ma'lumot bilan ishlaydi — flag src/config/features.js da. */}
+              <Route
+                path="group/:groupId"
+                element={FEATURES.groupAttendance
+                  ? <TeacherGroupDetail />
+                  : <Navigate to="/teacher/group-stats" replace />}
+              />
               {/* Eski "O'quvchilarni boshqarish" sahifasi guruh sahifasiga birlashtirildi. */}
               <Route path="students" element={<Navigate to="/teacher/group-stats?view=students" replace />} />
               <Route path="results" element={<TeacherAllResults />} />
@@ -220,6 +233,7 @@ function App() {
               <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="tests" element={<AdminTests />} />
               <Route path="announcements" element={<AdminAnnouncements />} />
+              <Route path="reports" element={<AdminReports />} />
               <Route path="feed" element={<AdminFeedManagement />} />
               <Route path="spotlights" element={<AdminSpotlights />} />
               <Route path="articles" element={<AdminArticles />} />

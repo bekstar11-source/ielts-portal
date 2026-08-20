@@ -132,7 +132,7 @@ export default function PlayerFooter({
 
     return (
         <footer className={`shrink-0 border-t z-50 transition-all duration-300
-            ${isFixed ? `fixed ${hasBottomNav ? 'bottom-[56px]' : 'bottom-0'} md:bottom-0 left-0 right-0 md:w-full rounded-none shadow-[0_-4px_12px_rgba(0,0,0,0.1)] md:shadow-none` : 'relative'}
+            ${isFixed ? `fixed ${hasBottomNav ? 'bottom-[calc(56px+env(safe-area-inset-bottom,0px))]' : 'bottom-[env(safe-area-inset-bottom,0px)]'} md:bottom-0 left-0 right-0 md:w-full rounded-none shadow-[0_-4px_12px_rgba(0,0,0,0.1)] md:shadow-none` : 'relative'}
             ${isDark ? 'border-neutral-800 bg-[#121212]/98 backdrop-blur-xl text-white' : 'border-zinc-100 bg-white/98 backdrop-blur-xl text-zinc-900'}
             h-[56px] md:h-20 px-3 md:px-6 flex items-center justify-between`}>
 

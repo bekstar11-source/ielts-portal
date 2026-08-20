@@ -15,13 +15,13 @@ import { ChevronLeft, Crosshair, ListX, Clock, AlertTriangle } from 'lucide-reac
 
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
-import { useStudentData } from '../../hooks/useStudentData';
 import { useStudentAnalytics } from '../../hooks/useStudentAnalytics';
 import { getTier, isStaff } from '../../utils/subscription';
 
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import SiteFooter from '../../components/common/SiteFooter';
 import AccuracyByType from '../../components/student/analytics/AccuracyByType';
+import TrendStrip from '../../components/student/analytics/TrendStrip';
 import PatternBreakdown from '../../components/student/analytics/PatternBreakdown';
 import MistakeLog from '../../components/student/analytics/MistakeLog';
 import SkillSplit from '../../components/student/analytics/SkillSplit';
@@ -68,12 +68,15 @@ export default function StudentAnalytics() {
 
   const hasPro = getTier(userData) === 'pro' || isStaff(userData);
 
-  const { userResults, loading: resultsLoading } = useStudentData(user);
   // Pro bo'lmaganda barcha bo'limlar namunaviy ma'lumot bilan qulflanadi — haqiqiy
-  // xatolar tarixini yuklash shunchaki behuda Firestore o'qishi bo'lardi.
-  const analytics = useStudentAnalytics(user, userResults, hasPro);
+  // jamlanmani yuklash shunchaki behuda Firestore o'qishi bo'lardi.
+  //
+  // Bu sahifa ataylab `useStudentData` ni CHAQIRMAYDI: u 50 ta natija hujjatini
+  // va butun podcast urinishlari ro'yxatini olib kelardi, analitikaga esa
+  // ularning hech biri kerak emas — hammasi jamlanmada.
+  const analytics = useStudentAnalytics(user, hasPro);
 
-  const loading = resultsLoading || analytics.loading;
+  const loading = analytics.loading;
 
   if (loading) {
     return (
@@ -87,8 +90,9 @@ export default function StudentAnalytics() {
   const overallTone = accuracyTone(analytics.overallAccuracy).text;
 
   // `totalWrong` aniqlik foizi bilan bitta manbadan (typeStats) keladi — ikkalasi mos
-  // bo'lishi kerak. typeStats yozilmagan eski natijalarda esa xatolar jurnali yagona manba.
-  const mistakeCount = analytics.totalAnswered > 0 ? analytics.totalWrong : analytics.mistakes.length;
+  // bo'lishi kerak. typeStats yozilmagan eski natijalarda esa tasniflangan xatolar
+  // sanog'i yagona manba (u ham jamlanmada — ro'yxatning o'zi kechroq yuklanadi).
+  const mistakeCount = analytics.totalAnswered > 0 ? analytics.totalWrong : analytics.totalMistakes;
 
   // Pro bo'lmaganda kartochkalarga NAMUNAVIY sonlar beriladi. Blur — bu faqat CSS:
   // haqiqiy qiymat uzatilsa, u DOM'da ochiq qolib, qulfni ma'nosiz qilardi.
@@ -225,7 +229,11 @@ export default function StudentAnalytics() {
             <AccuracyByType analytics={analytics} hasPro={hasPro} />
           </div>
 
-          <div className="analytics-fade" style={{ animationDelay: '0.15s' }}>
+          <div className="analytics-fade" style={{ animationDelay: '0.13s' }}>
+            <TrendStrip analytics={analytics} hasPro={hasPro} />
+          </div>
+
+          <div className="analytics-fade" style={{ animationDelay: '0.16s' }}>
             <PatternBreakdown analytics={analytics} hasPro={hasPro} />
           </div>
 

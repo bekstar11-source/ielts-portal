@@ -352,34 +352,33 @@ const TestHeader = ({
         // partNumber berilgan bo'lsa, foydalanuvchi faqat bitta partni alohida mashq qilyapti —
         // bu holda "keyingi part" mavjud emas, hatto test.passages da boshqa partlar bo'lsa ham.
         if (!partNumber && test?.passages?.length && index < test.passages.length - 1) {
-            // Since CustomAudioPlayer now handles the extraSilentTime transition internally
-            // (including updating the progress bar during the silence), 
-            // handleEnded should transition to the next part with a minimal default delay.
-            const delay = 500; 
+            // Partlar orasidagi sukunat FAQAT admin belgilagan `extraSilentTime` bo'lishi
+            // kerak va uni CustomAudioPlayer o'zi hisoblab bo'lgan. Bu yerda ilgari
+            // qo'shimcha 500ms + 400ms kutish bor edi — admin hech qayerda ko'rsatmagan
+            // ~0.9s "jimlik" har o'tishda qo'shilib, 4 partda ~2.7s farq to'plardi.
+            const nextIdx = index + 1;
+            setPlayingPart(nextIdx);
+            // In exam mode, we don't force move the UI to the next part automatically
+            // unless we want to, but usually in IELTS, navigation is free.
+            // However, the existing logic moves the UI:
+            if (testMode !== 'exam') {
+                if (setActivePart) setActivePart(nextIdx);
+                if (onPartChange) onPartChange(nextIdx);
+            }
 
-            setTimeout(() => {
-                const nextIdx = index + 1;
-                setPlayingPart(nextIdx);
-                // In exam mode, we don't force move the UI to the next part automatically 
-                // unless we want to, but usually in IELTS, navigation is free.
-                // However, the existing logic moves the UI:
-                if (testMode !== 'exam') {
-                    if (setActivePart) setActivePart(nextIdx);
-                    if (onPartChange) onPartChange(nextIdx);
-                }
-                
-                // Keyingi partga o'tgandan sal keyin audio'ni play qilamiz
-                setTimeout(() => {
-                    const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
-                    if (nextAudio) {
-                        nextAudio.play().catch(err => {
-                            console.warn('Auto-play next blocked:', err);
-                            // If blocked, allow the user to play manually if needed, 
-                            // but in exam mode it should be ready.
-                        });
-                    }
-                }, 400); // Slightly longer delay to ensure DOM is ready
-            }, delay);
+            // Keyingi part <audio> elementi allaqachon DOM'da (barcha partlar bir vaqtda
+            // render qilinadi), shuning uchun kutishning hojati yo'q — darhol ijro.
+            // Metadata hali yuklanmagan bo'lsa tegmaymiz: bunday audio 0-soniyadan
+            // ijro bo'lib ketardi. U holda CustomAudioPlayer'ning o'z autoplay
+            // sikli partni to'g'ri boshlanish nuqtasidan qo'yib yuboradi.
+            const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
+            if (nextAudio && nextAudio.readyState >= 1) {
+                nextAudio.play().catch(err => {
+                    console.warn('Auto-play next blocked:', err);
+                    // If blocked, allow the user to play manually if needed,
+                    // but in exam mode it should be ready.
+                });
+            }
         } else {
             if (onAudioEnded) {
                 onAudioEnded();
@@ -492,13 +491,17 @@ const TestHeader = ({
                                 const defaultStart = passage.audio ? 0 : (index * 450);
                                 const defaultEnd = passage.audio ? 0 : ((index + 1) * 450);
 
-                                const startTime = (partMeta?.startSec !== undefined && partMeta?.startSec !== null)
-                                    ? Number(partMeta.startSec)
-                                    : (passage.startTime || defaultStart);
+                                // `passage.startTime` — admin CreateTest sahifasida bevosita
+                                // tahrirlaydigan qiymat, shuning uchun U USTUN. `parts.partN.*`
+                                // esa hosila nusxa: u eskirib qolsa, admin qo'ygan vaqt e'tiborsiz
+                                // qolib, imtihon boshqa soniyadan boshlanardi.
+                                const startTime = (passage.startTime !== undefined && passage.startTime !== null && passage.startTime !== "")
+                                    ? passage.startTime
+                                    : (partMeta?.startSec ?? defaultStart);
 
-                                const endTime = (partMeta?.endSec !== undefined && partMeta?.endSec !== null)
-                                    ? Number(partMeta.endSec)
-                                    : (passage.endTime || defaultEnd);
+                                const endTime = (passage.endTime !== undefined && passage.endTime !== null && passage.endTime !== "")
+                                    ? passage.endTime
+                                    : (partMeta?.endSec ?? defaultEnd);
 
                                 return (
                                     <CustomAudioPlayer

@@ -11,7 +11,7 @@ import { MagnifyingGlass, UserPlus, Check } from '@phosphor-icons/react';
 import { useTranslation } from '../../../context/LanguageContext';
 import { useStudentSearch } from '../../../hooks/useStudentSearch';
 import { Avatar, ProgressBar } from './primitives';
-import Modal from './Modal';
+import Modal from '../Modal';
 
 // Har renderda yangi massiv `useStudentSearch` ichidagi memo'ni bekor
 // qilmasligi uchun — barqaror bo'sh ro'yxat.

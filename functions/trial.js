@@ -42,7 +42,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { sanitizeObject } = require("./getSanitizedTest");
 const { evaluateTest, calculateOverallBand } = require("./ieltsScoring");
-const { grantSignupDiscount, DISCOUNT_CONFIG } = require("./signupDiscount");
+const { grantSignupDiscount, DISCOUNT_CONFIG, clampCycles, clampPercent } = require("./signupDiscount");
 
 /** Telegram HTML parse_mode uchun — ism/email ichidagi `<` xabarni buzmasin. */
 function escapeHtml(value) {
@@ -91,8 +91,13 @@ const DEFAULT_CONFIG = {
    * duch keladi.
    */
   stages: {
+    // ⚠️ 1800 emas, 900: admin paneli (`AdminTrial.jsx`) shu qiymatni zaxira
+    // sifatida ishlatadi va sayt matnlari ham shunga qurilgan ("~35 daqiqa").
+    // Serverda 1800 turgani uchun `config/trial` hujjati yozilmagan holatda
+    // o'quvchi 50 daqiqalik testga tushardi — ya'ni landing page'dagi va'da
+    // bajarilmasdi va odamlar testni oxirigacha yetkazmasdi.
     reading: { testId: null, durationSeconds: 1200 },
-    listening: { testId: null, durationSeconds: 1800 },
+    listening: { testId: null, durationSeconds: 900 },
   },
 };
 
@@ -126,9 +131,16 @@ function normalizeDiscountConfig(data) {
     };
   }
   return {
-    discountPercent: Number(data.discountPercent) || DISCOUNT_CONFIG.percent,
+    // ⚠️ `clampPercent`: `clampCycles` bilan bir xil sabab — saqlangan hujjatda
+    // eski 30 qolib ketsa, u koddagi 20 dan ustun bo'lib jimgina ortiqcha
+    // chegirma berardi. Batafsil izoh `signupDiscount.js` dagi `clampPercent` da.
+    discountPercent: clampPercent(data.discountPercent) || DISCOUNT_CONFIG.percent,
     discountDays: Number(data.discountDays) || DISCOUNT_CONFIG.days,
-    discountCycles: cycles,
+    // ⚠️ `clampCycles`: saqlangan hujjatda 3 qolib ketgan edi (foiz 30 ga
+    // yangilanganda oy soni eskisida qoldi) va u koddagi 2 dan ustun bo'lib,
+    // har bir yangi o'quvchiga bir oy ortiqcha chegirma berayotgan edi.
+    // Batafsil izoh `signupDiscount.js` dagi `clampCycles` da.
+    discountCycles: clampCycles(cycles) || DISCOUNT_CONFIG.cycles,
   };
 }
 
@@ -185,7 +197,11 @@ async function getTrialTest(data, context) {
   return {
     stage,
     test: sanitized,
-    durationSeconds: Number(stageConfig.durationSeconds) || 1200,
+    // Zaxira qiymat BOSQICHGA mos bo'lishi shart: qattiq 1200 yozilsa,
+    // `durationSeconds` sozlanmagan listening bosqichi 15 daqiqa o'rniga
+    // 20 daqiqa olardi.
+    durationSeconds: Number(stageConfig.durationSeconds) ||
+      DEFAULT_CONFIG.stages[stage].durationSeconds,
     totalStages: STAGES.length,
     stageIndex: STAGES.indexOf(stage) + 1,
   };
@@ -274,6 +290,13 @@ async function submitTrial(data, context) {
     minOverallBand: minBand,
     rewardEarned,
     discountPercent: config.discountPercent,
+    // ⚠️ `cycles` va `days` ham QAYTARILISHI shart: natija sahifasi ilgari
+    // "dastlabki 2 oyiga" deb QO'LDA yozilgan matnni ko'rsatardi. Admin
+    // `config/trial` da `discountCycles` ni o'zgartirsa (masalan 1 ga), sahifa
+    // o'quvchiga bajarilmaydigan va'da berib turardi — va bu farq faqat
+    // to'lov paytida, botdagi narxda ko'rinardi.
+    discountCycles: config.discountCycles,
+    discountDays: config.discountDays,
   };
 }
 

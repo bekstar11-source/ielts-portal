@@ -30,7 +30,6 @@ import {
   LayoutDashboard,
   FilePlus,
   Plus,
-  Award,
   Users,
   Target
 } from 'lucide-react';
@@ -236,18 +235,48 @@ export default function DashboardHeader({
   const renderTeacherSection = (isMobile = false, isCollapsed = false) => {
     if (userData?.role !== 'teacher') return null;
 
-    const items = [
-      { id: 't_dashboard', label: "Dashboard", path: '/teacher', icon: LayoutDashboard },
-      { id: 't_mock', label: t('dashboard.mockExam') || "Mock Exam", path: '/mock', icon: Computer },
-      { id: 't_tests', label: "Tayinlangan Testlar", path: '/teacher/tests', icon: BookOpen },
-      { id: 't_create_writing', label: "Writing Yaratish", path: '/teacher/create-writing', icon: Plus },
-      { id: 't_writing_review', label: "Writing Tekshirish", path: '/teacher/writing-review', icon: PenTool },
-      { id: 't_speaking_review', label: "Speaking Tekshirish", path: '/teacher/speaking-review', icon: Mic },
-      { id: 't_stats', label: "Guruh Statistikasi", path: '/teacher/group-stats', icon: BarChart2 },
-      { id: 't_students', label: "O'quvchilar", path: '/teacher/group-stats?view=students', icon: Users },
-      { id: 't_my_results', label: "Mening Natijalarim", path: '/my-results', icon: Award },
-      { id: 't_results', label: "Barcha Natijalar", path: '/teacher/results', icon: ClipboardList },
-      { id: 't_subscription', label: "Obuna & To'lovlar", path: '/teacher/subscription', icon: CreditCard }
+    // Ish oqimi bo'yicha guruhlangan: guruh → vazifa berish → tekshirish →
+    // natija. Ilgari bu 11 ta tekis element edi va o'rtasida o'quvchi
+    // sahifalari ("Mock Exam", "Mening natijalarim") turib, oqimni uzardi.
+    const sections = [
+      {
+        id: 'main',
+        items: [
+          { id: 't_dashboard', label: t('teacher.nav.dashboard'), path: '/teacher', icon: LayoutDashboard },
+        ],
+      },
+      {
+        id: 'groups',
+        title: t('teacher.nav.sections.groups'),
+        items: [
+          { id: 't_stats', label: t('teacher.nav.groupStats'), path: '/teacher/group-stats', icon: BarChart2 },
+          { id: 't_students', label: t('teacher.nav.students'), path: '/teacher/group-stats?view=students', icon: Users },
+        ],
+      },
+      {
+        id: 'tasks',
+        title: t('teacher.nav.sections.tasks'),
+        items: [
+          { id: 't_tests', label: t('teacher.nav.tests'), path: '/teacher/tests', icon: BookOpen },
+          { id: 't_create_writing', label: t('teacher.nav.createWriting'), path: '/teacher/create-writing', icon: Plus },
+        ],
+      },
+      {
+        id: 'review',
+        title: t('teacher.nav.sections.review'),
+        items: [
+          { id: 't_writing_review', label: t('teacher.nav.writingReview'), path: '/teacher/writing-review', icon: PenTool },
+          { id: 't_speaking_review', label: t('teacher.nav.speakingReview'), path: '/teacher/speaking-review', icon: Mic },
+        ],
+      },
+      {
+        id: 'account',
+        title: t('teacher.nav.sections.account'),
+        items: [
+          { id: 't_results', label: t('teacher.nav.results'), path: '/teacher/results', icon: ClipboardList },
+          { id: 't_subscription', label: t('teacher.nav.subscription'), path: '/teacher/subscription', icon: CreditCard },
+        ],
+      },
     ];
 
     const handleItemClick = (path) => {
@@ -274,7 +303,13 @@ export default function DashboardHeader({
     if (isCollapsed) {
       return (
         <div className="mt-lg flex flex-col gap-xxs">
-          {items.map(item => {
+          {sections.flatMap((section, sectionIndex) => [
+            // Yig'ilgan holatda sarlavha sig'maydi — bo'limlar ingichka
+            // chiziq bilan ajratiladi.
+            ...(sectionIndex > 0
+              ? [<div key={`sep-${section.id}`} className="my-1 mx-2 border-t border-warm-hairline dark:border-white/10" />]
+              : []),
+            ...section.items.map(item => {
             const Icon = item.icon;
             const isActive = isTeacherItemActive(item);
             return (
@@ -291,7 +326,8 @@ export default function DashboardHeader({
                 <Icon size={iconSize} strokeWidth={2} className={isActive ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft'} />
               </button>
             );
-          })}
+            }),
+          ])}
         </div>
       );
     }
@@ -314,24 +350,33 @@ export default function DashboardHeader({
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden flex flex-col gap-xxs"
             >
-              {items.map(item => {
-                const Icon = item.icon;
-                const isActive = isTeacherItemActive(item);
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleItemClick(item.path)}
-                    className={`w-full text-left ${isMobile ? 'px-sm' : 'px-3'} py-1.5 text-sm rounded-lg transition-all duration-200 flex items-center gap-2.5 group ${
-                      isActive
-                        ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary font-semibold'
-                        : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
-                    }`}
-                  >
-                    <Icon size={iconSize} strokeWidth={2} className={isActive ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark transition-colors'} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
+              {sections.map(section => (
+                <div key={section.id} className="flex flex-col gap-xxs">
+                  {section.title && (
+                    <span className={`mt-2 mb-0.5 ${isMobile ? 'px-sm' : 'px-3'} text-[10px] font-semibold uppercase tracking-wider text-warm-muted-soft dark:text-warm-on-dark-soft/70`}>
+                      {section.title}
+                    </span>
+                  )}
+                  {section.items.map(item => {
+                    const Icon = item.icon;
+                    const isActive = isTeacherItemActive(item);
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleItemClick(item.path)}
+                        className={`w-full text-left ${isMobile ? 'px-sm' : 'px-3'} py-1.5 text-sm rounded-lg transition-all duration-200 flex items-center gap-2.5 group ${
+                          isActive
+                            ? 'text-warm-primary dark:text-white bg-[#F0EAE0] dark:bg-warm-primary font-semibold'
+                            : 'text-warm-body dark:text-warm-on-dark-soft font-medium hover:text-warm-ink dark:hover:text-warm-on-dark hover:bg-warm-surface dark:hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon size={iconSize} strokeWidth={2} className={isActive ? 'text-warm-primary dark:text-white' : 'text-warm-muted-soft dark:text-warm-on-dark-soft group-hover:text-warm-ink dark:group-hover:text-warm-on-dark transition-colors'} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>

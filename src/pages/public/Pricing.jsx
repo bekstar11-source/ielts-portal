@@ -14,6 +14,7 @@ import {
   applySignupDiscount,
   formatSom,
 } from '../../utils/subscription';
+import { getPlanPrice, perMonthPrice } from '../../utils/pricing';
 
 // ─── COMPONENTS ───────────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ export default function PricingPage() {
   // ─── Ro'yxatdan o'tish chegirmasi ────────────────────────────────────────
   //
   // `discount` — taklif umuman bormi. `discountActive` — u AYNAN hozir
-  // tanlangan to'lov davriga tegishlimi. Chegirma 2 oyni qoplaydi, 3 oylik
+  // tanlangan to'lov davriga tegishlimi. Chegirma 1 oyni qoplaydi, 3 oylik
   // paket esa 3 oyni yeydi — shuning uchun u FAQAT 1 oylikda ishlaydi.
   // 3 oylik tanlangan bo'lsa narxni o'zgartirmay, ishlaydigan davrni
   // bir bosishda taklif qilamiz (eski `["tri"]` takliflarda — aksincha).
@@ -132,11 +133,11 @@ export default function PricingPage() {
     {
       id: 'standard',
       name: t('common.standard'),
-      // ⚠️ Narxlar `functions/pricing.js` dagi `PLAN_PRICES` bilan QO'LDA
-      // sinxron. Bu yerdagi raqam faqat ko'rsatish uchun; to'lanadigan
-      // summani bot hisoblaydi.
-      monthlyPrice: 35000,
-      triPrice: 89000,
+      // Narxlar `src/utils/pricing.js` dan — u `functions/pricing.js` bilan
+      // qo'lda sinxron bo'lgan yagona klient manbasi. Ilgari raqam shu yerda
+      // qo'lda yozilgan edi va landing page'dagi nusxasi bilan mos emasdi.
+      monthlyPrice: getPlanPrice('standard', 'monthly'),
+      triPrice: getPlanPrice('standard', 'tri'),
       period: t('pricing.som'),
       desc: t('pricing.standardDesc'),
       cta: t('pricing.standardCTA'),
@@ -147,8 +148,8 @@ export default function PricingPage() {
     {
       id: 'pro',
       name: t('common.pro'),
-      monthlyPrice: 49000,
-      triPrice: 129000,
+      monthlyPrice: getPlanPrice('pro', 'monthly'),
+      triPrice: getPlanPrice('pro', 'tri'),
       period: t('pricing.som'),
       desc: t('pricing.proDesc'),
       cta: t('pricing.proCTA'),
@@ -300,6 +301,19 @@ export default function PricingPage() {
                           </p>
                         </div>
                       </div>
+
+                      {/* ── Oylik ekvivalent ──
+                          "3 oylik −20%" yorlig'i chegirma bilan YOLG'ON
+                          taqqoslash beradi: 89 000 / 3 = 29 667, chegirmali
+                          1 oylik esa 24 500. Ya'ni chegirmasi bor o'quvchi
+                          "arzonroq" deb 3 oylikni tanlaydi, natijada ham
+                          ko'proq to'laydi, ham chegirmasini yo'qotadi
+                          (u faqat 1 oylikda ishlaydi). */}
+                      {billing === 'tri' && plan.id !== 'free' && (
+                        <p className={`mt-1.5 text-[11px] font-bold ${plan.highlight ? 'text-warm-on-dark-soft' : 'text-warm-muted dark:text-warm-on-dark-soft'}`}>
+                          {t('pricing.perMonthEquivalent').replace('{price}', formatSom(perMonthPrice(final, 'tri')))}
+                        </p>
+                      )}
                     </>
                   );
                 })()}

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { db } from "../../firebase/firebase";
+import { parseAudioTime } from "../../utils/audioTime";
 import toast from "react-hot-toast";
 
 // Hooks & Components
@@ -518,8 +519,8 @@ export default function AdminTests() {
                                         title: passage.title || `Part ${partNum}`,
                                         difficulty: passage.difficulty || payload.difficulty || "medium",
                                         qTypes: Array.from(new Set(formattedQTypes)),
-                                        startSec: passage.startTime !== undefined && passage.startTime !== null ? Number(passage.startTime) : 0,
-                                        endSec: passage.endTime !== undefined && passage.endTime !== null ? Number(passage.endTime) : 0,
+                                        startSec: parseAudioTime(passage.startTime),
+                                        endSec: parseAudioTime(passage.endTime),
                                         audioUrl: passage.audio || payload.audio_url || ""
                                     };
                                 });

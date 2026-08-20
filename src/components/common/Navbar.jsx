@@ -113,16 +113,16 @@ const Navbar = () => {
           {/* Center Links */}
           <div className="hidden md:flex items-center gap-8 z-50">
             <a href="#features" onClick={handleFeaturesClick} style={navLinkStyle} className="nav-link">
-              Imkoniyatlar
+              {t('navbar.features')}
             </a>
             <Link to="/pricing" style={navLinkStyle} className="nav-link">
-              Narxlar
+              {t('navbar.pricing')}
             </Link>
             <Link to="/login" style={navLinkStyle} className="nav-link">
-              O'qituvchilar
+              {t('navbar.forTeachers')}
             </Link>
             <Link to="/login" style={navLinkStyle} className="nav-link">
-              Biznes uchun
+              {t('navbar.forInstitutions')}
             </Link>
           </div>
 
@@ -134,7 +134,7 @@ const Navbar = () => {
               style={ctaStyle}
               className="transition-transform hover:scale-[1.02] active:scale-95"
             >
-              {isAuthed ? t('navbar.dashboard') : 'Kirish'}
+              {isAuthed ? t('navbar.dashboard') : t('navbar.signin')}
             </Link>
           </div>
 
@@ -167,10 +167,10 @@ const Navbar = () => {
             <Logo to="/" tone="ink" size="lg" onClick={() => setIsOpen(false)} className="z-50" />
 
             {[
-              { label: 'Imkoniyatlar', href: '#features', onClick: handleFeaturesClick },
-              { label: 'Narxlar', to: '/pricing' },
-              { label: "O'qituvchilar", to: '/login' },
-              { label: 'Biznes uchun', to: '/login' },
+              { label: t('navbar.features'), href: '#features', onClick: handleFeaturesClick },
+              { label: t('navbar.pricing'), to: '/pricing' },
+              { label: t('navbar.forTeachers'), to: '/login' },
+              { label: t('navbar.forInstitutions'), to: '/login' },
             ].map((item, i) =>
               item.to ? (
                 <Link key={i} to={item.to} style={{ font: `600 22px ${DISPLAY_FONT}`, color: '#1E1B16', textDecoration: 'none' }} onClick={() => setIsOpen(false)}>
@@ -190,7 +190,7 @@ const Navbar = () => {
               style={{ ...ctaStyle, padding: '14px 32px', fontSize: '16px' }}
               onClick={() => setIsOpen(false)}
             >
-              {isAuthed ? t('navbar.dashboard') : 'Kirish'}
+              {isAuthed ? t('navbar.dashboard') : t('navbar.signin')}
             </Link>
           </motion.div>
         )}

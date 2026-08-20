@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase/firebase';
+import { addStudentToGroup } from '../utils/groupMembership';
 import {
     collection,
     getCountFromServer,
@@ -9,7 +10,6 @@ import {
     where,
     doc,
     updateDoc,
-    arrayUnion,
     orderBy
 } from 'firebase/firestore';
 
@@ -189,8 +189,9 @@ export const useAdminDashboard = (isAuthorized) => {
     const handleAddToGroup = async (userId, groupId) => {
         setProcessing(true);
         try {
-            await updateDoc(doc(db, "groups", groupId), { studentIds: arrayUnion(userId) });
-            await updateDoc(doc(db, "users", userId), { studentType: 'group', groupId: groupId });
+            // A'zolik faqat server orqali: limit, `groupId` va guruh Pro huquqi
+            // bitta joyda hal bo'ladi (`functions/groupMembership.js`).
+            await addStudentToGroup(groupId, userId);
             setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, studentType: 'group', groupId: groupId } : u));
             invalidateUsersCache();
             return true;

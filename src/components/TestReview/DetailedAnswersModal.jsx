@@ -1,13 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, CheckCircle2, XCircle, ArrowRight, AlertCircle } from 'lucide-react';
+import { X, Search, CheckCircle2, XCircle, ArrowRight, AlertCircle, Flag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { buildReviewQuestions, getReviewScoreSummary } from '../../utils/reviewAnswers';
 import { useTranslation } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../firebase/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function DetailedAnswersModal({
     isOpen,
     onClose,
     testData,
+    resultId = null,
     userAnswers = {},
     score,
     bandScore,
@@ -17,8 +21,41 @@ export default function DetailedAnswersModal({
     onJumpToQuestion
 }) {
     const { t } = useTranslation();
+    const { user, userData } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'correct' | 'mistake'
+    const [reportingQuestion, setReportingQuestion] = useState(null); // question object being reported
+    const [reportText, setReportText] = useState('');
+    const [reportSubmitting, setReportSubmitting] = useState(false);
+    const [reportedIds, setReportedIds] = useState(new Set());
+
+    const handleSubmitReport = async (q) => {
+        if (!reportText.trim() || !user) return;
+        setReportSubmitting(true);
+        try {
+            await addDoc(collection(db, 'testComments'), {
+                testId: testData?.id || null,
+                resultId,
+                questionId: q.id,
+                qNumber: q.qNumber,
+                userId: user.uid,
+                userName: userData?.fullName || user.displayName || 'Student',
+                userRole: userData?.role || 'student',
+                text: reportText.trim(),
+                isReport: true,
+                status: 'pending',
+                createdAt: serverTimestamp()
+            });
+            setReportedIds(prev => new Set(prev).add(q.id));
+            setReportingQuestion(null);
+            setReportText('');
+        } catch (error) {
+            console.error('Error submitting report:', error);
+            alert(t('testSolving.reportError') || "Xato yuz berdi. Qayta urinib ko'ring.");
+        } finally {
+            setReportSubmitting(false);
+        }
+    };
 
     // Savollar ro'yxati va ball xulosasi — yagona manbadan (`utils/reviewAnswers`),
     // ball hisoblagichi (`evaluateTest`) bilan bir xil qoidalar asosida.
@@ -190,10 +227,12 @@ export default function DetailedAnswersModal({
 
                                 {/* Table Body */}
                                 {filteredQuestions.map((q) => {
+                                    const isReporting = reportingQuestion?.id === q.id;
+                                    const alreadyReported = reportedIds.has(q.id);
                                     return (
-                                        <div 
+                                        <div
                                             key={q.id}
-                                            className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 md:px-8 py-4 items-center hover:bg-zinc-50/40 dark:hover:bg-zinc-800/10 transition-colors"
+                                            className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 md:px-8 py-4 items-start hover:bg-zinc-50/40 dark:hover:bg-zinc-800/10 transition-colors"
                                         >
                                             {/* Question Number */}
                                             <div className="col-span-1 flex items-center gap-3">
@@ -264,6 +303,34 @@ export default function DetailedAnswersModal({
                                                     )}
                                                 </div>
 
+                                                {/* Report a mistake in this question */}
+                                                {alreadyReported ? (
+                                                    <span
+                                                        className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1 px-2.5 py-1.5"
+                                                        title={t('testSolving.reportSubmitted') || 'Xabar yuborildi'}
+                                                    >
+                                                        <CheckCircle2 size={12} className="stroke-[2.5]" />
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            setReportingQuestion(isReporting ? null : q);
+                                                            setReportText('');
+                                                        }}
+                                                        className={`text-[11px] font-black flex items-center gap-1 border px-2.5 py-1.5 rounded-lg transition-all ${
+                                                            isReporting
+                                                                ? 'text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/40'
+                                                                : 'text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200'
+                                                        }`}
+                                                        title={t('testSolving.reportIssue') || 'Xato/kamchilik haqida xabar berish'}
+                                                    >
+                                                        <Flag size={12} className="stroke-[2.5]" />
+                                                        <span className="hidden sm:inline">
+                                                            {t('testSolving.reportIssue') || 'Xabar berish'}
+                                                        </span>
+                                                    </button>
+                                                )}
+
                                                 {/* Go to question button (only if onJumpToQuestion is provided) */}
                                                 {onJumpToQuestion && (
                                                     <button
@@ -281,6 +348,34 @@ export default function DetailedAnswersModal({
                                                     </button>
                                                 )}
                                             </div>
+
+                                            {/* Inline report form */}
+                                            {isReporting && (
+                                                <div className="col-span-1 md:col-span-12 mt-1 bg-orange-50/60 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/30 rounded-lg p-3 flex flex-col gap-2">
+                                                    <textarea
+                                                        autoFocus
+                                                        value={reportText}
+                                                        onChange={(e) => setReportText(e.target.value)}
+                                                        placeholder={t('testSolving.reportPlaceholder') || 'Bu savolda qanday xato yoki kamchilik bor? Batafsil yozing...'}
+                                                        className="w-full text-xs font-medium bg-white dark:bg-zinc-950 border border-orange-200/60 dark:border-orange-900/40 rounded-lg px-3 py-2 min-h-[60px] resize-none focus:outline-none focus:ring-1 focus:ring-orange-400 text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                                                    />
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => { setReportingQuestion(null); setReportText(''); }}
+                                                            className="px-3 py-1.5 text-[11px] font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                                                        >
+                                                            {t('testSolving.reportCancel') || 'Bekor qilish'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleSubmitReport(q)}
+                                                            disabled={reportSubmitting || !reportText.trim()}
+                                                            className="px-3 py-1.5 text-[11px] font-bold text-white bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-200 disabled:text-zinc-400 rounded-lg transition-all"
+                                                        >
+                                                            {reportSubmitting ? '...' : (t('testSolving.reportSubmit') || 'Yuborish')}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

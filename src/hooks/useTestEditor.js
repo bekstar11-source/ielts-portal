@@ -5,6 +5,7 @@ import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setD
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { invalidateAdminTestsCache } from "../utils/adminTestsCache";
+import { parseAudioTime } from "../utils/audioTime";
 import { 
     detectSectionFromQuestions, 
     getQuestionTypesFromQuestions,
@@ -81,8 +82,8 @@ const compileMetadata = (testId, payload) => {
                 title: passage.title || `Part ${partNum}`,
                 difficulty: passage.difficulty || payload.difficulty || "medium",
                 qTypes: Array.from(new Set(formattedQTypes)),
-                startSec: passage.startTime !== undefined && passage.startTime !== null ? Number(passage.startTime) : 0,
-                endSec: passage.endTime !== undefined && passage.endTime !== null ? Number(passage.endTime) : 0,
+                startSec: parseAudioTime(passage.startTime),
+                endSec: parseAudioTime(passage.endTime),
                 audioUrl: passage.audio || payload.audio_url || ""
             };
         });

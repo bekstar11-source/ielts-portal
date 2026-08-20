@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar';
 import SchemaMarkup from '../../components/common/SchemaMarkup';
 import { track } from '../../lib/analytics';
 import Logo from '../../components/common/Logo';
+import { useTranslation } from '../../context/LanguageContext';
+import { getPlanPrice, getPublicDiscountPrice } from '../../utils/pricing';
+import { formatSom } from '../../utils/subscription';
 
 // --- Responsive styles (desktop = base, media queries adapt tablet/mobile) ---
 const responsiveCSS = `
@@ -73,10 +76,12 @@ const responsiveCSS = `
 
 // --- Animated Word Slider ---
 const AnimatedWords = () => {
-  const words = ["Reading", "Listening", "Mock Exam"];
+  const { t } = useTranslation();
+  const rawWords = t('landing.heroWords');
+  const words = Array.isArray(rawWords) && rawWords.length > 0 ? rawWords : ["Reading", "Listening", "Mock Exam"];
   const [index, setIndex] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % words.length);
     }, 2500);
@@ -96,49 +101,57 @@ const AnimatedWords = () => {
 
 // --- Hero Section ---
 const Hero = () => {
+  const { t } = useTranslation();
+
   return (
     <section style={{ background: '#F7F4EE', fontFamily: "'Public Sans', sans-serif", paddingBottom: '100px' }}>
-
       <div className="lp-hero-copy">
         <span style={{ font: "600 13px 'Public Sans', sans-serif", letterSpacing: '.08em', color: '#D97757', textTransform: 'uppercase' }}>
-          Sun'iy intellekt asosida IELTS tayyorgarligi
+          {t('landing.heroTag')}
         </span>
 
         <h1 className="lp-h1">
-          IELTS
+          {t('landing.heroHeadingPre')}{' '}
           <AnimatedWords />
-          bo'yicha aniq natijaga erishing
+          {t('landing.heroHeadingPost') ? ` ${t('landing.heroHeadingPost')}` : ''}
         </h1>
 
         <p style={{ margin: 0, maxWidth: '620px', font: "400 17px/1.6 'Public Sans', sans-serif", color: '#6b6559' }}>
-          Englev — Reading, Listening va to'liq Mock Exam'larni real imtihon formatida onlayn mashq qildiruvchi platforma. Har bir xatoni aniq tahlil qiling va band ballingizni oshirish uchun shaxsiy reja oling.
+          {t('landing.heroDesc')}
         </p>
 
-        {/* CTA ierarxiyasi ATAYLAB shunday: sovuq trafik uchun BIRLAMCHI taklif —
-            ro'yxatdan o'tishni talab qilmaydigan trial (/trial). Ro'yxatdan
-            o'tish esa ikkilamchi havola: u allaqachon ishonch hosil qilgan
-            odam uchun. Teskarisi reklamadan kelgan mehmonni darvozadayoq
-            to'xtatib qo'yadi. */}
         <div className="lp-cta-row">
           <Link
             to="/trial"
             onClick={() => track('trial_cta_click', { placement: 'hero' })}
             style={{ padding: '14px 30px', borderRadius: '999px', border: 'none', background: '#1E1B16', color: '#fff', font: "600 15px 'Public Sans', sans-serif", cursor: 'pointer', textDecoration: 'none' }}
           >
-            Bepul darajangizni aniqlang →
+            {t('landing.heroCtaTrial')}
           </Link>
           <Link
             to="/login"
             onClick={() => track('register_cta_click', { placement: 'hero' })}
             style={{ padding: '12px 0', font: "600 15px 'Public Sans', sans-serif", color: '#1E1B16', textDecoration: 'none' }}
           >
-            Ro'yxatdan o'tish
+            {t('landing.heroCtaRegister')}
           </Link>
         </div>
 
         <p style={{ margin: '-8px 0 0', font: "400 14px 'Public Sans', sans-serif", color: '#8a8577' }}>
-          30 daqiqa · ro'yxatdan o'tmasdan · karta ma'lumoti so'ralmaydi
+          {t('landing.heroSubtext')}
         </p>
+
+        {/* ── Mukofot ochiq aytiladi ──
+            `config/trial.minOverallBand` = 0, ya'ni chegirma NATIJAGA emas,
+            testni YAKUNLASHGA beriladi — demak bu "omadingiz kelsa" emas,
+            aniq va'da. Ilgari u faqat natija sahifasida (test yechilgandan
+            keyin) aytilardi va sovuq trafik uni hech qachon ko'rmasdi. */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '999px', background: 'rgba(74,95,232,.09)', border: '1px solid rgba(74,95,232,.22)' }}>
+          <span style={{ fontSize: '14px', lineHeight: 1 }}>🎁</span>
+          <span style={{ font: "600 13px 'Public Sans', sans-serif", color: '#3B4FD0' }}>
+            {t('landing.heroDiscountNote')}
+          </span>
+        </div>
       </div>
 
       <div className="lp-hero-visual">
@@ -146,19 +159,19 @@ const Hero = () => {
 
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px', textAlign: 'center' }}>
           <span style={{ font: "14px 'Courier New', monospace", color: 'rgba(255,255,255,.75)' }}>
-            // platforma skrinshoti — rasmni shu yerga tashlang
+            {t('landing.heroScreenshotNotice')}
           </span>
         </div>
 
         <div className="lp-hero-floats">
           <div className="lp-float" style={{ position: 'absolute', left: '56px', top: '56px', background: 'rgba(255,255,255,.96)', borderRadius: '14px', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '4px', boxShadow: '0 12px 30px rgba(0,0,0,.2)', maxWidth: '260px' }}>
-            <span style={{ font: "600 12px 'Public Sans', sans-serif", color: '#8a8577' }}>Reading · Passage 2</span>
-            <span style={{ font: "600 14px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>13/13 to'g'ri javob</span>
+            <span style={{ font: "600 12px 'Public Sans', sans-serif", color: '#8a8577' }}>{t('landing.heroReadingPassage')}</span>
+            <span style={{ font: "600 14px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>{t('landing.heroReadingScore')}</span>
           </div>
 
           <div className="lp-float" style={{ position: 'absolute', right: '56px', bottom: '56px', background: 'rgba(255,255,255,.96)', borderRadius: '14px', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '4px', boxShadow: '0 12px 30px rgba(0,0,0,.2)', alignSelf: 'flex-end' }}>
-            <span style={{ font: "600 12px 'Public Sans', sans-serif", color: '#8a8577' }}>Mock Exam yakunlandi</span>
-            <span style={{ font: "600 14px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>Band 7.5</span>
+            <span style={{ font: "600 12px 'Public Sans', sans-serif", color: '#8a8577' }}>{t('landing.heroMockCompleted')}</span>
+            <span style={{ font: "600 14px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>{t('landing.heroMockBand')}</span>
           </div>
         </div>
       </div>
@@ -168,10 +181,14 @@ const Hero = () => {
 
 // --- Logos ---
 const Logos = () => {
+  const { t } = useTranslation();
   const logos = ["Cambridge", "IDP", "British Council", "Oxford", "IELTS", "Macmillan"];
+
   return (
     <div className="lp-section lp-pad-y-lg" style={{ background: '#10102A', paddingTop: '56px', paddingBottom: '56px', textAlign: 'center', fontFamily: "'Public Sans', sans-serif" }}>
-      <span style={{ font: "600 13px 'Public Sans', sans-serif", letterSpacing: '.06em', color: '#A6A8C4', textTransform: 'uppercase' }}>O'zbekiston bo'ylab til markazlari ishonch bildirgan</span>
+      <span style={{ font: "600 13px 'Public Sans', sans-serif", letterSpacing: '.06em', color: '#A6A8C4', textTransform: 'uppercase' }}>
+        {t('landing.logosTrust')}
+      </span>
       <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '28px', flexWrap: 'wrap' }}>
         {logos.map(logo => (
           <div key={logo} style={{ padding: '10px 18px', border: '1px solid rgba(255,255,255,.12)', borderRadius: '8px' }}>
@@ -185,11 +202,13 @@ const Logos = () => {
 
 // --- Stats ---
 const Stats = () => {
+  const { t } = useTranslation();
   const stats = [
-    { value: "15k+", label: "Foydalanuvchilar" },
-    { value: "2.5M+", label: "Bajarilgan savollar" },
-    { value: "7.5", label: "O'rtacha band ball" }
+    { value: t('landing.statUsers'), label: t('landing.statUsersLabel') },
+    { value: t('landing.statQuestions'), label: t('landing.statQuestionsLabel') },
+    { value: t('landing.statBand'), label: t('landing.statBandLabel') }
   ];
+
   return (
     <div className="lp-stats" style={{ fontFamily: "'Public Sans', sans-serif" }}>
       {stats.map((s, i) => (
@@ -211,16 +230,18 @@ const FeatureBullet = ({ children }) => (
 );
 
 const FeaturesHTML = () => {
+  const { t } = useTranslation();
+
   return (
-    <div className="lp-section lp-pad-y-lg" style={{ background: '#10102A', paddingTop: '110px', paddingBottom: '110px', display: 'flex', flexDirection: 'column', gap: '72px', fontFamily: "'Public Sans', sans-serif" }}>
-      <h2 className="lp-h2" style={{ color: '#fff' }}>Har bir modul uchun alohida yondashuv</h2>
+    <div id="features" className="lp-section lp-pad-y-lg" style={{ background: '#10102A', paddingTop: '110px', paddingBottom: '110px', display: 'flex', flexDirection: 'column', gap: '72px', fontFamily: "'Public Sans', sans-serif" }}>
+      <h2 className="lp-h2" style={{ color: '#fff' }}>{t('landing.featuresTitle')}</h2>
 
       <div className="lp-feature-row">
         <div className="lp-feature-copy">
-          <h3 className="lp-h3">Reading: har bir javobni asoslab bering</h3>
-          <FeatureBullet>Band 5 dan 9 gacha real Cambridge formatidagi matnlar</FeatureBullet>
-          <FeatureBullet>Har bir noto'g'ri javob uchun matndan aynan qaysi qatorda javob borligi ko'rsatiladi</FeatureBullet>
-          <FeatureBullet>O'qish tezligi va vaqt boshqaruvi bo'yicha statistika</FeatureBullet>
+          <h3 className="lp-h3">{t('landing.featReadingTitle')}</h3>
+          <FeatureBullet>{t('landing.featReading1')}</FeatureBullet>
+          <FeatureBullet>{t('landing.featReading2')}</FeatureBullet>
+          <FeatureBullet>{t('landing.featReading3')}</FeatureBullet>
         </div>
         <div className="lp-feature-visual">
           <div style={{ position: 'absolute', left: '8%', right: '8%', top: '40px', background: 'rgba(255,255,255,.95)', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -236,10 +257,10 @@ const FeaturesHTML = () => {
 
       <div className="lp-feature-row reverse">
         <div className="lp-feature-copy">
-          <h3 className="lp-h3">Listening: talaffuz va tezlikka o'rganing</h3>
-          <FeatureBullet>4 ta qism, turli aksentlar — Britan, Avstraliya, Amerika</FeatureBullet>
-          <FeatureBullet>Har bir savolni qayta tinglab, transkriptdan tekshiring</FeatureBullet>
-          <FeatureBullet>Eshitib tushunish tezligingiz vaqt bo'yicha kuzatiladi</FeatureBullet>
+          <h3 className="lp-h3">{t('landing.featListeningTitle')}</h3>
+          <FeatureBullet>{t('landing.featListening1')}</FeatureBullet>
+          <FeatureBullet>{t('landing.featListening2')}</FeatureBullet>
+          <FeatureBullet>{t('landing.featListening3')}</FeatureBullet>
         </div>
         <div className="lp-feature-visual" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
           <span style={{ width: '6px', height: '26px', background: 'rgba(255,255,255,.55)', borderRadius: '3px' }}></span>
@@ -255,16 +276,16 @@ const FeaturesHTML = () => {
 
       <div className="lp-feature-row">
         <div className="lp-feature-copy">
-          <h3 className="lp-h3">Mock Exam: real imtihon holatida sinang</h3>
-          <FeatureBullet>Reading + Listening to'liq 2 soat 40 daqiqalik format</FeatureBullet>
-          <FeatureBullet>Imtihondan so'ng batafsil band ball tahlili</FeatureBullet>
-          <FeatureBullet>Zaif tomonlaringiz bo'yicha keyingi hafta uchun reja</FeatureBullet>
+          <h3 className="lp-h3">{t('landing.featMockTitle')}</h3>
+          <FeatureBullet>{t('landing.featMock1')}</FeatureBullet>
+          <FeatureBullet>{t('landing.featMock2')}</FeatureBullet>
+          <FeatureBullet>{t('landing.featMock3')}</FeatureBullet>
         </div>
         <div className="lp-feature-visual" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: '150px', height: '150px', maxWidth: '40vw', maxHeight: '40vw', borderRadius: '50%', background: 'conic-gradient(#fff 0% 68%, rgba(255,255,255,.25) 68% 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: '78%', height: '78%', borderRadius: '50%', background: '#242A93', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
               <span style={{ font: "700 19px 'Space Grotesk', sans-serif", color: '#fff' }}>01:58:32</span>
-              <span style={{ font: "400 11px 'Public Sans', sans-serif", color: '#A6A8C4', textAlign: 'center' }}>Reading + Listening</span>
+              <span style={{ font: "400 11px 'Public Sans', sans-serif", color: '#A6A8C4', textAlign: 'center' }}>{t('landing.featMockTimeBadge')}</span>
             </div>
           </div>
         </div>
@@ -274,7 +295,7 @@ const FeaturesHTML = () => {
 };
 
 // --- Testimonials ---
-const TestimonialCard = ({ text, name }) => (
+const TestimonialCard = ({ text, name, role }) => (
   <div className="lp-card" style={{ padding: '32px', borderRadius: '16px', background: '#EFEBE2', display: 'flex', flexDirection: 'column', gap: '18px' }}>
     <span style={{ font: "700 44px/1 'Space Grotesk', sans-serif", color: '#D97757' }}>"</span>
     <p style={{ margin: 0, font: "500 17px/1.5 'Space Grotesk', sans-serif", color: '#1E1B16' }}>{text}</p>
@@ -282,74 +303,192 @@ const TestimonialCard = ({ text, name }) => (
       <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '50%', background: 'repeating-linear-gradient(45deg, #d8d3c6 0 4px, #cfc9ba 4px 8px)' }}></span>
       <div>
         <div style={{ font: "600 14px 'Public Sans', sans-serif", color: '#1E1B16' }}>{name}</div>
-        <div style={{ font: "400 12px 'Public Sans', sans-serif", color: '#8a8577' }}>Englev talabasi</div>
+        <div style={{ font: "400 12px 'Public Sans', sans-serif", color: '#8a8577' }}>{role}</div>
       </div>
     </div>
   </div>
 );
 
 const Testimonials = () => {
+  const { t } = useTranslation();
+  const rawList = t('landing.testimonials');
+  const testimonials = Array.isArray(rawList) && rawList.length > 0 ? rawList : [
+    {
+      text: "Englev'dagi Mock Exam'lar aynan haqiqiy imtihondagidek his qildi. 6 haftada 6.5 dan 7.5 ballga chiqdim.",
+      name: "Dilnoza R.",
+      role: "Englev talabasi"
+    },
+    {
+      text: "Reading bo'limidagi izohlar tufayli qaysi savol turida ko'proq xato qilishimni tushunib, strategiyamni o'zgartirdim.",
+      name: "Javlon M.",
+      role: "Englev talabasi"
+    }
+  ];
+
   return (
     <div className="lp-section lp-pad-y-lg" style={{ paddingTop: '100px', paddingBottom: '100px', display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center', background: '#F7F4EE', fontFamily: "'Public Sans', sans-serif" }}>
-      <TestimonialCard
-        text="Englev'dagi Mock Exam'lar aynan haqiqiy imtihondagidek his qildi. 6 haftada 6.5 dan 7.5 ballga chiqdim."
-        name="Dilnoza R."
-      />
-      <TestimonialCard
-        text="Reading bo'limidagi izohlar tufayli qaysi savol turida ko'proq xato qilishimni tushunib, strategiyamni o'zgartirdim."
-        name="Javlon M."
-      />
+      {testimonials.map((tItem, i) => (
+        <TestimonialCard
+          key={i}
+          text={tItem.text}
+          name={tItem.name}
+          role={tItem.role}
+        />
+      ))}
+    </div>
+  );
+};
+
+/**
+ * Chegirmali narx qatori (karta ichida).
+ *
+ * NEGA ASOSIY RAQAM O'ZGARMAYDI: chegirma har kimga avtomatik berilmaydi —
+ * u bepul testni YAKUNLAGANDAN keyin ochiladi. Kartadagi katta raqamni
+ * chegirmali summaga almashtirsak, testni yechmagan odam botda boshqa narxni
+ * ko'rib "narx oshirilgan" degan xulosaga kelardi. Shuning uchun to'liq narx
+ * asosiy bo'lib qoladi, chegirma esa alohida qator sifatida qo'shiladi.
+ */
+const DiscountLine = ({ planId, dark }) => {
+  const { t } = useTranslation();
+  const price = getPublicDiscountPrice(planId, 'monthly');
+  if (price === null) return null;
+
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap',
+        marginTop: '10px', padding: '8px 10px', borderRadius: '8px',
+        background: dark ? 'rgba(124,147,255,.14)' : 'rgba(74,95,232,.08)',
+        border: `1px solid ${dark ? 'rgba(124,147,255,.3)' : 'rgba(74,95,232,.18)'}`,
+      }}
+    >
+      <span style={{ font: "700 15px 'Space Grotesk', sans-serif", color: dark ? '#B9C4FF' : '#3B4FD0' }}>
+        {formatSom(price)}
+      </span>
+      <span style={{ font: `500 12px 'Public Sans', sans-serif`, color: dark ? '#A6A8C4' : '#6b6559' }}>
+        {t('landing.pricingDiscountLine')}
+      </span>
     </div>
   );
 };
 
 // --- Pricing ---
 const Pricing = () => {
-  const pricingBasicFeatures = ["Reading va Listening mashqlari", "Cheklangan mock examlar", "Asosiy tahlil"];
-  const pricingStandardFeatures = ["Barcha mashqlar", "Cheksiz mock examlar", "To'liq AI tahlili", "Shaxsiy o'quv rejasi"];
-  const pricingProFeatures = ["Standard barcha imkoniyatlar", "Haftalik mentor bilan muloqot", "Writing tekshiruvi (AI + Mentor)", "Speaking mock session"];
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const starterFeatures = Array.isArray(t('landing.pricingStarterFeatures')) ? t('landing.pricingStarterFeatures') : [];
+  const standardFeatures = Array.isArray(t('landing.pricingStandardFeatures')) ? t('landing.pricingStandardFeatures') : [];
+  const proFeatures = Array.isArray(t('landing.pricingProFeatures')) ? t('landing.pricingProFeatures') : [];
+
+  const handleSelect = () => {
+    navigate('/pricing');
+  };
 
   return (
     <div className="lp-section" style={{ background: '#F7F4EE', paddingBottom: '90px', fontFamily: "'Public Sans', sans-serif" }}>
-      <h2 className="lp-h2" style={{ color: '#1E1B16' }}>Har bir bosqich uchun mos tarif</h2>
-      <p style={{ margin: '16px auto 0', maxWidth: '520px', textAlign: 'center', font: "400 16px/1.6 'Public Sans', sans-serif", color: '#6b6559' }}>Istalgan vaqt bekor qilish mumkin — uzoq muddatli shartnoma yo'q.</p>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '48px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+      <h2 className="lp-h2" style={{ color: '#1E1B16' }}>{t('landing.pricingTitle')}</h2>
+      <p style={{ margin: '16px auto 0', maxWidth: '520px', textAlign: 'center', font: "400 16px/1.6 'Public Sans', sans-serif", color: '#6b6559' }}>
+        {t('landing.pricingSubtitle')}
+      </p>
+
+      {/* ── Chegirma tasmasi ──
+          Taklif ilgari landing page'da UMUMAN aytilmasdi: u faqat trial
+          natijasi sahifasida, ya'ni ~35 daqiqa test yechgandan KEYIN paydo
+          bo'lardi. Ya'ni testni boshlashga undaydigan eng kuchli dalil
+          o'quvchi uni ko'rmaydigan joyda turardi. */}
+      <div style={{ maxWidth: '620px', margin: '28px auto 0', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px 18px', borderRadius: '14px', background: 'rgba(74,95,232,.07)', border: '1px solid rgba(74,95,232,.2)' }}>
+        <span style={{ fontSize: '18px', lineHeight: 1.2, flexShrink: 0 }}>🎁</span>
+        <div>
+          <div style={{ font: "700 15px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>
+            {t('landing.pricingDiscountTitle')}
+          </div>
+          <p style={{ margin: '4px 0 0', font: "400 14px/1.55 'Public Sans', sans-serif", color: '#4a4638' }}>
+            {t('landing.pricingDiscountDesc')}
+          </p>
+          <Link
+            to="/trial"
+            onClick={() => track('trial_cta_click', { placement: 'pricing_discount' })}
+            style={{ display: 'inline-block', marginTop: '8px', font: "600 14px 'Public Sans', sans-serif", color: '#3B4FD0', textDecoration: 'none' }}
+          >
+            {t('landing.pricingDiscountCta')}
+          </Link>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '40px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+        {/* Starter Plan */}
         <div className="lp-price-card" style={{ borderRadius: '14px', padding: '28px 24px', background: '#fff', border: '1px solid rgba(30,27,22,.08)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <div style={{ font: "600 14px 'Public Sans', sans-serif", color: '#8a8577' }}>Boshlang'ich</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}><span style={{ font: "700 32px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>149 000</span><span style={{ font: "500 14px 'Public Sans', sans-serif", color: '#8a8577' }}>so'm/oy</span></div>
+            <div style={{ font: "600 14px 'Public Sans', sans-serif", color: '#8a8577' }}>{t('landing.pricingStarter')}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+              {/* Narx `PLAN_PRICES` dan — ilgari bu yerda tarjima fayliga
+                  qo'lda yozilgan 149 000 turardi va u haqiqiy narxdan
+                  (0 so'm, bepul tarif) butunlay farq qilardi. */}
+              <span style={{ font: "700 32px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>{formatSom(0)}</span>
+              <span style={{ font: "500 14px 'Public Sans', sans-serif", color: '#8a8577' }}>{t('landing.pricingStarterSuffix')}</span>
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {pricingBasicFeatures.map((f, i) => (
-              <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}><span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#e7e4da', flexShrink: 0, marginTop: '2px', color: '#8a8577', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span><span style={{ font: "400 13px 'Public Sans', sans-serif", color: '#4a4638', lineHeight: 1.5 }}>{f}</span></div>
+            {starterFeatures.map((f, i) => (
+              <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#e7e4da', flexShrink: 0, marginTop: '2px', color: '#8a8577', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+                <span style={{ font: "400 13px 'Public Sans', sans-serif", color: '#4a4638', lineHeight: 1.5 }}>{f}</span>
+              </div>
             ))}
           </div>
-          <button style={{ marginTop: 'auto', padding: '13px', borderRadius: '9px', border: '1px solid rgba(30,27,22,.15)', background: 'transparent', color: '#1E1B16', font: "600 13px 'Public Sans', sans-serif", cursor: 'pointer' }}>Tanlash</button>
+          <button onClick={handleSelect} style={{ marginTop: 'auto', padding: '13px', borderRadius: '9px', border: '1px solid rgba(30,27,22,.15)', background: 'transparent', color: '#1E1B16', font: "600 13px 'Public Sans', sans-serif", cursor: 'pointer' }}>
+            {t('landing.pricingSelect')}
+          </button>
         </div>
+
+        {/* Standard Plan */}
         <div className="lp-price-card" style={{ borderRadius: '14px', padding: '28px 24px', background: '#1E1B16', border: '2px solid #D97757', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
-          <span style={{ position: 'absolute', top: '-13px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', background: '#D97757', color: '#fff', font: "600 11px 'Public Sans', sans-serif", padding: '6px 14px', borderRadius: '999px' }}>Eng ommabop</span>
+          <span style={{ position: 'absolute', top: '-13px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', background: '#D97757', color: '#fff', font: "600 11px 'Public Sans', sans-serif", padding: '6px 14px', borderRadius: '999px' }}>
+            {t('landing.pricingStandardBadge')}
+          </span>
           <div>
-            <div style={{ font: "600 14px 'Public Sans', sans-serif", color: '#A6A8C4' }}>Standart</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}><span style={{ font: "700 32px 'Space Grotesk', sans-serif", color: '#fff' }}>299 000</span><span style={{ font: "500 14px 'Public Sans', sans-serif", color: '#A6A8C4' }}>so'm/oy</span></div>
+            <div style={{ font: "600 14px 'Public Sans', sans-serif", color: '#A6A8C4' }}>{t('landing.pricingStandard')}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+              <span style={{ font: "700 32px 'Space Grotesk', sans-serif", color: '#fff' }}>{formatSom(getPlanPrice('standard', 'monthly'))}</span>
+              <span style={{ font: "500 14px 'Public Sans', sans-serif", color: '#A6A8C4' }}>{t('landing.pricingMonthSuffix')}</span>
+            </div>
+            <DiscountLine planId="standard" dark />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {pricingStandardFeatures.map((f, i) => (
-              <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}><span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#D97757', flexShrink: 0, marginTop: '2px', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span><span style={{ font: "400 13px 'Public Sans', sans-serif", color: '#A6A8C4', lineHeight: 1.5 }}>{f}</span></div>
+            {standardFeatures.map((f, i) => (
+              <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#D97757', flexShrink: 0, marginTop: '2px', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+                <span style={{ font: "400 13px 'Public Sans', sans-serif", color: '#A6A8C4', lineHeight: 1.5 }}>{f}</span>
+              </div>
             ))}
           </div>
-          <button style={{ marginTop: 'auto', padding: '13px', borderRadius: '9px', border: 'none', background: '#D97757', color: '#fff', font: "600 13px 'Public Sans', sans-serif", cursor: 'pointer' }}>Tanlash</button>
+          <button onClick={handleSelect} style={{ marginTop: 'auto', padding: '13px', borderRadius: '9px', border: 'none', background: '#D97757', color: '#fff', font: "600 13px 'Public Sans', sans-serif", cursor: 'pointer' }}>
+            {t('landing.pricingSelect')}
+          </button>
         </div>
+
+        {/* Pro Plan */}
         <div className="lp-price-card" style={{ borderRadius: '14px', padding: '28px 24px', background: '#fff', border: '1px solid rgba(30,27,22,.08)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <div style={{ font: "600 14px 'Public Sans', sans-serif", color: '#8a8577' }}>Pro + Mentor</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}><span style={{ font: "700 32px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>549 000</span><span style={{ font: "500 14px 'Public Sans', sans-serif", color: '#8a8577' }}>so'm/oy</span></div>
+            <div style={{ font: "600 14px 'Public Sans', sans-serif", color: '#8a8577' }}>{t('landing.pricingPro')}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+              <span style={{ font: "700 32px 'Space Grotesk', sans-serif", color: '#1E1B16' }}>{formatSom(getPlanPrice('pro', 'monthly'))}</span>
+              <span style={{ font: "500 14px 'Public Sans', sans-serif", color: '#8a8577' }}>{t('landing.pricingMonthSuffix')}</span>
+            </div>
+            <DiscountLine planId="pro" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {pricingProFeatures.map((f, i) => (
-              <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}><span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#e7e4da', flexShrink: 0, marginTop: '2px', color: '#8a8577', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span><span style={{ font: "400 13px 'Public Sans', sans-serif", color: '#4a4638', lineHeight: 1.5 }}>{f}</span></div>
+            {proFeatures.map((f, i) => (
+              <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#e7e4da', flexShrink: 0, marginTop: '2px', color: '#8a8577', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+                <span style={{ font: "400 13px 'Public Sans', sans-serif", color: '#4a4638', lineHeight: 1.5 }}>{f}</span>
+              </div>
             ))}
           </div>
-          <button style={{ marginTop: 'auto', padding: '13px', borderRadius: '9px', border: '1px solid rgba(30,27,22,.15)', background: 'transparent', color: '#1E1B16', font: "600 13px 'Public Sans', sans-serif", cursor: 'pointer' }}>Tanlash</button>
+          <button onClick={handleSelect} style={{ marginTop: 'auto', padding: '13px', borderRadius: '9px', border: '1px solid rgba(30,27,22,.15)', background: 'transparent', color: '#1E1B16', font: "600 13px 'Public Sans', sans-serif", cursor: 'pointer' }}>
+            {t('landing.pricingSelect')}
+          </button>
         </div>
       </div>
     </div>
@@ -358,9 +497,11 @@ const Pricing = () => {
 
 // --- FAQ Section ---
 const FAQ = () => {
+  const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState(null);
 
-  const faqs = [
+  const rawFaqs = t('landing.faqs');
+  const faqs = Array.isArray(rawFaqs) && rawFaqs.length > 0 ? rawFaqs : [
     { q: "Bepul sinab ko'rsam bo'ladimi?", a: "Ha, tizimdan ro'yxatdan o'tganingizda sizga ilk mock exam va bir qator reading, listening mashqlari bepul taqdim etiladi." },
     { q: "Band ball qanday hisoblanadi?", a: "Englev platformasi real IELTS baholash tizimi asosida ishlaydi. Har bir noto'g'ri javob tekshirilib, umumiy band ballingiz chiqarib beriladi." },
     { q: "To'lovni istalgan payt bekor qilsam bo'ladimi?", a: "Albatta, hech qanday uzoq muddatli shartnomalar yo'q. Istalgan vaqtda tarifingizni o'zgartirishingiz yoki bekor qilishingiz mumkin." },
@@ -370,7 +511,7 @@ const FAQ = () => {
   return (
     <div className="lp-section lp-pad-y-lg" style={{ background: '#EFEBE2', paddingTop: '100px', paddingBottom: '100px', fontFamily: "'Public Sans', sans-serif" }}>
       <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-        <h2 className="lp-h2" style={{ color: '#1E1B16', marginBottom: '32px' }}>Ko'p so'raladigan savollar</h2>
+        <h2 className="lp-h2" style={{ color: '#1E1B16', marginBottom: '32px' }}>{t('landing.faqTitle')}</h2>
         {faqs.map((f, i) => {
           const isOpen = openIndex === i;
           return (
@@ -397,6 +538,7 @@ const FAQ = () => {
 
 // --- Footer ---
 const FooterHTML = () => {
+  const { t } = useTranslation();
   const linkStyle = { font: "400 14px 'Public Sans', sans-serif", color: '#A6A8C4', textDecoration: 'none' };
   const headStyle = { font: "600 14px 'Public Sans', sans-serif", color: '#fff', marginBottom: '16px' };
   const colStyle = { display: 'flex', flexDirection: 'column', gap: '12px' };
@@ -404,47 +546,51 @@ const FooterHTML = () => {
   return (
     <div className="lp-section" style={{ background: '#10102A', paddingTop: '80px', paddingBottom: '48px', color: '#fff', fontFamily: "'Public Sans', sans-serif" }}>
       <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-        <h2 className="lp-h2">Darajangizni bugun bepul aniqlang</h2>
+        <h2 className="lp-h2">{t('landing.footerCtaTitle')}</h2>
         <Link
           to="/trial"
           onClick={() => track('trial_cta_click', { placement: 'footer' })}
           style={{ padding: '14px 30px', borderRadius: '999px', border: 'none', background: '#fff', color: '#10102A', font: "600 15px 'Public Sans', sans-serif", cursor: 'pointer', textDecoration: 'none' }}
         >
-          Bepul testni boshlash
+          {t('landing.footerCtaButton')}
         </Link>
       </div>
       <div style={{ height: '1px', background: 'rgba(255,255,255,.1)', margin: '56px 0 40px' }}></div>
       <div className="lp-footer-cols">
         <div style={{ maxWidth: '280px' }}>
           <Logo size={22} tone="light" />
-          <p style={{ font: "400 14px/1.6 'Public Sans', sans-serif", color: '#A6A8C4', marginTop: '14px' }}>Sun'iy intellekt asosidagi IELTS Reading, Listening va Mock Exam tayyorgarlik platformasi.</p>
+          <p style={{ font: "400 14px/1.6 'Public Sans', sans-serif", color: '#A6A8C4', marginTop: '14px' }}>
+            {t('landing.footerDesc')}
+          </p>
         </div>
         <div>
-          <div style={headStyle}>Mahsulot</div>
+          <div style={headStyle}>{t('landing.footerProduct')}</div>
           <div style={colStyle}>
             <Link to="/reading" style={linkStyle}>Reading</Link>
             <Link to="/listening" style={linkStyle}>Listening</Link>
             <Link to="/mock-exam" style={linkStyle}>Mock Exam</Link>
-            <Link to="/pricing" style={linkStyle}>Narxlar</Link>
+            <Link to="/pricing" style={linkStyle}>{t('navbar.pricing')}</Link>
           </div>
         </div>
         <div>
-          <div style={headStyle}>Kompaniya</div>
+          <div style={headStyle}>{t('landing.footerCompany')}</div>
           <div style={colStyle}>
-            <Link to="/about" style={linkStyle}>Biz haqimizda</Link>
-            <Link to="/blog" style={linkStyle}>Blog</Link>
-            <Link to="/contact" style={linkStyle}>Aloqa</Link>
+            <Link to="/about" style={linkStyle}>{t('landing.footerAboutUs')}</Link>
+            <Link to="/blog" style={linkStyle}>{t('landing.footerBlog')}</Link>
+            <Link to="/contact" style={linkStyle}>{t('landing.footerContact')}</Link>
           </div>
         </div>
         <div>
-          <div style={headStyle}>Yordam</div>
+          <div style={headStyle}>{t('landing.footerHelp')}</div>
           <div style={colStyle}>
-            <Link to="/faq" style={linkStyle}>FAQ</Link>
-            <Link to="/support" style={linkStyle}>Qo'llab-quvvatlash</Link>
+            <Link to="/faq" style={linkStyle}>{t('landing.footerFaq')}</Link>
+            <Link to="/support" style={linkStyle}>{t('landing.footerSupport')}</Link>
           </div>
         </div>
       </div>
-      <div style={{ marginTop: '48px', font: "400 13px 'Public Sans', sans-serif", color: '#6f7191' }}>© 2026 Englev. Barcha huquqlar himoyalangan.</div>
+      <div style={{ marginTop: '48px', font: "400 13px 'Public Sans', sans-serif", color: '#6f7191' }}>
+        © 2026 Englev. {t('landing.footerRights')}
+      </div>
     </div>
   );
 };

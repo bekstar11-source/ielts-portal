@@ -1,104 +1,144 @@
 import React from "react";
 import { Home, Search, Library, ChevronLeft, List as ListIcon, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../context/LanguageContext";
 import LazyImage from "../common/LazyImage";
 import { SidebarSkeleton } from "./PodcastSkeletons";
 
-export default function PodcastSidebar({ 
-    isDark, 
-    isSidebarCollapsed, 
-    setIsSidebarCollapsed, 
-    loading, 
-    collections, 
+export default function PodcastSidebar({
+    isDark,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    loading,
+    collections,
     podcasts,
+    activeTab,
     setCurrentTrack,
     setIsExpanded
 }) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
+
+    const panel = isDark
+        ? "bg-warm-dark-elevated border-white/5"
+        : "bg-white border-warm-hairline shadow-sm";
+    const rowIdle = isDark
+        ? "text-warm-on-dark-soft hover:text-warm-on-dark hover:bg-white/5"
+        : "text-warm-muted hover:text-warm-ink hover:bg-warm-surface";
+    const rowActive = "text-warm-primary font-semibold";
+    const titleText = isDark ? "text-warm-on-dark" : "text-warm-ink";
+    const subText = isDark ? "text-warm-on-dark-soft" : "text-warm-muted";
+
+    const navRow = (active) =>
+        `flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-4"} w-full px-2 py-2 rounded-lg cursor-pointer transition-colors ${
+            active ? rowActive : rowIdle
+        }`;
 
     return (
-        <div className={`hidden md:flex flex-col gap-2 shrink-0 transition-all duration-300 overflow-x-hidden ${isSidebarCollapsed ? 'w-[72px]' : 'w-[300px]'}`}>
-            <div className={`${isDark ? 'bg-[#121212]' : 'bg-white'} rounded-lg p-3 ${isSidebarCollapsed ? 'md:p-3' : 'md:p-5'} flex flex-col gap-5 border ${isDark ? 'border-transparent' : 'border-zinc-200 shadow-sm'}`}>
-                <div className="flex items-center justify-between">
-                    <div onClick={() => navigate('/dashboard')} className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-5'} cursor-pointer transition px-1 group ${isDark ? 'text-zinc-400 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'} w-full`}>
-                        <Home size={26} strokeWidth={2.5} className="transition-transform" />
-                        {!isSidebarCollapsed && <span className="hidden md:block font-bold text-[16px]">Home</span>}
-                    </div>
+        <div className={`hidden md:flex flex-col gap-2 shrink-0 transition-all duration-300 overflow-x-hidden ${isSidebarCollapsed ? 'w-[72px]' : 'w-[280px]'}`}>
+            <nav className={`${panel} rounded-2xl border p-3 flex flex-col gap-1`}>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className={navRow(false)}
+                        title={t('podcastPage.backToDashboard')}
+                    >
+                        <Home size={22} strokeWidth={2.2} />
+                        {!isSidebarCollapsed && <span className="font-semibold text-[14px]">{t('podcastPage.backToDashboard')}</span>}
+                    </button>
                     {!isSidebarCollapsed && (
-                        <button 
+                        <button
                             onClick={() => setIsSidebarCollapsed(true)}
-                            className={`hidden md:flex p-1 rounded-full transition ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900'}`}
+                            aria-label="Collapse sidebar"
+                            className={`p-1.5 rounded-full shrink-0 transition-colors ${rowIdle}`}
                         >
-                            <ChevronLeft size={24} />
+                            <ChevronLeft size={20} />
                         </button>
                     )}
                 </div>
-                <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-5'} cursor-pointer transition px-1 group ${isDark ? 'text-white' : 'text-zinc-900'} w-full`}>
-                    <Search size={26} strokeWidth={2.5} className="transition-transform" />
-                    {!isSidebarCollapsed && <span className="hidden md:block font-bold text-[16px]">Search</span>}
-                </div>
-            </div>
+                {/* Avval bu qator shunchaki matn edi — bosilganda hech narsa bo'lmasdi */}
+                <button
+                    onClick={() => navigate('/podcasts?tab=search')}
+                    className={navRow(activeTab === 'search')}
+                    title={t('podcastPage.search')}
+                >
+                    <Search size={22} strokeWidth={2.2} />
+                    {!isSidebarCollapsed && <span className="font-semibold text-[14px]">{t('podcastPage.search')}</span>}
+                </button>
+                <button
+                    onClick={() => navigate('/podcasts?tab=library')}
+                    className={navRow(activeTab === 'library')}
+                    title={t('podcastPage.yourLibrary')}
+                >
+                    <Library size={22} strokeWidth={2.2} />
+                    {!isSidebarCollapsed && <span className="font-semibold text-[14px] truncate">{t('podcastPage.yourLibrary')}</span>}
+                </button>
+            </nav>
 
-            <div className={`${isDark ? 'bg-[#121212]' : 'bg-white'} rounded-lg flex-1 flex flex-col overflow-hidden border ${isDark ? 'border-transparent' : 'border-zinc-200 shadow-sm'}`}>
-                <div className={`p-4 ${isSidebarCollapsed ? 'px-3' : 'px-5'} flex items-center justify-between ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                    <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-4'} group w-full`}>
-                        <Library size={26} strokeWidth={2.5} className={`transition-colors ${isDark ? 'group-hover:text-white' : 'group-hover:text-zinc-900'}`} />
-                        {!isSidebarCollapsed && <span className="hidden md:block font-bold text-[16px] truncate">Your Library</span>}
-                    </div>
-                </div>
-
-                <div className="px-2 md:px-3 mb-2">
-                    <div 
+            <div className={`${panel} rounded-2xl border flex-1 flex flex-col overflow-hidden`}>
+                <div className="px-3 pt-3">
+                    <button
                         onClick={() => navigate('/podcasts?tab=liked')}
-                        className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}
+                        className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} w-full p-2 rounded-lg cursor-pointer transition-colors ${
+                            activeTab === 'liked'
+                                ? (isDark ? 'bg-white/10' : 'bg-warm-surface')
+                                : (isDark ? 'hover:bg-white/5' : 'hover:bg-warm-surface')
+                        }`}
+                        title={t('podcastPage.likedPodcasts')}
                     >
-                        <div className="w-12 h-12 rounded bg-gradient-to-br from-indigo-700 to-blue-400 flex-shrink-0 flex items-center justify-center shadow-sm">
-                            <Heart size={20} fill="white" className="text-white" />
+                        <div className="w-11 h-11 rounded-lg bg-warm-primary flex-shrink-0 flex items-center justify-center">
+                            <Heart size={18} fill="currentColor" className="text-warm-on-primary" />
                         </div>
                         {!isSidebarCollapsed && (
-                            <div className="hidden md:block overflow-hidden">
-                                <p className={`font-bold truncate text-[14px] leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>Liked Podcasts</p>
-                                <p className={`text-[12px] truncate mt-0.5 font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Playlist</p>
+                            <div className="overflow-hidden text-left">
+                                <p className={`font-semibold truncate text-[13px] leading-tight ${titleText}`}>{t('podcastPage.likedPodcasts')}</p>
+                                <p className={`text-[11px] truncate mt-0.5 ${subText}`}>{t('podcastPage.episodes')}</p>
                             </div>
                         )}
-                    </div>
+                    </button>
                 </div>
-                <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-3 pb-4 space-y-1 custom-scrollbar">
+
+                <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-2 space-y-1 custom-scrollbar">
                     {loading ? (
-                        Array(5).fill(0).map((_, i) => <SidebarSkeleton key={i} />)
+                        Array(5).fill(0).map((_, i) => <SidebarSkeleton key={i} isDark={isDark} />)
                     ) : (
                         <>
                             {collections.length > 0 && !isSidebarCollapsed && (
-                                <p className={`px-2 mb-2 mt-4 text-[12px] font-black uppercase tracking-widest ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Albums</p>
+                                <p className={`px-2 mb-2 mt-3 text-[10px] font-bold uppercase tracking-widest ${subText}`}>{t('podcastPage.albums')}</p>
                             )}
                             {collections.map(c => (
-                                <div key={c.id} onClick={() => navigate(`/podcast/album/${c.id}`)} className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}>
-                                    <div className={`w-12 h-12 rounded bg-zinc-800 flex-shrink-0 overflow-hidden flex items-center justify-center border shadow-sm ${isDark ? 'border-white/5' : 'border-zinc-200'}`}>
+                                <button
+                                    key={c.id}
+                                    onClick={() => navigate(`/podcast/album/${c.id}`)}
+                                    className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} w-full p-2 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-warm-surface'}`}
+                                    title={c.name}
+                                >
+                                    <div className={`w-11 h-11 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-warm-card'}`}>
                                         {c.thumbnail ? (
-                                            <LazyImage src={c.thumbnail} alt="" className="w-full h-full object-cover transition-transform duration-500" />
+                                            <LazyImage src={c.thumbnail} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                            <ListIcon size={18} className={`transition-colors ${isDark ? 'text-zinc-500 group-hover:text-white' : 'text-zinc-400 group-hover:text-zinc-900'}`} />
+                                            <ListIcon size={18} className={subText} />
                                         )}
                                     </div>
                                     {!isSidebarCollapsed && (
-                                        <div className="hidden md:block overflow-hidden">
-                                            <p className={`font-bold truncate text-[14px] leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{c.name}</p>
-                                            <p className={`text-[12px] truncate mt-0.5 uppercase tracking-tighter font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Album</p>
+                                        <div className="overflow-hidden text-left">
+                                            <p className={`font-semibold truncate text-[13px] leading-tight ${titleText}`}>{c.name}</p>
+                                            <p className={`text-[11px] truncate mt-0.5 ${subText}`}>{t('podcastPage.album')}</p>
                                         </div>
                                     )}
-                                </div>
+                                </button>
                             ))}
 
                             {podcasts.length > 0 && (
-                                <div className={`my-4 border-t ${isDark ? 'border-white/5' : 'border-zinc-100'}`} />
+                                <div className={`my-3 border-t ${isDark ? 'border-white/5' : 'border-warm-hairline'}`} />
                             )}
                             {!isSidebarCollapsed && podcasts.length > 0 && (
-                                <p className={`px-2 mb-2 text-[12px] font-black uppercase tracking-widest ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Recent Episodes</p>
+                                <p className={`px-2 mb-2 text-[10px] font-bold uppercase tracking-widest ${subText}`}>{t('podcastPage.newEpisodes')}</p>
                             )}
                             {podcasts.slice(0, 8).map(p => (
-                                <div 
-                                    key={p.id} 
-                                    onClick={() => { 
+                                <button
+                                    key={p.id}
+                                    onClick={() => {
                                         const isVideoDisplay = (p.mediaType === 'youtube' || p.mediaType === 'video') && p.showVideo !== false && String(p.showVideo) !== 'false';
                                         if (isVideoDisplay) {
                                             setCurrentTrack(p);
@@ -106,19 +146,20 @@ export default function PodcastSidebar({
                                         } else {
                                             navigate(`/podcast/spotify/${p.id}`);
                                         }
-                                    }} 
-                                    className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} p-2 rounded-md cursor-pointer transition group ${isDark ? 'hover:bg-zinc-800/50' : 'hover:bg-zinc-100'}`}
+                                    }}
+                                    className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} w-full p-2 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-warm-surface'}`}
+                                    title={p.title}
                                 >
-                                    <div className="w-12 h-12 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden shadow-md border border-white/5">
-                                        <LazyImage src={p.thumbnail} alt="" className="w-full h-full object-cover transition-transform duration-500" />
+                                    <div className={`w-11 h-11 rounded-lg flex-shrink-0 overflow-hidden ${isDark ? 'bg-white/5' : 'bg-warm-card'}`}>
+                                        <LazyImage src={p.thumbnail} alt="" className="w-full h-full object-cover" />
                                     </div>
                                     {!isSidebarCollapsed && (
-                                        <div className="hidden md:block overflow-hidden">
-                                            <p className={`font-bold truncate text-[14px] leading-tight ${isDark ? 'text-white' : 'text-zinc-900'}`}>{p.title}</p>
-                                            <p className={`text-[12px] truncate mt-0.5 uppercase tracking-tighter font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{p.level || "B2"} • Episode</p>
+                                        <div className="overflow-hidden text-left">
+                                            <p className={`font-semibold truncate text-[13px] leading-tight ${titleText}`}>{p.title}</p>
+                                            <p className={`text-[11px] truncate mt-0.5 ${subText}`}>{p.level ? `${p.level} • ` : ''}{t('podcastPage.episode')}</p>
                                         </div>
                                     )}
-                                </div>
+                                </button>
                             ))}
                         </>
                     )}

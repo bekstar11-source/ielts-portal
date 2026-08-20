@@ -56,6 +56,22 @@ export function isGraded(result) {
   return result?.status === 'graded' || result?.status === 'published';
 }
 
+/** Qo'lda tekshirishni talab qiladigan turlar — qolgani avtomatik baholanadi. */
+export const REVIEWABLE_TYPES = ['writing', 'mock_full'];
+
+/**
+ * Natija O'QITUVCHI tekshiruvini kutyaptimi.
+ *
+ * Reading/Listening avtomatik baholanadi va hech qachon `graded` statusini
+ * olmaydi. Shu sababli "graded emas → kutilmoqda" degan sodda tekshiruv
+ * ularni ham navbatga qo'shib yuborardi: "Tekshirish kutilmoqda" kartasi 3
+ * desa, o'sha filtr yuzlab qatorni ochardi. Navbat faqat `writing` va
+ * `mock_full` dan iborat.
+ */
+export function isAwaitingReview(result) {
+  return REVIEWABLE_TYPES.includes(result?.type) && !isGraded(result);
+}
+
 /**
  * Qoidabuzarlik tekshiruvi — natijadagi `violation` maydoni yoki
  * to'liq testning 10 daqiqadan tez yakunlanishi.
@@ -142,6 +158,13 @@ export function chunkIds(ids, size = 30) {
     chunks.push(ids.slice(i, i + size));
   }
   return chunks;
+}
+
+/** Muddat allaqachon o'tib ketganmi — tayinlashni bloklash uchun. */
+export function isDeadlinePast(value) {
+  if (!value) return false;
+  const ts = new Date(value).getTime();
+  return !Number.isNaN(ts) && ts <= Date.now();
 }
 
 /**

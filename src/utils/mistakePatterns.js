@@ -9,14 +9,17 @@
 //   • "goverment" ← javobni BILGAN, imloda adashgan. Grammatika mashqi kerak emas.
 //   • "childs"    ← ko'plik shakli. Bitta qoida, 10 daqiqada tuzatiladi.
 //   • "the museum" (kalit "museum", limit 1 word) ← so'z limitini o'qimagan.
-//   • "TRUE" ↔ "NOT GIVEN" ← matnda yo'q ma'lumotni "bor" deb o'ylagan; eng ko'p
-//     uchraydigan va eng qimmatga tushadigan xato.
+//   • "TRUE" (kalit "NOT GIVEN") ← matnda yo'q ma'lumotni "bor" deb o'ylagan;
+//     eng ko'p uchraydigan va eng qimmatga tushadigan IELTS xatosi.
+//   • "NOT GIVEN" (kalit "TRUE") ← ma'lumot MATNDA BOR, lekin parafraza ostida
+//     yashiringani uchun topilmagan. Yuqoridagining teskarisi va butunlay
+//     boshqa mashq talab qiladi.
 //   • butunlay boshqa javob ← savolni yoki matnni tushunmagan.
 //
 // Shu ajratuv bo'lmasa, o'quvchi "Reading ni ko'proq ishla" degan foydasiz maslahat
 // oladi. Shu bilan — "xatolaringizning 40% imlo, javoblarni bilasiz" deb aytish mumkin.
 
-import { normalizeString } from './ieltsScoring';
+import { normalizeString } from './ieltsScoring.js';
 
 /** Xato sabablari — UI shu tartibda ko'rsatadi (eng oson tuzatiladigani birinchi). */
 export const MISTAKE_PATTERNS = [
@@ -24,13 +27,72 @@ export const MISTAKE_PATTERNS = [
   'singular_plural', // birlik/ko'plik
   'word_form',       // so'z shakli (analyse / analysis)
   'extra_words',     // ortiqcha so'z — so'z limitidan oshgan
-  'wrong_option',    // variant tanlash turlarida noto'g'ri variant
+  'tf_flip',         // TRUE ↔ FALSE — mazmunni teskari o'qigan
+  'ng_missed',       // kalit TRUE/FALSE, javob NOT GIVEN — matndagini topa olmagan
+  'ng_overclaim',    // kalit NOT GIVEN, javob TRUE/FALSE — yo'q narsani "bor" degan
+  'wrong_option',    // qolgan variant tanlash turlarida noto'g'ri variant
   'no_answer',       // javobsiz qoldirilgan — vaqt yetmagan
   'off_target'       // butunlay boshqa javob — tushunmagan
 ];
 
 /** "Deyarli to'g'ri" deb hisoblanadigan sabablar — bular band ni eng tez ko'taradi. */
 export const NEAR_MISS_PATTERNS = ['spelling', 'singular_plural', 'word_form', 'extra_words'];
+
+/**
+ * TRUE/FALSE/NOT GIVEN va YES/NO/NOT GIVEN oilalari.
+ *
+ * Ular ham variant tanlash, lekin "noto'g'ri variant" degan yorliq bu yerda
+ * hech nima aytmaydi: uchta javobning qaysi juftligi almashgani UCH XIL
+ * muammoni bildiradi va uch xil mashq talab qiladi. Shu sabab bu oilalar
+ * umumiy `wrong_option` yo'lidan OLDIN tekshiriladi.
+ */
+const TFNG_FAMILIES = new Set(['true_false_ng', 'yes_no_ng']);
+
+/**
+ * Javobni uchta ma'noviy holatdan biriga keltiradi.
+ *
+ * TRUE va YES bir xil ma'noni bildiradi (matn tasdiqlaydi), FALSE va NO ham
+ * (matn rad etadi) — shuning uchun ikkala oila bitta mantiq bilan ishlanadi.
+ * Bazada javoblar "TRUE"/"NOT GIVEN" ko'rinishida normallashtirilgan, lekin
+ * eski yozuvlarda "T"/"NG" qisqartmalari ham uchraydi.
+ *
+ * Oddiy obyekt emas, `Map`: `normalizeString` natijasi "constructor" kabi
+ * satr bo'lib chiqsa, obyektdan meros qolgan xossa topilib, javob noto'g'ri
+ * tasniflanardi.
+ */
+const TFNG_SLOTS = new Map([
+  ['t', 'affirm'], ['true', 'affirm'], ['y', 'affirm'], ['yes', 'affirm'],
+  ['f', 'deny'], ['false', 'deny'], ['n', 'deny'], ['no', 'deny'],
+  ['ng', 'unknown'], ['not given', 'unknown'], ['notgiven', 'unknown']
+]);
+
+function tfngSlot(value) {
+  const norm = normalizeString(value);
+  return norm ? TFNG_SLOTS.get(norm) || null : null;
+}
+
+/**
+ * T/F/NG xatosining aniq turini aniqlaydi.
+ *
+ * @returns {string|null} naqsh nomi, yoki `null` — javoblardan biri tanilmadi
+ *          (u holda chaqiruvchi umumiy `wrong_option` ga tushadi).
+ */
+function classifyTfngMistake(userText, variants) {
+  const user = tfngSlot(userText);
+  const correct = variants.map(tfngSlot).find(Boolean) || null;
+  if (!user || !correct || user === correct) return null;
+
+  // Kalit NOT GIVEN, javob esa TRUE yoki FALSE: matnda yo'q ma'lumot "topilgan".
+  // Deyarli har doim sabab — matndagi o'xshash mavzuni savol bilan tenglashtirish.
+  if (correct === 'unknown') return 'ng_overclaim';
+
+  // Teskarisi: ma'lumot matnda BOR, lekin parafraza ostida topilmagan.
+  if (user === 'unknown') return 'ng_missed';
+
+  // TRUE ↔ FALSE: joyi topilgan, mazmuni teskari o'qilgan. Odatda "all/some",
+  // "always/often" kabi cheklovchi so'z e'tibordan qolganda sodir bo'ladi.
+  return 'tf_flip';
+}
 
 /** Variant tanlash oilalari — bu yerda imlo tahlili ma'nosiz. */
 const CHOICE_FAMILIES = new Set([
@@ -167,6 +229,13 @@ export function classifyMistake(mistake) {
 
   if (!userText) return { ...base, pattern: 'no_answer' };
 
+  // T/F/NG oilalari umumiy "noto'g'ri variant"dan oldin: qaysi juftlik
+  // almashgani aniq muammoni ko'rsatadi.
+  if (TFNG_FAMILIES.has(mistake?.questionType)) {
+    const tfng = classifyTfngMistake(userText, variants);
+    if (tfng) return { ...base, pattern: tfng };
+  }
+
   // Variant tanlash turlarida "imlo xatosi" degan tushuncha yo'q — tanlov noto'g'ri.
   if (CHOICE_FAMILIES.has(mistake?.questionType)) {
     return { ...base, pattern: 'wrong_option' };
@@ -238,23 +307,38 @@ export function summarizePatterns(mistakes) {
     if (!m?.pattern) return;
     counts[m.pattern] = (counts[m.pattern] || 0) + 1;
   });
+  return summarizePatternCounts(counts);
+}
 
-  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+/**
+ * Xuddi `summarizePatterns` kabi, lekin xatolar ro'yxati emas, TAYYOR SANOQ
+ * qabul qiladi.
+ *
+ * Kerak bo'lgan sabab: analitika jamlanmasida (`analyticsSummaries/{uid}`)
+ * sabablar allaqachon sanab qo'yilgan — xatolarning o'zi esa faqat "Xatolar
+ * jurnali" ochilganda yuklanadi. Ikkala yo'l bir xil shakl qaytarishi shart,
+ * aks holda UI ikki xil ma'lumot manbaiga moslashishi kerak bo'lardi.
+ *
+ * @param {Object<string, number>} counts
+ */
+export function summarizePatternCounts(counts) {
+  const safe = counts || {};
+  const total = Object.values(safe).reduce((sum, n) => sum + (Number(n) || 0), 0);
 
   const rows = MISTAKE_PATTERNS
-    .filter((p) => counts[p] > 0)
+    .filter((p) => safe[p] > 0)
     .map((p) => ({
       pattern: p,
-      count: counts[p],
-      share: total > 0 ? Math.round((counts[p] / total) * 100) : 0,
+      count: safe[p],
+      share: total > 0 ? Math.round((safe[p] / total) * 100) : 0,
       nearMiss: NEAR_MISS_PATTERNS.includes(p)
     }))
     .sort((a, b) => b.count - a.count);
 
-  const nearMissCount = NEAR_MISS_PATTERNS.reduce((sum, p) => sum + (counts[p] || 0), 0);
+  const nearMissCount = NEAR_MISS_PATTERNS.reduce((sum, p) => sum + (safe[p] || 0), 0);
 
   return {
-    counts,
+    counts: safe,
     rows,
     total,
     nearMissCount,

@@ -1,18 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { getCdnUrl, getOriginUrl, isCdnUrl } from '../../utils/cdnUtils';
 
-const processTimeStr = (val) => {
-    if (val === undefined || val === null || val === '') return 0;
-    if (typeof val === 'string' && val.includes(':')) {
-        const parts = val.split(':').map(Number);
-        if (parts.length === 2) {
-            return (parts[0] || 0) * 60 + (parts[1] || 0);
-        } else if (parts.length === 3) {
-            return (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
-        }
-    }
-    return Number(val) || 0;
-};
+import { parseAudioTime as processTimeStr } from '../../utils/audioTime';
 
 const CustomAudioPlayer = forwardRef(({ 
     src, 
@@ -134,14 +123,21 @@ const CustomAudioPlayer = forwardRef(({
         ? `flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-all focus:outline-none ${isExam ? 'text-white/20' : 'text-white/70 hover:bg-white/10 hover:text-white active:scale-95'}` 
         : `flex-shrink-0 w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full transition-all focus:outline-none ${isExam ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:scale-95'}`;
 
+    // Sukunat davri REAL soat bo'yicha o'lchanadi. Ilgari har 100ms da 0.1 qo'shilardi,
+    // lekin setInterval hech qachon aniq 100ms da uyg'onmaydi (brauzer tab fonda
+    // bo'lsa — 1000ms gacha sekinlashadi), shuning uchun 30 soniyalik sukunat
+    // amalda bir necha soniyaga cho'zilib ketardi va partlar surilib qolardi.
     const resumeSilentPeriod = useCallback((segmentDur) => {
         if (silentTimerRef.current) clearInterval(silentTimerRef.current);
 
         const totalSilence = Number(extraSilentTime) || 0;
+        const alreadyElapsed = silentElapsedRef.current || 0;
+        const startedAt = performance.now();
 
         silentTimerRef.current = setInterval(() => {
-            silentElapsedRef.current += 0.1;
-            if (silentElapsedRef.current >= totalSilence) {
+            const elapsed = alreadyElapsed + (performance.now() - startedAt) / 1000;
+            silentElapsedRef.current = Math.min(elapsed, totalSilence);
+            if (elapsed >= totalSilence) {
                 clearInterval(silentTimerRef.current);
                 silentTimerRef.current = null;
                 isSilentRef.current = false;
@@ -149,7 +145,7 @@ const CustomAudioPlayer = forwardRef(({
                 setCurrentTime(segmentDur + totalSilence);
                 onEnded?.();
             } else {
-                setCurrentTime(segmentDur + silentElapsedRef.current);
+                setCurrentTime(segmentDur + elapsed);
             }
         }, 100);
     }, [extraSilentTime, onEnded]);
@@ -224,14 +220,46 @@ const CustomAudioPlayer = forwardRef(({
         };
         
         const onLoaded = () => {
-            // Ensure we start at startTime safely when metadata loads
+            // Playhead HAR DOIM part chegarasi ichida bo'lishi kerak. Ilgari faqat
+            // "juda orqada" holati tuzatilardi, shuning uchun oldingi ijrodan qolgan
+            // pozitsiya (masalan fayl oxiri) partni butunlay boshqa joydan boshlardi.
             if (audio.currentTime < parsedStartTime) {
+                audio.currentTime = parsedStartTime;
+            } else if (parsedEndTime > parsedStartTime && audio.currentTime > parsedEndTime) {
                 audio.currentTime = parsedStartTime;
             }
             // Apply current playback rate on load
             audio.playbackRate = playbackRate;
             // Apply current volume on load
             audio.volume = volume;
+        };
+
+        // Part chegarasini kesish. `timeupdate` sekundiga atigi ~4 marta uchadi,
+        // ya'ni audio belgilangan tugash nuqtasidan ~250ms oshib ketardi va
+        // keyingi partning boshi oldingisiga qo'shilib eshitilardi. Shuning uchun
+        // ijro davomida buni rAF ham chaqiradi — kesish ~16ms aniqlikda bo'ladi.
+        const enforceSegmentEnd = () => {
+            if (!(parsedEndTime && parsedEndTime > parsedStartTime)) return;
+            if (audio.currentTime < parsedEndTime) return;
+            if (isSilentRef.current) return; // Already entered silent period
+
+            const segmentDur = parsedEndTime - parsedStartTime;
+            const wasPlaying = isPlaying || !audio.paused;
+            isSystemPausedRef.current = true;
+            audio.pause();
+            // Tugash nuqtasidan oshib ketgan qismni orqaga qaytaramiz, aks holda
+            // pauza qilingan joy admin belgilagan joydan bir oz oldinda qolardi.
+            if (audio.currentTime > parsedEndTime) {
+                try { audio.currentTime = parsedEndTime; } catch { /* seek imkonsiz */ }
+            }
+            if (wasPlaying) {
+                const totalSilence = Number(extraSilentTime) || 0;
+                if (totalSilence > 0) {
+                    startSilentPeriod(segmentDur);
+                } else {
+                    onEnded_();
+                }
+            }
         };
 
         const onTimeUpdate = () => {
@@ -249,22 +277,22 @@ const CustomAudioPlayer = forwardRef(({
                 }
             }
 
-            if (parsedEndTime && parsedEndTime > parsedStartTime && audio.currentTime >= parsedEndTime) {
-                if (isSilentRef.current) return; // Already entered silent period
-
-                const wasPlaying = isPlaying || !audio.paused;
-                isSystemPausedRef.current = true;
-                audio.pause();
-                if (wasPlaying) {
-                    const totalSilence = Number(extraSilentTime) || 0;
-                    if (totalSilence > 0 && !isSilentRef.current) {
-                        startSilentPeriod(segmentDur);
-                    } else {
-                        onEnded_();
-                    }
-                }
-            }
+            enforceSegmentEnd();
         };
+
+        let rafId = null;
+        const watchSegmentEnd = () => {
+            rafId = requestAnimationFrame(watchSegmentEnd);
+            if (audio.paused) return;
+            enforceSegmentEnd();
+        };
+        const startWatching = () => {
+            if (rafId === null) watchSegmentEnd();
+        };
+        const stopWatching = () => {
+            if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+        };
+        if (!audio.paused) startWatching();
 
         const onPauseExam = (e) => {
             // Only force-resume on the ACTIVE (playing) part if not paused by the system and not in silent period
@@ -292,9 +320,12 @@ const CustomAudioPlayer = forwardRef(({
 
         audio.addEventListener('error', onSrcError);
         audio.addEventListener('play', onPlay);
+        audio.addEventListener('play', startWatching);
         audio.addEventListener('pause', onPause);
         audio.addEventListener('pause', onPauseExam);
+        audio.addEventListener('pause', stopWatching);
         audio.addEventListener('ended', onEnded_);
+        audio.addEventListener('ended', stopWatching);
         audio.addEventListener('loadedmetadata', onLoaded);
         audio.addEventListener('timeupdate', onTimeUpdate);
 
@@ -310,11 +341,15 @@ const CustomAudioPlayer = forwardRef(({
         }
 
         return () => {
+            stopWatching();
             audio.removeEventListener('error', onSrcError);
             audio.removeEventListener('play', onPlay);
+            audio.removeEventListener('play', startWatching);
             audio.removeEventListener('pause', onPause);
             audio.removeEventListener('pause', onPauseExam);
+            audio.removeEventListener('pause', stopWatching);
             audio.removeEventListener('ended', onEnded_);
+            audio.removeEventListener('ended', stopWatching);
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('timeupdate', onTimeUpdate);
         };
@@ -427,6 +462,14 @@ const CustomAudioPlayer = forwardRef(({
             document.querySelectorAll('audio[id^="audio-part-"]').forEach(a => {
                 if (a !== audio && !a.paused) a.pause();
             });
+            // Segment oxirida turgan bo'lsak — boshiga qaytamiz, aks holda play
+            // bosilishi bilanoq chegara tekshiruvi uni yana pauza qilib qo'yardi.
+            const atEnd = parsedEndTime > parsedStartTime
+                ? audio.currentTime >= parsedEndTime
+                : (audio.duration > 0 && audio.currentTime >= audio.duration);
+            if (atEnd || audio.currentTime < parsedStartTime) {
+                audio.currentTime = parsedStartTime;
+            }
             isSystemPausedRef.current = false;
             audio.play().catch(() => { });
         } else {

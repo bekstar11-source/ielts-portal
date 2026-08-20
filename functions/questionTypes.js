@@ -1,12 +1,16 @@
 // functions/questionTypes.js
 //
+// ⚠️ AVTOMATIK NUSXA — QO'LDA TAHRIRLAMANG.
+// Manba: src/utils/questionTypes.js. O'zgartirish kiritish uchun o'sha faylni tahrirlang
+// va `npm run mirror` ni ishga tushiring.
+
+//
 // Testlardagi xom `type` satrlari juda xilma-xil: bitta savol turi bazada
 // `MCQ`, `multiple_choice`, `multi_choice_box`, `MULTIPLE CHOICE` ko'rinishida
 // uchraydi. Xatolar tahlilida ularni bitta oilaga keltirmasak, o'quvchi bir xil
 // savol turini uch xil qator sifatida ko'radi va statistika ma'nosini yo'qotadi.
 //
-// ⚠️ AVTOMATIK NUSXA: `src/utils/questionTypes.js` dan olingan. Bu yerni QO'LDA
-// tahrirlamang — klient faylini o'zgartiring va nusxani qayta oling.
+// ⚠️ Bu fayl `functions/questionTypes.js` bilan bir xil bo'lishi shart —
 // kanonik turlar server (ball hisobi) va klient (tahlil UI) da bir xil
 // nomlanmasa, yig'ilgan statistika ikkiga bo'linib ketadi.
 

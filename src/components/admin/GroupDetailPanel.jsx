@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { X, Save, Trash2, Users, BookOpen, Plus, Search, Settings2, ChevronDown } from 'lucide-react';
-import { doc, updateDoc, arrayRemove, arrayUnion, query, collection, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import { useStudentSearch } from '../../hooks/useStudentSearch';
+import { addStudentToGroup, removeStudentFromGroup } from '../../utils/groupMembership';
 
 export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onUpdateStudentLocal, allStudents, teachers = [] }) {
     const { theme } = useTheme();
@@ -86,14 +87,12 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
     const handleRemoveStudent = async (studentId) => {
         if (!window.confirm("O'quvchini guruhdan o'chirasizmi?")) return;
         try {
-            await updateDoc(doc(db, 'groups', group.id), {
-                studentIds: arrayRemove(studentId)
-            });
-            await updateDoc(doc(db, 'users', studentId), {
-                studentType: 'public',
-                groupId: null
-            });
-            onUpdateStudentLocal?.(studentId, { studentType: 'public', groupId: null });
+            // A'zolik faqat `manageGroupStudent` orqali o'zgaradi: u `groupId`
+            // bilan birga guruh Pro huquqini (`groupPro`) ham tozalaydi.
+            // Ilgari bu yerda ikki alohida `updateDoc` turardi va o'quvchi
+            // guruhdan chiqarilgach ham Pro'da qolib ketardi.
+            await removeStudentFromGroup(group.id, studentId);
+            onUpdateStudentLocal?.(studentId, { studentType: 'public', groupId: 'none' });
             onUpdate();
         } catch (error) {
             alert("Xatolik: " + error.message);
@@ -113,17 +112,9 @@ export default function GroupDetailPanel({ group, isOpen, onClose, onUpdate, onU
 
         try {
             if (previousGroupId && previousGroupId !== group.id) {
-                await updateDoc(doc(db, 'groups', previousGroupId), {
-                    studentIds: arrayRemove(studentId)
-                });
+                await removeStudentFromGroup(previousGroupId, studentId);
             }
-            await updateDoc(doc(db, 'groups', group.id), {
-                studentIds: arrayUnion(studentId)
-            });
-            await updateDoc(doc(db, 'users', studentId), {
-                studentType: 'group',
-                groupId: group.id
-            });
+            await addStudentToGroup(group.id, studentId);
             onUpdateStudentLocal?.(studentId, { studentType: 'group', groupId: group.id });
             onUpdate();
         } catch (error) {

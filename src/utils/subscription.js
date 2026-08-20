@@ -70,14 +70,38 @@ export function isSubscriptionExpired(userData) {
 }
 
 /**
+ * GURUH PRO — o'qituvchining faol obunasidan kelib chiqadigan Pro huquqi.
+ *
+ * `users/{uid}.groupPro` — DENORMALLASHTIRILGAN nusxa. O'quvchi o'qituvchining
+ * hujjatini o'qiy olmaydi (`firestore.rules` faqat o'z hujjatiga ruxsat
+ * beradi), shuning uchun huquq o'quvchining o'z hujjatiga yoziladi. Maydonni
+ * faqat Admin SDK yozadi — `manageGroupStudent` callable'i, Telegram botdagi
+ * tasdiqlash va kunlik `expireSubscriptions` supurgisi.
+ *
+ * ⚠️ Bu qiymat eskirgan bo'lishi mumkin; server (`checkEntitlement`) huquqni
+ * har so'rovda o'qituvchining hujjatidan qayta tekshiradi. Bu yerdagi maydon
+ * faqat UI qulfini ochish uchun.
+ */
+export function getGroupProEnd(userData) {
+  return toDate(userData?.groupPro?.validUntil);
+}
+
+export function hasActiveGroupPro(userData) {
+  const end = getGroupProEnd(userData);
+  return Boolean(end) && end.getTime() > Date.now();
+}
+
+/**
  * Muddatni hisobga olgan holdagi haqiqiy tarif.
  * @returns {'pro'|'standard'|'free'}
  */
 export function getTier(userData) {
   const raw = getRawTier(userData);
-  if (raw === 'free') return 'free';
-  if (isSubscriptionExpired(userData)) return 'free';
-  return raw;
+  const own = raw === 'free' || isSubscriptionExpired(userData) ? 'free' : raw;
+  if (own === 'pro') return own;
+  // Guruh obunasi Pro beradi — o'z tarifi undan past bo'lsa, yuqorisi yutadi.
+  if (hasActiveGroupPro(userData)) return 'pro';
+  return own;
 }
 
 /** Pullik va hozir amal qilayotgan obunasi bormi (xodimlar bu yerga kirmaydi). */
@@ -88,10 +112,11 @@ export function hasActiveSubscription(userData) {
 /**
  * Premium kontent (Reading / Listening) uchun umumiy ruxsat.
  *
- * ⚠️ Guruhga a'zolikning O'ZI bu yerda ruxsat bermaydi — server
- * (`getSanitizedTest`) ham shunday ishlaydi: guruh o'quvchisiga faqat
- * BIRIKTIRILGAN testlar ochiladi. Aks holda UI qulfni ochib, test ochilganda
- * server "permission-denied" qaytarardi.
+ * ⚠️ Guruhga a'zolikning O'ZI bu yerda ruxsat bermaydi: qulfni ochadigan narsa
+ * — o'qituvchining FAOL obunasidan kelgan `groupPro` maydoni (`getTier` uni
+ * Pro deb qaytaradi). Obunasiz guruhda esa faqat biriktirilgan testlar
+ * ochiladi — server (`checkEntitlement`) ham aynan shunday hisoblaydi, aks
+ * holda UI qulfni ochib, test ochilganda "permission-denied" chiqardi.
  * Biriktirilgan testlar uchun `hasDirectAssignment` / `isAssignedItem` ishlating.
  */
 export function canAccessPremiumContent(userData) {
@@ -229,6 +254,11 @@ export function tierAllowsTest(userData, test, partNumber = null) {
 /** ProfileSidebar kabi UI joylari uchun ko'rsatiladigan yorliq. */
 export function getTierLabel(userData) {
   const tier = getTier(userData);
+  // Guruh orqali kelgan Pro'ni alohida atash kerak: o'quvchi "PRO obuna" deb
+  // o'qib, uni o'zi to'lagan deb o'ylardi va obunani uzaytirishga urinmasdi.
+  if (tier === 'pro' && getRawTier(userData) !== 'pro' && hasActiveGroupPro(userData)) {
+    return "PRO (guruh obunasi)";
+  }
   if (tier === 'pro') return 'PRO obuna';
   if (tier === 'standard') return 'Standard obuna';
   return 'Bepul tarif';
@@ -259,6 +289,22 @@ export const DISCOUNT_DEFAULT_BILLINGS = ['monthly'];
 /** Ikki to'lov orasidagi eng katta tanaffus — `DISCOUNT_CONFIG.maxGapDays`. */
 export const DISCOUNT_MAX_GAP_DAYS = 45;
 
+/**
+ * Chegirma necha OYNI qoplaydi — va shu bilan birga YUQORI CHEGARA.
+ *
+ * ⚠️ `functions/signupDiscount.js` dagi `DISCOUNT_CONFIG.cycles` bilan bir xil.
+ *
+ * NEGA CHEGARA: oy soni saqlangan taklifdan (`signupDiscount.cycles`) o'qiladi,
+ * u esa `config/trial.discountCycles` dan keladi. O'sha Firestore maydonida 3
+ * qolib ketgan edi (foiz 30 ga yangilanganda oy soni eskisida qoldi) va sayt
+ * "dastlabki 3 oy" deb ko'rsatib turdi. Server endi ham shu chegarani
+ * qo'llaydi, shuning uchun ikkisi bir xil raqamni aytadi.
+ *
+ * Hozir 1: chegirma faqat BIRINCHI oyni qoplaydi. Eski 2 (yoki 3) bilan
+ * yozilgan takliflar ham shu chegara orqali 1 oy deb ko'rsatiladi.
+ */
+export const DISCOUNT_CYCLES = 1;
+
 /** Tanlangan davr necha OYNI yeydi (`monthsForBilling` bilan bir xil). */
 export function billingMonths(billing) {
   return billing === 'tri' ? 3 : 1;
@@ -285,11 +331,19 @@ export function getSignupDiscount(userData) {
   if (!offer || offer.status !== 'active') return null;
 
   // `cycles` maydonisiz eski takliflar — bir martalik (server ham shunday o'qiydi).
-  const cyclesTotal = Number(offer.cycles) > 0 ? Number(offer.cycles) : 1;
+  // `DISCOUNT_CYCLES` yuqori chegara: `cycles: 3` bilan yozilgan takliflar ham
+  // 2 oy deb ko'rsatiladi, chunki server ham aynan shuncha beradi
+  // (`functions/signupDiscount.js` dagi `clampCycles`).
+  const cyclesTotal = Number(offer.cycles) > 0
+    ? Math.min(Number(offer.cycles), DISCOUNT_CYCLES)
+    : 1;
   const cyclesUsed = Number(offer.cyclesUsed) || 0;
-  const cyclesRemaining = offer.cyclesRemaining === undefined
+  const rawRemaining = offer.cyclesRemaining === undefined
     ? cyclesTotal
     : Math.max(0, Number(offer.cyclesRemaining) || 0);
+  // Qolgan oy ham chegaradan oshmaydi: 3 oylik taklifdan 1 oyni ishlatgan
+  // o'quvchida saqlangan qiymat 2 bo'ladi, lekin unga faqat 1 oy qoladi.
+  const cyclesRemaining = Math.min(rawRemaining, Math.max(0, cyclesTotal - cyclesUsed));
   if (cyclesRemaining <= 0) return null;
 
   const started = cyclesUsed > 0;

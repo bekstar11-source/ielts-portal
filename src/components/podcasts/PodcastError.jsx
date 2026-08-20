@@ -1,45 +1,47 @@
 import React from "react";
 import { AlertCircle, RefreshCcw, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function PodcastError({ message, onRetry, isDark }) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     return (
-        <div className={`flex flex-col items-center justify-center p-10 text-center min-h-[400px] rounded-2xl border transition-colors ${
-            isDark 
-                ? 'bg-[#121212] border-white/5 text-white' 
-                : 'bg-white border-zinc-100 text-zinc-900 shadow-sm'
+        <div className={`flex flex-col items-center justify-center p-8 md:p-10 text-center min-h-[360px] rounded-2xl border transition-colors ${
+            isDark
+                ? 'bg-white/[0.04] border-white/5 text-warm-on-dark'
+                : 'bg-white border-warm-hairline text-warm-ink shadow-sm'
         }`}>
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-500'}`}>
-                <AlertCircle size={32} />
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${isDark ? 'bg-warm-error/15 text-warm-error' : 'bg-warm-error/10 text-warm-error'}`}>
+                <AlertCircle size={26} />
             </div>
-            
-            <h2 className="text-2xl font-black mb-3">Something went wrong</h2>
-            <p className={`max-w-md mb-8 text-[15px] leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+
+            <h2 className="text-xl font-bold tracking-tight mb-2">{t('common.error')}</h2>
+            <p className={`max-w-md mb-7 text-sm leading-relaxed ${isDark ? 'text-warm-on-dark-soft' : 'text-warm-muted'}`}>
                 {message || "We couldn't load the podcasts. Please check your internet connection and try again."}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
                 {onRetry && (
-                    <button 
+                    <button
                         onClick={onRetry}
-                        className="flex items-center justify-center gap-2 px-8 py-3 bg-[#1ed760] hover:bg-[#1db954] text-black font-bold rounded-full transition-all active:scale-95 shadow-lg"
+                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-warm-primary hover:bg-warm-primary-active text-warm-on-primary text-sm font-semibold rounded-full transition-colors active:scale-95"
                     >
-                        <RefreshCcw size={18} />
-                        Try Again
+                        <RefreshCcw size={16} />
+                        {t('common.retry', 'Try again')}
                     </button>
                 )}
-                <button 
+                <button
                     onClick={() => navigate('/dashboard')}
-                    className={`flex items-center justify-center gap-2 px-8 py-3 font-bold rounded-full transition-all active:scale-95 border ${
-                        isDark 
-                            ? 'border-white/20 text-white hover:bg-white/5' 
-                            : 'border-zinc-200 text-zinc-900 hover:bg-zinc-50'
+                    className={`flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-full transition-colors active:scale-95 border ${
+                        isDark
+                            ? 'border-white/15 text-warm-on-dark hover:bg-white/5'
+                            : 'border-warm-hairline text-warm-ink hover:bg-warm-surface'
                     }`}
                 >
-                    <Home size={18} />
-                    Go Home
+                    <Home size={16} />
+                    {t('podcastPage.backToDashboard')}
                 </button>
             </div>
         </div>

@@ -20,6 +20,7 @@ const {
 const { generateJson } = require("./speakingModel");
 const { reserveSpeakingSlot, releaseSpeakingSlot } = require("./speakingQuota");
 const { fetchSpeakingHistory } = require("./speakingHistory");
+const { applyRollup, buildSpeakingDelta } = require("./analyticsRollup");
 
 // Gemini qabul qiladigan audio formatlar. DIQQAT: audio/webm bu ro'yxatda YO'Q,
 // shuning uchun klient yozuvni WAV ga o'giradi (src/utils/audioWav.js).
@@ -285,6 +286,17 @@ async function evaluateSpeaking(data, context) {
                 )
             );
         }
+
+        // Analitika jamlanmasi: `/analytics` Speaking bandlarini va takrorlanuvchi
+        // tuzatishlarni shu yerdan oladi. Xatolik yuzaga kelsa ham javob qaytadi —
+        // o'quvchi feedbackni yo'qotmasligi kerak.
+        writes.push(
+            applyRollup(db, uid, buildSpeakingDelta({
+                bands: evaluation.bands,
+                corrections: evaluation.corrections,
+                sourceId: `${sessionId || "speaking"}_${part}_${startedAt}`
+            }))
+        );
 
         await Promise.all(writes);
         mark("save", saveAt);

@@ -1,50 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../context/LanguageContext';
-import { db } from '../../firebase/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { ArrowLeft, Users, Zap, CheckCircle2, AlertCircle, Crown, Shield, CreditCard } from 'lucide-react';
-import { hasActiveTeacherSubscription, getTeacherSubscriptionDaysLeft } from '../../utils/subscription';
+import { Users, Lightning, CheckCircle, WarningCircle, Crown, ShieldCheck, CreditCard } from '@phosphor-icons/react';
+import { hasActiveTeacherSubscription, getTeacherSubscriptionDaysLeft, formatSom } from '../../utils/subscription';
+import { TEACHER_TIERS, TEACHER_BILLING_DAYS, teacherPricePerStudent, teacherSavingsPercent } from '../../utils/pricing';
 import { collectStudentIds } from '../../utils/teacherResults';
+import { useTeacherWorkspace } from '../../hooks/useTeacherWorkspace';
 
 export default function TeacherSubscription() {
     const { userData, user } = useAuth();
     const { theme } = useTheme();
     const { t, lang } = useTranslation();
-    const navigate = useNavigate();
     const isDark = theme === 'dark';
 
-    const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [message, setMessage] = useState('');
-    const [studentCount, setStudentCount] = useState(0);
+
+    // O'quvchilar soni panelning umumiy keshidan keladi — bu sahifa ilgari
+    // `groups` ni O'ZI qaytadan o'qirdi, ya'ni har ochilganda ortiqcha so'rov.
+    const { groups, loading } = useTeacherWorkspace({ uid: userData?.uid });
+    const studentCount = collectStudentIds(groups).length;
 
     const subscription = userData?.teacherSubscription;
     const isSubscribed = hasActiveTeacherSubscription(userData);
 
     const s = 'teacher.subscription';
-
-    useEffect(() => {
-        if (userData) {
-            fetchStudentCount();
-        }
-    }, [userData]);
-
-    const fetchStudentCount = async () => {
-        setLoading(true);
-        try {
-            const q = query(collection(db, 'groups'), where('teacherId', '==', userData.uid));
-            const querySnap = await getDocs(q);
-            const fetchedGroups = querySnap.docs.map(d => d.data());
-            setStudentCount(collectStudentIds(fetchedGroups).length);
-        } catch (error) {
-            console.error('Error fetching students:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleSubscribe = (tierId) => {
         if (!user) return;
@@ -66,58 +47,44 @@ export default function TeacherSubscription() {
         }
     };
 
-    const tiers = [
-        {
-            id: 'tier_10',
-            name: t(`${s}.tiers.small`) || (lang === 'uz' ? 'Kichik Guruh' : 'Small Group'),
-            maxStudents: 10,
-            price: '500 000',
-            color: 'from-blue-500 to-cyan-500',
-            darkBorder: 'border-blue-500/20',
-            lightBorder: 'border-blue-200'
-        },
-        {
-            id: 'tier_20',
-            name: t(`${s}.tiers.medium`) || (lang === 'uz' ? "O'rta Guruh" : 'Medium Group'),
-            maxStudents: 20,
-            price: '1 000 000',
-            color: 'from-violet-500 to-indigo-500',
-            darkBorder: 'border-violet-500/20',
-            lightBorder: 'border-violet-200',
-            popular: true
-        },
-        {
-            id: 'tier_30',
-            name: t(`${s}.tiers.large`) || (lang === 'uz' ? 'Katta Guruh' : 'Large Group'),
-            maxStudents: 30,
-            price: '1 500 000',
-            color: 'from-amber-500 to-orange-500',
-            darkBorder: 'border-amber-500/20',
-            lightBorder: 'border-amber-200'
-        }
-    ];
+    // Tariflar `src/utils/pricing.js` dan — u `functions/pricing.js` bilan
+    // sinxron yagona manba. Ilgari narx va limit shu faylda qo'lda yozilgan
+    // edi va Telegram botdagi jadval bilan mustaqil ravishda o'zgarardi.
+    const TIER_STYLES = {
+        tier_10: { color: 'from-blue-500 to-cyan-500', darkBorder: 'border-blue-500/20', lightBorder: 'border-blue-200' },
+        tier_20: { color: 'from-violet-500 to-indigo-500', darkBorder: 'border-violet-500/20', lightBorder: 'border-violet-200', popular: true },
+        tier_30: { color: 'from-amber-500 to-orange-500', darkBorder: 'border-amber-500/20', lightBorder: 'border-amber-200' },
+        tier_50: { color: 'from-emerald-500 to-teal-500', darkBorder: 'border-emerald-500/20', lightBorder: 'border-emerald-200' },
+    };
+
+    const TIER_NAME_KEYS = {
+        tier_10: 'small',
+        tier_20: 'medium',
+        tier_30: 'large',
+        tier_50: 'center',
+    };
+
+    const tiers = Object.entries(TEACHER_TIERS).map(([id, tier]) => ({
+        id,
+        name: t(`${s}.tiers.${TIER_NAME_KEYS[id]}`) || tier.name,
+        maxStudents: tier.maxStudents,
+        price: formatSom(tier.price),
+        perStudent: formatSom(teacherPricePerStudent(tier)),
+        savings: teacherSavingsPercent(tier),
+        ...TIER_STYLES[id],
+    }));
 
     const remainingDays = getTeacherSubscriptionDaysLeft(userData);
 
     return (
-        <div className={`min-h-screen font-sans transition-colors duration-500 pb-20 ${isDark ? 'bg-[#0f0f0f] text-white' : 'bg-[#f8f9fa] text-zinc-900'}`}>
+        <div className="font-sans animate-content-in">
 
-            {/* Header */}
-            <div className={`sticky top-0 z-40 border-b backdrop-blur-md ${isDark ? 'bg-black/60 border-white/10' : 'bg-white/70 border-zinc-200'} px-6 py-4 flex items-center justify-between`}>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/teacher')}
-                        className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-black/5 text-zinc-500 hover:text-black'}`}
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    <h1 className="font-bold text-xl tracking-tight">
-                        {t(`${s}.title`) || (lang === 'uz' ? 'Guruh Obunalari' : 'Group Subscriptions')}
-                    </h1>
-                </div>
-            </div>
+            {/* Sarlavha — sahifaning o'z header'i yo'q, uni layout beradi. */}
+            <h1 className="font-bold text-2xl tracking-tight mb-8">
+                {t(`${s}.title`, lang === 'uz' ? 'Guruh Obunalari' : 'Group Subscriptions')}
+            </h1>
 
-            <div className="max-w-5xl mx-auto px-4 py-8">
+            <div className="max-w-5xl mx-auto">
 
                 {/* Current Status Section */}
                 <div className={`p-6 rounded-3xl mb-10 border relative overflow-hidden ${isDark ? 'bg-zinc-900 border-white/10' : 'bg-white border-zinc-200 shadow-sm'}`}>
@@ -126,7 +93,7 @@ export default function TeacherSubscription() {
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="flex-1">
                             <h2 className="text-sm font-bold uppercase tracking-wider mb-2 flex items-center gap-2" style={{ color: isDark ? '#a1a1aa' : '#71717a' }}>
-                                <Shield size={16} /> {t(`${s}.currentPlan`) || (lang === 'uz' ? 'Joriy Obuna Holati' : 'Current Subscription Status')}
+                                <ShieldCheck size={16} /> {t(`${s}.currentPlan`) || (lang === 'uz' ? 'Joriy Obuna Holati' : 'Current Subscription Status')}
                             </h2>
 
                             {loading ? (
@@ -182,7 +149,7 @@ export default function TeacherSubscription() {
 
                 {message && (
                     <div className={`mb-8 p-4 rounded-xl flex items-center gap-3 font-medium text-sm ${message.includes('❌') ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'}`}>
-                        {message.includes('❌') ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+                        {message.includes('❌') ? <WarningCircle size={20} /> : <CheckCircle size={20} />}
                         {message}
                     </div>
                 )}
@@ -198,7 +165,7 @@ export default function TeacherSubscription() {
                             : "Choose the plan that fits your group size. Your students automatically get PRO benefits with an active subscription.")}
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {tiers.map((tier) => (
                             <div
                                 key={tier.id}
@@ -223,6 +190,15 @@ export default function TeacherSubscription() {
                                     <p className="text-xs text-zinc-500 mt-2 font-medium">
                                         {t(`${s}.per1Month`) || (lang === 'uz' ? '1 oy uchun' : 'per month')}
                                     </p>
+                                    {/* Asosiy sotuv argumenti: chakana Pro (49 000) bilan
+                                        taqqoslaganda bir o'quvchi qancha turadi. */}
+                                    <p className="text-xs font-bold text-emerald-500 mt-2">
+                                        {(t(`${s}.perStudent`) || (lang === 'uz'
+                                            ? "{price} so'm / o'quvchi — chakana narxdan {savings}% arzon"
+                                            : '{price} UZS / student — {savings}% below retail'))
+                                            .replace('{price}', tier.perStudent)
+                                            .replace('{savings}', tier.savings)}
+                                    </p>
                                 </div>
 
                                 <div className="flex-1 flex flex-col justify-between">
@@ -239,15 +215,22 @@ export default function TeacherSubscription() {
                                             <div className={`p-1 rounded-full ${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
                                                 <Crown size={14} />
                                             </div>
+                                            {/* Tarjima butun jumla sifatida saqlanadi; "PRO" so'zi
+                                                shu yerda ajratib ko'rsatiladi. Ilgari jumla VA
+                                                alohida "PRO" birga chizilib, "…PRO status PRO
+                                                darajasi" ko'rinishida takrorlanib ketardi. */}
                                             <span>
-                                                {t(`${s}.allStudentsPro`) || (lang === 'uz' ? "Barcha o'quvchilarga " : 'All students get ')}
-                                                <b className="text-emerald-500">PRO</b>
-                                                {lang !== 'uz' ? ' status' : ' status'}
+                                                {(t(`${s}.allStudentsPro`) || '').split('PRO').map((chunk, i) => (
+                                                    <React.Fragment key={i}>
+                                                        {i > 0 && <b className="text-emerald-500">PRO</b>}
+                                                        {chunk}
+                                                    </React.Fragment>
+                                                ))}
                                             </span>
                                         </li>
                                         <li className="flex items-center gap-3">
                                             <div className={`p-1 rounded-full ${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                <Zap size={14} />
+                                                <Lightning size={14} />
                                             </div>
                                             <span>
                                                 {t(`${s}.teacherPanelControl`) || (lang === 'uz' ? "O'qituvchi paneli orqali cheksiz nazorat" : 'Full control via teacher panel')}
@@ -272,12 +255,12 @@ export default function TeacherSubscription() {
 
                 <div className={`p-6 rounded-2xl border ${isDark ? 'bg-blue-500/5 border-blue-500/10' : 'bg-blue-50 border-blue-100'}`}>
                     <h4 className="font-bold flex items-center gap-2 mb-2 text-blue-600 dark:text-blue-400">
-                        <AlertCircle size={18} /> {t(`${s}.infoTitle`) || (lang === 'uz' ? "Ma'lumot" : 'Info')}
+                        <WarningCircle size={18} /> {t(`${s}.infoTitle`) || (lang === 'uz' ? "Ma'lumot" : 'Info')}
                     </h4>
                     <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'} leading-relaxed`}>
                         {t(`${s}.infoDesc`) || (lang === 'uz'
-                            ? "Siz tanlagan tarif faqatgina 1 oy davomida amal qiladi. Limitdan ortiq o'quvchini guruhingizga qo'shib bo'lmaydi. To'lov amalga oshirilgandan so'ng, pullar qaytarilmaydi. Texnik yordam uchun admin bilan bog'laning."
-                            : "The selected plan is valid for 1 month only. You cannot add more students than the limit. Payments are non-refundable. Contact the admin for technical support.")}
+                            ? `Tarif ${TEACHER_BILLING_DAYS} kun davomida amal qiladi. Obuna faol bo'lgan davrda guruhingizdagi har bir o'quvchi PRO darajasini oladi — obuna tugagach bu huquq avtomatik to'xtaydi. Limit barcha guruhlaringizdagi jami o'quvchilar bo'yicha hisoblanadi va limitdan ortiq o'quvchi qo'shib bo'lmaydi. To'lov amalga oshirilgandan so'ng, pullar qaytarilmaydi. Texnik yordam uchun admin bilan bog'laning.`
+                            : `The plan is valid for ${TEACHER_BILLING_DAYS} days. While it is active every student in your groups gets PRO access, which stops automatically when the plan expires. The limit counts unique students across all of your groups. Payments are non-refundable. Contact the admin for technical support.`)}
                     </p>
                 </div>
 

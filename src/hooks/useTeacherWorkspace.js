@@ -42,7 +42,34 @@ export const teacherKeys = {
     all: ['teacher'],
     workspace: (uid, cap) => ['teacher', 'workspace', uid, cap],
     catalog: () => ['teacher', 'catalog'],
+    resultsCap: () => ['teacher', 'resultsCap'],
 };
+
+/**
+ * Natijalar chegarasi — BUTUN panel uchun bitta qiymat.
+ *
+ * Chegara so'rov kalitining bir qismi, shuning uchun uni sahifa o'zida
+ * saqlash mumkin emas edi: AllResults "Ko'proq yuklash" ni bosishi bilan
+ * ikkinchi kesh yozuvi paydo bo'lardi va Dashboard 300 talik nusxadan,
+ * Natijalar esa 1000 talik nusxadan oziqlanib, bir xil ko'rsatkichlar ikki
+ * xil raqam ko'rsatardi. Endi qiymat react-query'ning o'zida yashaydi va
+ * kengaytirilganda hamma sahifa birdaniga o'sha keshga o'tadi.
+ */
+export function useResultsCap() {
+    const queryClient = useQueryClient();
+    const { data: cap = RESULTS_CAP } = useQuery({
+        queryKey: teacherKeys.resultsCap(),
+        queryFn: () => RESULTS_CAP,
+        staleTime: Infinity,
+        gcTime: Infinity,
+    });
+
+    return {
+        cap,
+        canWiden: cap < RESULTS_CAP_WIDE,
+        widen: () => queryClient.setQueryData(teacherKeys.resultsCap(), RESULTS_CAP_WIDE),
+    };
+}
 
 const flattenSnaps = (snaps) =>
     snaps.flatMap((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -141,12 +168,12 @@ const EMPTY = {
 
 /**
  * @param {object}  opts
- * @param {string}  opts.uid         o'qituvchi uid
- * @param {number}  opts.resultsCap  bo'lakdagi natijalar chegarasi
+ * @param {string}  opts.uid      o'qituvchi uid
  * @param {boolean} opts.enabled
  */
-export function useTeacherWorkspace({ uid, resultsCap = RESULTS_CAP, enabled = true } = {}) {
+export function useTeacherWorkspace({ uid, enabled = true } = {}) {
     const queryClient = useQueryClient();
+    const { cap: resultsCap } = useResultsCap();
     const queryKey = teacherKeys.workspace(uid, resultsCap);
 
     const { data, isPending, isFetching, error } = useQuery({
@@ -175,6 +202,27 @@ export function useTeacherWorkspace({ uid, resultsCap = RESULTS_CAP, enabled = t
         patch: (updater) => queryClient.setQueryData(queryKey, (prev) =>
             prev ? { ...prev, ...updater(prev) } : prev
         ),
+        /**
+         * Guruhlar ro'yxatini optimistik almashtiradi.
+         *
+         * `realTestCount` shu yerda qayta hisoblanadi: `set` turidagi tayinlov
+         * bitta yozuv bo'lsa ham ichida bir nechta test bo'ladi, shuning uchun
+         * uni yangilamasa Dashboard'dagi "Tayinlangan testlar" soni tayinlash
+         * yoki o'chirishdan keyin noto'g'ri qolardi.
+         */
+        patchGroups: (nextGroups) => queryClient.setQueryData(queryKey, (prev) => {
+            if (!prev) return prev;
+            const groups = nextGroups.map((g) => ({
+                ...g,
+                realTestCount: (g.assignedTests || []).reduce(
+                    (sum, assign) => sum + (assign?.type === 'set'
+                        ? (prev.testSetsMap[assign.id]?.testIds?.length || 0)
+                        : 1),
+                    0
+                ),
+            }));
+            return { ...prev, groups };
+        }),
     };
 }
 

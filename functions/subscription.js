@@ -54,12 +54,51 @@ function isSubscriptionExpired(userData) {
   return end.getTime() <= Date.now();
 }
 
+/**
+ * O'QITUVCHI OBUNASI — `users/{teacherId}.teacherSubscription`.
+ * ⚠️ `src/utils/subscription.js` dagi nusxasi bilan bir xil.
+ */
+function getTeacherSubscriptionEnd(userData) {
+  return toDate(userData && userData.teacherSubscription && userData.teacherSubscription.validUntil);
+}
+
+function hasActiveTeacherSubscription(userData) {
+  const end = getTeacherSubscriptionEnd(userData);
+  return !!end && end.getTime() > Date.now();
+}
+
+/**
+ * GURUH PRO — o'qituvchining faol obunasidan kelib chiqadigan Pro huquqi.
+ *
+ * `users/{studentId}.groupPro` — DENORMALLASHTIRILGAN nusxa: o'quvchi
+ * o'qituvchining hujjatini o'qiy olmaydi (`firestore.rules` ruxsat bermaydi),
+ * shuning uchun UI qulfini ochish uchun huquq o'quvchi hujjatiga yoziladi.
+ * Maydonni faqat Admin SDK yozadi (`protectedUserFields`), uni yangilab
+ * turuvchi joylar: `manageGroupStudent`, Telegram bot tasdiqlashi va kunlik
+ * `expireSubscriptions` supurgisi.
+ *
+ * ⚠️ Bu maydon eskirgan bo'lishi mumkin (o'qituvchi obunasi tugagan, supurgi
+ * hali yurmagan), shuning uchun HAQIQIY ruxsatni `checkEntitlement` har doim
+ * o'qituvchining hujjatidan qayta tekshiradi. Bu yerdagi qiymat — tezkor yo'l.
+ */
+function getGroupProEnd(userData) {
+  return toDate(userData && userData.groupPro && userData.groupPro.validUntil);
+}
+
+function hasActiveGroupPro(userData) {
+  const end = getGroupProEnd(userData);
+  return !!end && end.getTime() > Date.now();
+}
+
 /** Muddatni hisobga olgan haqiqiy tarif. */
 function getTier(userData) {
   const raw = getRawTier(userData);
-  if (raw === "free") return "free";
-  if (isSubscriptionExpired(userData)) return "free";
-  return raw;
+  const own = raw === "free" || isSubscriptionExpired(userData) ? "free" : raw;
+  if (own === "pro") return own;
+  // Guruh obunasi Pro beradi — o'quvchining o'z tarifi undan past bo'lsa,
+  // yuqorisi yutadi (Standard sotib olgan o'quvchi guruhda Pro ishlaydi).
+  if (hasActiveGroupPro(userData)) return "pro";
+  return own;
 }
 
 function hasActiveSubscription(userData) {
@@ -67,8 +106,10 @@ function hasActiveSubscription(userData) {
 }
 
 /**
- * Premium kontent uchun umumiy ruxsat (guruh a'zoligi bu yerga KIRMAYDI —
- * guruh o'quvchisiga faqat biriktirilgan testlar ochiladi).
+ * Premium kontent uchun umumiy ruxsat.
+ *
+ * Guruh a'zoligining O'ZI bu yerga kirmaydi — lekin o'qituvchisining obunasi
+ * faol bo'lgan o'quvchida `groupPro` turadi va `getTier` uni Pro deb qaytaradi.
  */
 function canAccessPremiumContent(userData) {
   if (!userData) return false;
@@ -200,9 +241,21 @@ async function checkEntitlement(db, uid, userData, testData, testId, partNumber 
   if (inUnlockedMock) return true;
 
   const groupsSnap = await db.collection('groups').where('studentIds', 'array-contains', uid).get();
+  const teacherIds = new Set();
   for (const groupDoc of groupsSnap.docs) {
-    const groupAssigns = groupDoc.data().assignedTests || [];
+    const groupData = groupDoc.data();
+    const groupAssigns = groupData.assignedTests || [];
     if (groupAssigns.some((a) => String(a.id).trim() === testId)) return true;
+    if (groupData.teacherId) teacherIds.add(groupData.teacherId);
+  }
+
+  // Guruh Pro: o'qituvchining obunasi FAOL bo'lsa, a'zosi Pro kontentni to'liq
+  // ochadi. Bu tekshiruv `groupPro` maydoniga tayanmaydi — u denormallashgan
+  // nusxa va eskirishi mumkin; yagona haqiqat manbasi o'qituvchining hujjati.
+  // Aks holda obuna tugagach ham o'quvchilar Pro'da qolib ketardi.
+  for (const teacherId of teacherIds) {
+    const teacherSnap = await db.collection('users').doc(teacherId).get();
+    if (teacherSnap.exists && hasActiveTeacherSubscription(teacherSnap.data())) return true;
   }
 
   return false;
@@ -222,5 +275,9 @@ module.exports = {
   getTestScope,
   getRequiredTier,
   tierAllowsTest,
+  getTeacherSubscriptionEnd,
+  hasActiveTeacherSubscription,
+  getGroupProEnd,
+  hasActiveGroupPro,
   checkEntitlement,
 };

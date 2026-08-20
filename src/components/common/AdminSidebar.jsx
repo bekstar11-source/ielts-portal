@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Users, BookOpen, Settings,
     ChevronLeft, FileText, Megaphone,
-    BarChart2, PenTool, Trophy, ScrollText, Headphones, Key, Newspaper, Layers, Sparkles, Gift
+    BarChart2, PenTool, Trophy, ScrollText, Headphones, Key, Newspaper, Layers, Sparkles, Gift, Flag
 } from 'lucide-react';
 import {
     Sidebar,
@@ -44,6 +44,7 @@ const menuGroups = [
             { name: "Mock Packages", path: "/admin/mocks", icon: Layers },
             { name: "Mock Keys", path: "/admin/key-manager", icon: Key },
             { name: "Results", path: "/admin/results", icon: BookOpen },
+            { name: "Reports", path: "/admin/reports", icon: Flag },
             { name: "Articles", path: "/admin/articles", icon: Newspaper },
             { name: "Podcast Mastery", path: "/admin/podcasts", icon: Headphones },
             { name: "Bepul trial", path: "/admin/trial", icon: Gift }

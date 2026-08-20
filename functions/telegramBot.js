@@ -7,10 +7,18 @@ const crypto = require("crypto");
 const { markSpeakingReviewPaid } = require("./speakingReview");
 
 // Obuna narxlari va ro'yxatdan o'tish chegirmasi.
-const { formatSom, getPlanPrice, BILLING_DAYS } = require("./pricing");
+const {
+  formatSom, getPlanPrice, BILLING_DAYS,
+  TEACHER_TIERS, TEACHER_BILLING_DAYS, teacherPricePerStudent,
+} = require("./pricing");
+
+// O'qituvchi obunasi tasdiqlangach o'quvchilarga Pro huquqini tarqatish.
+const { syncTeacherGroupPro } = require("./groupMembership");
+const { toDate } = require("./subscription");
 const {
   DISCOUNT_ALREADY_CLAIMED,
   DISCOUNT_CONFIG,
+  clampCycles,
   getClaimRefs,
   resolveClaimState,
   buildClaimDoc,
@@ -76,12 +84,6 @@ function derivePairingCode(sessionId) {
 // Boshlangan kirish sessiyasi shu muddatdan keyin kuchini yo'qotadi.
 const LOGIN_STATE_TTL_MS = 5 * 60 * 1000;
 
-// O'qituvchi guruh obunalari (src/pages/teacher/TeacherSubscription.jsx bilan mos)
-const TEACHER_TIERS = {
-  tier_10: { name: "Kichik Guruh", maxStudents: 10, price: 500000 },
-  tier_20: { name: "O'rta Guruh", maxStudents: 20, price: 1000000 },
-  tier_30: { name: "Katta Guruh", maxStudents: 30, price: 1500000 }
-};
 
 exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
   if (req.method !== "POST") {
@@ -385,11 +387,16 @@ async function handleCallback(chatId, query) {
         throw new Error(`Foydalanuvchi topilmadi: ${studentUserId}`);
       }
 
-      // Amaldagi obuna ustiga qo'shamiz
+      // Amaldagi obuna ustiga qo'shamiz.
+      // ⚠️ `toDate` — chunki `validUntil` eski yozuvlarda ISO satr, yangilarida
+      // Timestamp. `new Date(timestamp)` "Invalid Date" berib, faol obunani
+      // tugagan deb hisoblardi va muddat noldan boshlanardi.
       const current = userSnap.data().teacherSubscription;
-      const currentEnd = current && current.validUntil ? new Date(current.validUntil) : null;
+      const currentEnd = toDate(current && current.validUntil);
       const base = currentEnd && currentEnd > new Date() ? new Date(currentEnd) : new Date();
-      base.setMonth(base.getMonth() + 1);
+      // Kun bilan qo'shamiz: `setMonth(+1)` 31-yanvarda 3-martga sakraydi va
+      // o'quvchi obunalaridagi 30 kunlik davr bilan mos kelmasdi.
+      base.setDate(base.getDate() + TEACHER_BILLING_DAYS);
 
       await userRef.update({
         teacherSubscription: {
@@ -397,9 +404,18 @@ async function handleCallback(chatId, query) {
           tier: tierInfo.name,
           maxStudents: tierInfo.maxStudents,
           price: tierInfo.price,
-          validUntil: base.toISOString()
+          validUntil: admin.firestore.Timestamp.fromDate(base)
         }
       });
+
+      // O'quvchilar Pro huquqini shu zahoti oladi — aks holda ular buni
+      // faqat keyingi kunlik supurgidan keyin ko'rardi.
+      let syncedStudents = 0;
+      try {
+        syncedStudents = await syncTeacherGroupPro(db, studentUserId);
+      } catch (syncErr) {
+        console.error("syncTeacherGroupPro failed:", syncErr);
+      }
 
       await db.collection("payment_sessions").doc(studentChatId).set({
         status: "approved",
@@ -408,8 +424,8 @@ async function handleCallback(chatId, query) {
       }, { merge: true });
 
       const endText = base.toLocaleDateString("uz-UZ");
-      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\n<b>${tierInfo.name}</b> obunasi faollashtirildi (${tierInfo.maxStudents} tagacha o'quvchi).\n📅 <b>Muddat:</b> ${endText} gacha.`);
-      await editMessageText(chatId, query.message.message_id, `✅ <b>O'QITUVCHI OBUNASI TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierInfo.name}</b>\nMuddat: <b>${endText}</b>`);
+      await sendMessage(studentChatId, `🎉 <b>To'lovingiz tasdiqlandi!</b>\n\n<b>${tierInfo.name}</b> obunasi faollashtirildi (${tierInfo.maxStudents} tagacha o'quvchi).\n👑 Guruhingizdagi o'quvchilar PRO imkoniyatlarini oladi.\n📅 <b>Muddat:</b> ${endText} gacha.`);
+      await editMessageText(chatId, query.message.message_id, `✅ <b>O'QITUVCHI OBUNASI TASDIQLANDI!</b>\n\nFoydalanuvchi: <code>${studentUserId}</code>\nTarif: <b>${tierInfo.name}</b>\nMuddat: <b>${endText}</b>\nPro berilgan o'quvchilar: <b>${syncedStudents}</b>`);
     } catch (err) {
       console.error("Teacher Promotion Error:", err);
       await sendMessage(chatId, "❌ Xatolik yuz berdi: " + err.message);
@@ -477,8 +493,12 @@ async function handleCallback(chatId, query) {
       // bitta to'lovda chegirma to'liq sarflanadi.
       const hasCycleInfo = Boolean(sessionData && Number(sessionData.discountCycles) > 0);
       const discountCycles = hasCycleInfo ? Number(sessionData.discountCycles) : 1;
+      // ⚠️ `clampCycles`: shu deploydan oldin ochilgan, hali tasdiqlanmagan
+      // sessiyalarda `discountCyclesTotal: 3` bo'lishi mumkin (eski
+      // `config/trial` qiymati). Cheklamasak, tasdiqlash paytida yana 3 oylik
+      // hisob tiklanardi va sayt bilan bot yana ajralib ketardi.
       const discountCyclesTotal = hasCycleInfo
-        ? (Number(sessionData.discountCyclesTotal) || DISCOUNT_CONFIG.cycles)
+        ? (clampCycles(sessionData.discountCyclesTotal) || DISCOUNT_CONFIG.cycles)
         : 1;
       const phoneNumber = userSnap.data().phoneNumber || null;
       const { tgRef, phRef } = getClaimRefs(db, studentChatId, phoneNumber);
@@ -913,8 +933,10 @@ async function handlePaymentStart(chatId, userId, planId, billing) {
     await sendMessage(chatId,
       `💳 <b>TO'LOV MA'LUMOTLARI (O'QITUVCHI OBUNASI)</b>\n\n` +
       `📦 <b>Tarif:</b> ${tierInfo.name} (${tierInfo.maxStudents} tagacha o'quvchi)\n` +
-      `💰 <b>Summa:</b> ${new Intl.NumberFormat("uz-UZ").format(tierInfo.price)} so'm\n` +
-      `🗓 <b>Muddat:</b> 1 oy\n\n` +
+      `💰 <b>Summa:</b> ${formatSom(tierInfo.price)} so'm ` +
+      `(${formatSom(teacherPricePerStudent(tierInfo))} so'm / o'quvchi)\n` +
+      `👑 <b>O'quvchilarga:</b> PRO darajasi (obuna muddati davomida)\n` +
+      `🗓 <b>Muddat:</b> ${TEACHER_BILLING_DAYS} kun\n\n` +
       `--------------------------\n` +
       `🏛 <b>Karta:</b> <code>8600 0529 2812 2652</code>\n` +
       `👤 <b>Ega:</b> Aslbek Jo'raboyev\n` +

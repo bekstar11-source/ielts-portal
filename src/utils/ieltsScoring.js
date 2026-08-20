@@ -1,6 +1,6 @@
 // src/utils/ieltsScoring.js
 
-import { canonicalQuestionType } from './questionTypes';
+import { canonicalQuestionType } from './questionTypes.js';
 
 // Rasmiy IELTS raw→band jadvallari (40 ta savol asosida), [eng kam raw ball, band] ko'rinishida.
 // DIQQAT: Reading va Listening jadvallari BIR XIL EMAS. Ilgari ikkalasiga ham Listening

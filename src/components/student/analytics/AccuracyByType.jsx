@@ -12,12 +12,20 @@ import { accuracyTone } from './format';
 
 /** Qulf ostida ko'rsatiladigan namunaviy qatorlar (haqiqiy ma'lumot emas). */
 const TEASER_ROWS = [
-  { family: 'headings', accuracy: 48, total: 22, wrong: 11, reliable: true, trend: -6 },
-  { family: 'matching', accuracy: 61, total: 18, wrong: 7, reliable: true, trend: null },
-  { family: 'completion', accuracy: 74, total: 40, wrong: 10, reliable: true, trend: 4 },
-  { family: 'true_false_ng', accuracy: 82, total: 27, wrong: 5, reliable: true, trend: null },
-  { family: 'multiple_choice', accuracy: 91, total: 33, wrong: 3, reliable: true, trend: 8 }
+  { family: 'headings', accuracy: 48, total: 22, wrong: 11, reliable: true, trend: -6, wilson: { low: 31, high: 66, margin: 18 } },
+  { family: 'matching', accuracy: 61, total: 18, wrong: 7, reliable: true, trend: null, wilson: { low: 42, high: 78, margin: 18 } },
+  { family: 'completion', accuracy: 74, total: 40, wrong: 10, reliable: true, trend: 4, wilson: { low: 62, high: 83, margin: 11 } },
+  { family: 'true_false_ng', accuracy: 82, total: 27, wrong: 5, reliable: true, trend: null, wilson: { low: 68, high: 91, margin: 12 } },
+  { family: 'multiple_choice', accuracy: 91, total: 33, wrong: 3, reliable: true, trend: 8, wilson: { low: 79, high: 96, margin: 9 } }
 ];
+
+/**
+ * Oraliq shu kenglikdan katta bo'lsa, foiz yoniga noaniqlik belgisi qo'yiladi.
+ *
+ * Taxminan 25 tadan kam savolga to'g'ri keladi. Undan yuqorisida oraliq
+ * shunchalik torki, uni ko'rsatish faqat shovqin bo'lardi.
+ */
+const WIDE_MARGIN = 12;
 
 function TrendChip({ trend, t }) {
   if (trend === null || trend === undefined || Math.abs(trend) < 3) return null;
@@ -61,6 +69,16 @@ function TypeRow({ row, t }) {
       <div className="flex items-baseline justify-end gap-3">
         <span className={`text-sm font-bold tabular-nums ${tone.text}`}>
           {row.accuracy ?? '—'}%
+          {/* Namuna kichik bo'lsa, foizning o'zi yolg'on aniqlik beradi —
+              oraliq kengligi shu yerda ochiq aytiladi. */}
+          {row.reliable && row.wilson && row.wilson.margin >= WIDE_MARGIN && (
+            <span
+              className="ml-1 text-[10px] font-semibold text-warm-muted-soft"
+              title={`${t('analytics.confidenceRange')}: ${row.wilson.low}–${row.wilson.high}%`}
+            >
+              ±{row.wilson.margin}
+            </span>
+          )}
         </span>
         <span className="w-24 text-right text-xs font-medium tabular-nums text-warm-muted dark:text-warm-on-dark-soft">
           {row.reliable

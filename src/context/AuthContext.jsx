@@ -73,6 +73,13 @@ export function AuthProvider({ children }) {
       const credential = EmailAuthProvider.credential(email, password);
       const result = await linkWithCredential(current, credential);
       user = result.user;
+      // ⚠️ Link muvaffaqiyatli bo'lsa ham, KESHDAGI ID token'da
+      // `sign_in_provider` hamon `anonymous` bo'lib qoladi — u faqat token
+      // yangilanganda o'zgaradi. `firestore.rules` dagi `isAuth()` esa
+      // anonimni ataylab rad etadi, ya'ni quyidagi `setDoc(users/{uid})`
+      // "permission-denied" bilan yiqilardi va butun ro'yxatdan o'tish
+      // xatoga uchrardi. Majburiy yangilash yangi provayderli token beradi.
+      await user.getIdToken(true);
     } else {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       user = result.user;
@@ -114,7 +121,11 @@ export function AuthProvider({ children }) {
       const claimReward = httpsCallable(functions, 'claimTrialReward');
       const { data: reward } = await claimReward();
       if (reward?.granted) {
-        track('trial_reward_claimed', { discount_percent: Number(reward.discountPercent) || undefined });
+        // ⚠️ `reward.percent` — `claimTrialReward` AYNAN shu nom bilan
+        // qaytaradi. Ilgari bu yerda `reward.discountPercent` o'qilardi va
+        // hodisa har doim `undefined` foiz bilan ketardi, ya'ni chegirmaning
+        // konversiyaga ta'sirini o'lchash imkonsiz edi.
+        track('trial_reward_claimed', { discount_percent: Number(reward.percent) || undefined });
         // Chegirma serverda `users/{uid}` ga yozildi — uni ko'rish uchun
         // hujjatni qayta o'qiymiz (Pricing sahifasi shunga qaraydi).
         //
@@ -249,6 +260,12 @@ export function AuthProvider({ children }) {
       if (fromTrial) {
         try {
           result = await linkWithPopup(current, provider);
+          // Signup'dagi bilan AYNAN bir xil sabab: token majburan
+          // yangilanmasa `sign_in_provider` hamon `anonymous` bo'lib qoladi
+          // va quyidagi `users/{uid}` o'qish/yozishlari qoidalar tomonidan
+          // rad etiladi — tashqaridan bu "Google bilan kirishda xatolik"
+          // bo'lib ko'rinadi.
+          await result.user.getIdToken(true);
         } catch (linkErr) {
           // Bu Google hisobi allaqachon ro'yxatdan o'tgan — bog'lab bo'lmaydi.
           // Oddiy kirishga tushamiz (mehmon uid'i, demak trial natijasi ham,
@@ -295,7 +312,8 @@ export function AuthProvider({ children }) {
               const claimReward = httpsCallable(functions, 'claimTrialReward');
               const { data: reward } = await claimReward();
               if (reward?.granted) {
-                track('trial_reward_claimed', { discount_percent: Number(reward.discountPercent) || undefined });
+                // `reward.percent` — email/parol yo'lidagi bilan bir xil sabab.
+                track('trial_reward_claimed', { discount_percent: Number(reward.percent) || undefined });
                 const fresh = await getDoc(docRef);
                 if (fresh.exists()) setUserData(processUserData(user.uid, fresh.data()));
               }

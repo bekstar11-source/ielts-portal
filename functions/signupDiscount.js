@@ -4,7 +4,7 @@
 //
 // ─── NEGA IKKI HUJJAT ───────────────────────────────────────────────────────
 //
-//   users/{uid}.signupDiscount   → TAKLIF  ("sizda 30% bor, 7 kun amal qiladi")
+//   users/{uid}.signupDiscount   → TAKLIF  ("sizda 20% bor, 7 kun amal qiladi")
 //   discount_claims/{key}        → SARFLASH reyestri (sanoqchi)
 //
 // Taklif `uid` ga bog'langan, chunki uni UI da ko'rsatish kerak. Lekin faqat
@@ -55,15 +55,15 @@ const { getPlanPrice, applyDiscount, BILLING_DAYS } = require("./pricing");
 /** Chegirma sozlamalari — bitta joyda. */
 const DISCOUNT_CONFIG = {
   /**
-   * 50% emas, 30%.
+   * 30% emas, 20%.
    *
-   * Chegirma bitta to'lovga emas, ikkita oyga tarqaladi (pastdagi `cycles`),
-   * ya'ni jami yon berish 50% × 1 oydan katta. 30% da standard monthly
-   * 24 500 bo'ladi — psixologik to'siqni yorib o'tadi, lekin 2 oylik jami
-   * tushum (49 000) eski bir martalik tri chegirmasidan (44 500) yuqori
-   * qoladi.
+   * Chegirma endi BITTA oyni qoplaydi (pastdagi `cycles: 1`), ya'ni eski
+   * 30% × 2 oy modeliga qaraganda jami yon berish keskin kamaydi: standard
+   * monthly 28 000 bo'ladi va ikkinchi oydan boshlab to'liq narx ishlaydi.
+   * Taklif hamon "test yechdim → arzonlashdi" degan aniq va'da bo'lib qoladi,
+   * lekin tushumning bir oyi butunlay saqlanadi.
    */
-  percent: 30,
+  percent: 20,
   /**
    * Taklif necha kun amal qiladi.
    *
@@ -80,11 +80,16 @@ const DISCOUNT_CONFIG = {
   /**
    * Chegirma necha OYNI qoplaydi.
    *
-   * "2 ta to'lov" emas, "2 oy" — o'lchov OY, chunki davrlar (30/90 kun)
+   * "1 ta to'lov" emas, "1 oy" — o'lchov OY, chunki davrlar (30/90 kun)
    * shu o'lchovda taqqoslanadi va monthly↔tri aralashtirilganda ham hisob
    * buzilmaydi.
+   *
+   * 2 emas 1: chegirma birinchi oyga beriladi, keyingi oylar to'liq narxda.
+   * `clampCycles` shu qiymatni YUQORI CHEGARA sifatida ham ishlatadi, ya'ni
+   * `config/trial.discountCycles` da qolib ketgan eski 2 (yoki 3) avtomatik
+   * 1 ga qisiladi.
    */
-  cycles: 2,
+  cycles: 1,
   /**
    * Ikki to'lov orasidagi eng katta tanaffus.
    *
@@ -97,9 +102,9 @@ const DISCOUNT_CONFIG = {
   /**
    * Chegirma FAQAT 1 oylik davrda ishlaydi.
    *
-   * Sabab arifmetik, siyosiy emas: `cycles: 2` — chegirma 2 oyni qoplaydi,
+   * Sabab arifmetik, siyosiy emas: `cycles: 1` — chegirma 1 oyni qoplaydi,
    * `tri` esa bitta to'lovda 3 oyni yeydi. Ya'ni tri ga chegirma berish
-   * va'da qilingandan bir oy ko'p yon berish bo'lardi (`checkDiscountEligibility`
+   * va'da qilingandan ikki oy ko'p yon berish bo'lardi (`checkDiscountEligibility`
    * ham buni `INSUFFICIENT_CYCLES` bilan rad etardi). Shuning uchun tri
    * ro'yxatda umuman turmaydi — o'quvchi rad javob o'rniga darhol ishlaydigan
    * 1 oylik variantni (upsell tugmasi) ko'radi.
@@ -163,15 +168,60 @@ function monthsForBilling(billing) {
 }
 
 /**
+ * Chegirmali oylar soni uchun YUQORI CHEGARA.
+ *
+ * ⚠️ NEGA KERAK: oy soni ikki joyda yashaydi — koddagi `DISCOUNT_CONFIG.cycles`
+ * va Firestore'dagi `config/trial.discountCycles` (admin redeploysiz
+ * o'zgartirishi uchun). Saqlangan qiymat koddagisidan USTUN edi, shuning uchun
+ * `discountPercent` 30 ga yangilanganda `discountCycles` eski 3 da qolib
+ * ketgani yetarli bo'ldi: sayt ham, bot ham har bir yangi o'quvchiga 3 oy
+ * 30% berib turdi — ya'ni bir oylik tushum jimgina yo'qolardi. Bunday xato
+ * hech qanday xato xabari bermaydi, shuning uchun ARIFMETIK jihatdan
+ * to'silishi kerak.
+ *
+ * Chegirmani 2 oydan ko'proq qilish endi koddagi `DISCOUNT_CONFIG.cycles` ni
+ * o'zgartirishni talab qiladi — bu ataylab: ko'proq yon berish qarori
+ * ko'rib chiqilishi kerak, unutilgan Firestore maydoni orqali o'tib
+ * ketmasligi shart.
+ */
+/**
+ * Foizni koddagi `DISCOUNT_CONFIG.percent` bilan CHEGARALAYDI.
+ *
+ * ⚠️ NEGA KERAK: `clampCycles` bilan bir xil sabab. Foiz ham ikki joyda
+ * yashaydi — koddagi `DISCOUNT_CONFIG.percent` va Firestore'dagi
+ * `config/trial.discountPercent`. Saqlangan qiymat koddagisidan USTUN edi,
+ * shuning uchun kodda 30 → 20 qilinsa ham, `config/trial` da qolib ketgan
+ * eski 30 har bir yangi o'quvchiga jimgina 30% berib turardi.
+ *
+ * Chegirmani 20% dan oshirish endi ataylab kod o'zgartirishni talab qiladi;
+ * admin `config/trial` orqali uni faqat PASAYTIRA oladi.
+ */
+function clampPercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.round(n), DISCOUNT_CONFIG.percent);
+}
+
+function clampCycles(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.round(n), DISCOUNT_CONFIG.cycles);
+}
+
+/**
  * Taklif necha oyni qoplaydi.
  *
  * ⚠️ Eski takliflarda (30% dan oldin berilgan, `cycles` maydonisiz) javob 1 —
  * ya'ni AYNAN eski xatti-harakat: bir martalik chegirma. Ularga bir necha oy
  * berish va'da qilinganidan ko'proq bo'lardi va 50% × 2 oy qimmatga tushardi.
+ *
+ * Yuqori chegara `clampCycles` da: `cycles: 3` bilan yozilgan takliflar ham
+ * 2 oy sifatida o'qiladi, aks holda sayt 2 deb ko'rsatib, bot 3 oy chegirma
+ * berardi.
  */
 function offerCycles(offer) {
   const n = Number(offer && offer.cycles);
-  return Number.isFinite(n) && n > 0 ? n : 1;
+  return Number.isFinite(n) && n > 0 ? clampCycles(n) : 1;
 }
 
 /**
@@ -213,12 +263,17 @@ function resolveClaimState(claimSnaps, totalCycles) {
 
   const remaining = Math.min(...docs.map((d) => Number(d.cyclesRemaining) || 0));
   const used = Math.max(...docs.map((d) => Number(d.cyclesUsed) || 0));
+  // Reyestrda `cyclesTotal: 3` bilan boshlangan zanjirlar bor (eski
+  // `config/trial` qiymati). `totalCycles` allaqachon 2 ga cheklangan, shuning
+  // uchun QOLGAN oy ham shundan oshmasligi kerak — aks holda 1 oyni ishlatgan
+  // o'quvchiga sayt "yana 1 oy" deb ko'rsatib, bot 2 oy berardi.
+  const cappedRemaining = Math.min(remaining, Math.max(0, totalCycles - used));
   const lastCycleAt = docs
     .map((d) => toDate(d.lastCycleAt) || toDate(d.claimedAt))
     .filter(Boolean)
     .sort((a, b) => b.getTime() - a.getTime())[0] || null;
 
-  return { started: true, used, remaining: Math.max(0, remaining), lastCycleAt };
+  return { started: true, used, remaining: Math.max(0, cappedRemaining), lastCycleAt };
 }
 
 /** Oxirgi to'lovdan `maxGapDays` dan ko'p o'tganmi (zanjir uzilganmi). */
@@ -299,10 +354,16 @@ async function grantSignupDiscount(db, uid, options = {}) {
   const {
     percent = DISCOUNT_CONFIG.percent,
     days = DISCOUNT_CONFIG.days,
-    cycles = DISCOUNT_CONFIG.cycles,
+    cycles: rawCycles = DISCOUNT_CONFIG.cycles,
     sourceResultId = null,
     force = false,
   } = options;
+
+  // Chaqiruvchi (trial config yoki admin callable'i) qancha so'rasa ham,
+  // taklifda `DISCOUNT_CONFIG.cycles` dan ko'p oy yozilmaydi — `clampCycles`
+  // izohiga qarang. `|| DISCOUNT_CONFIG.cycles`: 0 yoki chalkash qiymat
+  // chegirmasiz taklif tug'dirmasin.
+  const cycles = clampCycles(rawCycles) || DISCOUNT_CONFIG.cycles;
 
   const userRef = db.collection("users").doc(uid);
   const snap = await userRef.get();
@@ -523,6 +584,8 @@ module.exports = {
   toDate,
   normalizePhone,
   monthsForBilling,
+  clampCycles,
+  clampPercent,
   offerCycles,
   getClaimRefs,
   resolveClaimState,

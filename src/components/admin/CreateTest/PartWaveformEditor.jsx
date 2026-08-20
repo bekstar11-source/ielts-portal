@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
 import TimelinePlugin from "wavesurfer.js/plugins/timeline";
-import { processTime, toMMSS } from "./CreateTestUtils";
+import { processTime, toMMSS, formatAudioTime, roundAudioTime } from "./CreateTestUtils";
+
+// Qo'shni partlar chegarasi shu masofadan yaqin bo'lsa — aynan bir nuqtaga
+// yopishtiriladi. Aks holda part 1 tugagan joy bilan part 2 boshlangan joy
+// orasida ko'zga ko'rinmas "teshik" yoki ustma-ustlik qolib ketardi.
+const SNAP_TOLERANCE = 0.75;
 
 const REGION_COLORS = [
     "rgba(59,130,246,0.28)",
@@ -37,11 +42,36 @@ export default function PartWaveformEditor({ audioUrl, passages = [], partCount 
 
     const syncRegionParts = () => setRegionParts(Object.keys(regionByPart.current).map(Number));
 
+    // `Math.floor` ATAYLAB ishlatilmaydi: butun soniyagacha qirqish har chegarada
+    // ~1s xato berardi va o'quvchi tomonda part boshqa joydan kesilardi.
     const commit = useCallback((partIdx, region) => {
         onChangeRef.current?.(partIdx, {
-            startTime: toMMSS(Math.floor(region.start)),
-            endTime: toMMSS(Math.floor(region.end))
+            startTime: toMMSS(region.start),
+            endTime: toMMSS(region.end)
         });
+    }, []);
+
+    // Surilgan region chetlarini qo'shni partlarga yopishtiradi. Faqat surilgan
+    // region qimirlaydi — qo'shnisi joyida qoladi, shuning uchun rekursiya yo'q.
+    const snapToNeighbours = useCallback((region) => {
+        const i = region.__partIdx;
+        const prev = regionByPart.current[i - 1];
+        const next = regionByPart.current[i + 1];
+
+        let start = region.start;
+        let end = region.end;
+
+        if (prev && Math.abs(start - prev.end) <= SNAP_TOLERANCE) start = prev.end;
+        if (next && Math.abs(end - next.start) <= SNAP_TOLERANCE) end = next.start;
+
+        // Yaxlitlashni ham shu yerda qilamiz — to'lqindagi region va saqlanadigan
+        // matn bir xil qiymatni ko'rsatishi uchun.
+        start = roundAudioTime(start);
+        end = roundAudioTime(end);
+
+        if (end <= start) return;
+        if (start === region.start && end === region.end) return;
+        region.setOptions({ start, end });
     }, []);
 
     useEffect(() => {
@@ -92,6 +122,7 @@ export default function PartWaveformEditor({ audioUrl, passages = [], partCount 
         ws.on("error", (e) => setError(String(e?.message || e || "Audio yuklanmadi")));
         regions.on("region-updated", (region) => {
             if (region.__partIdx === undefined) return;
+            snapToNeighbours(region);
             commit(region.__partIdx, region);
         });
 
@@ -101,7 +132,7 @@ export default function PartWaveformEditor({ audioUrl, passages = [], partCount 
             regionsRef.current = null;
             regionByPart.current = {};
         };
-    }, [audioUrl, partCount, isDark, commit]);
+    }, [audioUrl, partCount, isDark, commit, snapToNeighbours]);
 
     // Region'i yo'q partga joriy pozitsiyadan yangi region qo'shish
     const addRegionForPart = (i) => {
@@ -125,6 +156,7 @@ export default function PartWaveformEditor({ audioUrl, passages = [], partCount 
         region.__partIdx = i;
         regionByPart.current[i] = region;
         syncRegionParts();
+        snapToNeighbours(region);
         commit(i, region);
     };
 
@@ -137,10 +169,13 @@ export default function PartWaveformEditor({ audioUrl, passages = [], partCount 
         regionByPart.current = {};
         const total = ws.getDuration();
         const slice = total / partCount;
+        // Chegaralar bir marta yaxlitlanadi va qo'shni partlar AYNAN shu qiymatni
+        // baham ko'radi — part N tugagan soniya part N+1 boshlangan soniya bilan bir xil.
+        const bounds = [...Array(partCount + 1)].map((_, i) => roundAudioTime(i * slice));
         for (let i = 0; i < partCount; i++) {
             const region = regions.addRegion({
-                start: i * slice,
-                end: (i + 1) * slice,
+                start: bounds[i],
+                end: bounds[i + 1],
                 color: REGION_COLORS[i % REGION_COLORS.length],
                 drag: true,
                 resize: true,
@@ -195,7 +230,7 @@ export default function PartWaveformEditor({ audioUrl, passages = [], partCount 
                 <p className="mt-2 text-[10px] opacity-40">To'lqin yuklanmoqda...</p>
             ) : (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[9px] font-mono opacity-40 mr-1">{toMMSS(Math.floor(duration))}</span>
+                    <span className="text-[9px] font-mono opacity-40 mr-1">{formatAudioTime(duration)}</span>
                     {[...Array(partCount)].map((_, i) => {
                         const has = regionParts.includes(i);
                         return (

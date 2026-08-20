@@ -84,7 +84,8 @@ service cloud.firestore {
         return [
           'role', 'accountType', 'isPro', 'isPremium', 'isStandard', 'tier',
           'subscriptionStart', 'subscriptionEnd', 'teacherSubscription',
-          'assignedTests', 'mockTests', 'groupId', 'signupDiscount'
+          'assignedTests', 'mockTests', 'groupId', 'signupDiscount',
+          'groupPro'
         ];
       }
 
@@ -102,7 +103,8 @@ service cloud.firestore {
                     && request.resource.data.get('role', 'student') == 'student'
                     && !request.resource.data.keys().hasAny(
                          ['isPro', 'isPremium', 'isStandard', 'tier',
-                          'subscriptionStart', 'subscriptionEnd', 'teacherSubscription']
+                          'subscriptionStart', 'subscriptionEnd', 'teacherSubscription',
+                          'groupPro']
                        );
 
       allow update: if isAdmin()
@@ -190,9 +192,27 @@ service cloud.firestore {
     }
     
     // GROUPS
+    // GURUHLAR
+    //
+    // ⚠️ Ilgari bu yerda `allow write: if isAdmin() || isTeacher()` turardi —
+    // ya'ni ISTALGAN o'qituvchi BOSHQA o'qituvchining guruhini tahrirlay
+    // olardi va `studentIds` ga konsoldan cheksiz o'quvchi qo'shib, tarif
+    // limitini ham, obuna talabini ham chetlab o'tardi (limit faqat brauzerda
+    // tekshirilardi).
+    //
+    // Endi: o'qituvchi faqat O'Z guruhini va faqat a'zolikdan TASHQARI
+    // maydonlarini (nom, `assignedTests`, sozlamalar) o'zgartiradi.
+    // A'zolik esa yagona yo'l — `manageGroupStudent` callable'i (Admin SDK),
+    // chunki limit o'qituvchining HAMMA guruhlari bo'yicha sanaladi va
+    // Firestore qoidalari bunday hisobni bajara olmaydi.
     match /groups/{groupId} {
       allow read: if isAuth();
-      allow write: if isAdmin() || isTeacher();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+                    || (isTeacher()
+                        && resource.data.get('teacherId', '') == request.auth.uid
+                        && !request.resource.data.diff(resource.data)
+                             .affectedKeys().hasAny(['studentIds', 'teacherId']));
     }
     
     // TEST SETS
@@ -437,6 +457,24 @@ service cloud.firestore {
     // chiqib, qaysi telefon raqami chegirmani ishlatganini bilib olish mumkin.
     match /discount_claims/{claimId} {
       allow read, write: if false; // Faqat Admin SDK (telegramBot / Cloud Functions)
+    }
+
+    // ANALYTICS SUMMARIES (o'quvchi analitikasining jamlanmasi)
+    //
+    // `/analytics` sahifasi shu bitta hujjatni o'qiydi — ilgari har ochilishida
+    // 50 ta natija, butun podcast urinishlari ro'yxati va 30 ta xato sessiyasi
+    // o'qilardi.
+    //
+    // NEGA `users/{uid}` OSTIDA EMAS: o'sha yerdagi `{allSubcollections=**}`
+    // qoidasi egasiga TO'LIQ yozish huquqini beradi, ya'ni o'quvchi konsoldan
+    // o'z statistikasini xohlagancha yozib qo'ya olardi. Jamlanma ustozga ham
+    // ko'rsatiladi, shuning uchun u faqat server yozadigan joyda turishi kerak.
+    //
+    // Yozuvni Cloud Functions Admin SDK bilan qiladi (`analyticsRollup`), u esa
+    // qoidalardan chetlab o'tadi — shu sabab bu yerda yozish umuman yopiq.
+    match /analyticsSummaries/{uid} {
+      allow read: if isAuth() && (request.auth.uid == uid || isAdmin() || isTeacher());
+      allow write: if false; // Faqat Admin SDK (analyticsRollup / rebuildAnalyticsSummary)
     }
 
     // TRIAL RESULTS (landing page'dagi bepul test natijalari)

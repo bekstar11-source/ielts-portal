@@ -3,6 +3,8 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Gift, TrendingUp, BookOpen, Headphones, ArrowRight, AlertCircle } from 'lucide-react';
 import Navbar from '../../components/common/Navbar';
 import { track } from '../../lib/analytics';
+import { SIGNUP_DISCOUNT, getPlanPrice } from '../../utils/pricing';
+import { applySignupDiscount, formatSom } from '../../utils/subscription';
 
 const STAGE_META = {
   reading: { label: 'Reading', icon: BookOpen },
@@ -92,7 +94,32 @@ export default function TrialResult() {
     );
   }
 
-  const { modules = [], overallBand, rewardEarned, discountPercent, minOverallBand } = result;
+  const {
+    modules = [],
+    overallBand,
+    rewardEarned,
+    discountPercent,
+    minOverallBand,
+  } = result;
+
+  // Chegirma shartlari SERVERDAN keladi (`config/trial`). Ilgari "dastlabki
+  // 2 oy" matni bu yerda qo'lda yozilgan edi — admin sozlamani o'zgartirsa
+  // sahifa yolg'on va'da berardi. Eski (bu deploydan oldin yechilgan va
+  // sessionStorage'da qolgan) natijalarda maydonlar yo'q — o'sha holat uchun
+  // koddagi qiymatlar zaxira bo'lib qoladi.
+  const cycles = Number(result.discountCycles) > 0
+    ? Number(result.discountCycles)
+    : SIGNUP_DISCOUNT.cycles;
+  const days = Number(result.discountDays) > 0
+    ? Number(result.discountDays)
+    : SIGNUP_DISCOUNT.days;
+
+  // Aniq summa — takliflarning eng ishonchli qismi. Foiz serverdan keladi,
+  // narx `PLAN_PRICES` dan, yaxlitlash esa botdagi bilan bir xil funksiya
+  // orqali: sahifadagi va chekdagi raqam bir tiyinga farq qilmasin.
+  const percent = Number(discountPercent) || SIGNUP_DISCOUNT.percent;
+  const standardFull = getPlanPrice('standard', 'monthly');
+  const standardDiscounted = applySignupDiscount(standardFull, percent);
 
   return (
     <div className="min-h-screen bg-[#F7F4EE] pb-20" style={{ fontFamily: "'Public Sans', sans-serif" }}>
@@ -177,13 +204,29 @@ export default function TrialResult() {
               </span>
             </div>
             <h3 className="text-[22px] font-bold mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Tabriklaymiz — {discountPercent}% chegirmaga ega bo'ldingiz
+              {/* `percent` — `discountPercent` yo'q bo'lsa ham (eski
+                  sessionStorage natijasi) "undefined%" chiqmasligi uchun. */}
+              Tabriklaymiz — {percent}% chegirmaga ega bo'ldingiz
             </h3>
-            <p className="text-[14px] leading-relaxed text-white/70 mb-5">
-              Chegirma obunangizning dastlabki <b className="text-white/90">2 oyiga</b> amal
-              qiladi — 1 oylik tarifni tanlasangiz har ikki to'lovda shu narxda
-              to'laysiz. Ro'yxatdan o'tganingizdan so'ng hisobingizga biriktiriladi
-              va natijangiz saqlanib qoladi.
+            <p className="text-[14px] leading-relaxed text-white/70 mb-3">
+              Chegirma obunangizning dastlabki{' '}
+              {/* `cycles === 1` (hozirgi sozlama) uchun alohida shakl: aks holda
+                  matn "barcha 1 to'lovda" bo'lib chiqardi. */}
+              <b className="text-white/90">{cycles} oyiga</b> amal qiladi — 1 oylik
+              tarifni tanlasangiz{' '}
+              {cycles === 1 ? 'birinchi' : cycles === 2 ? 'har ikki' : `barcha ${cycles}`} to'lovda{' '}
+              {percent}% arzon to'laysiz. Ro'yxatdan o'tganingizdan so'ng
+              hisobingizga biriktiriladi va natijangiz saqlanib qoladi.
+            </p>
+
+            {/* Muddat AYTILISHI shart: taklif `days` kundan keyin yonadi va
+                ilgari bu sahifada hech qanday belgi yo'q edi — o'quvchi
+                chegirmasini bilmasdan yo'qotardi. */}
+            <p className="text-[13px] leading-relaxed text-white/55 mb-5">
+              Taklif ro'yxatdan o'tganingizdan keyin <b className="text-white/75">{days} kun</b>{' '}
+              amal qiladi. Standard tarif chegirma bilan{' '}
+              <b className="text-white/75">{formatSom(standardDiscounted)} so'm/oy</b>{' '}
+              (to'liq narxi {formatSom(standardFull)} so'm).
             </p>
             <Link
               to="/register"

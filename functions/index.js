@@ -19,6 +19,7 @@ const { verifyAccessKey } = require("./verifyAccessKey");
 const { getSanitizedTest } = require("./getSanitizedTest");
 const { submitTestAnswers } = require("./submitTestAnswers");
 const { submitMockExam } = require("./submitMockExam");
+const { rebuildAnalyticsSummary } = require("./analyticsSummary");
 const { shareTest } = require("./shareTest");
 const { expireSubscriptions } = require("./expireSubscriptions");
 const { cleanupSpeakingAudio } = require("./cleanupSpeakingAudio");
@@ -92,6 +93,12 @@ exports.submitTestAnswers = functions
 exports.submitMockExam = functions
     .runWith({ timeoutSeconds: 120, memory: "256MB" })
     .https.onCall(submitMockExam);
+
+// Analitika jamlanmasini tarixdan qayta quradi — migratsiya va ta'mirlash uchun.
+// Odatiy o'qish klientdan to'g'ridan-to'g'ri `analyticsSummaries/{uid}` dan boradi.
+exports.rebuildAnalyticsSummary = functions
+    .runWith({ timeoutSeconds: 120, memory: "512MB" })
+    .https.onCall(rebuildAnalyticsSummary);
 
 exports.sharePodcast = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })
@@ -206,6 +213,20 @@ const { grantSignupDiscountCallable } = require("./signupDiscount");
 exports.grantSignupDiscount = functions
     .runWith({ timeoutSeconds: 30, memory: "256MB" })
     .https.onCall(grantSignupDiscountCallable);
+
+// Guruh a'zoligi — o'quvchi qo'shish/chiqarish faqat shu funksiya orqali.
+// Tarif limitini va guruh egaligini serverda tekshiradi; `firestore.rules` da
+// `groups.studentIds` klientdan yopilgan. Batafsil: functions/groupMembership.js.
+const { manageGroupStudent, syncGroupProCallable } = require("./groupMembership");
+exports.manageGroupStudent = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(manageGroupStudent);
+
+// Guruh Pro huquqlarini qo'lda qayta hisoblash (faqat admin). Kunlik supurgi
+// 00:10 da yuradi — bu esa deploy kunida darhol ishga tushirish uchun.
+exports.syncGroupPro = functions
+    .runWith({ timeoutSeconds: 300, memory: "256MB" })
+    .https.onCall(syncGroupProCallable);
 
 // Chegirma zanjirini tirik saqlaydigan kunlik eslatma (10:00, Toshkent).
 // Chegirma 2 oyni qoplaydi, lekin to'lov qo'lda — 2-oy o'z-o'zidan

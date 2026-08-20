@@ -9,7 +9,7 @@
  * o'sha sahifa shu yerga birlashtirildi va `?view=students` bilan ochiladi.
  *
  * Sahifa faqat ko'rinish bilan shug'ullanadi:
- *   • ma'lumot yuklash  → `useGroupStats`
+ *   • ma'lumot yuklash  → `useTeacherWorkspace` (panelning umumiy keshi)
  *   • hisob-kitoblar    → `utils/groupAnalytics`
  *   • a'zolikni o'zgartirish → `utils/groupMembership`
  *
@@ -34,8 +34,9 @@ import {
 
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
-import { useGroupStats } from '../../hooks/useGroupStats';
-import { canAddStudent, addStudentToGroup, removeStudentFromGroup } from '../../utils/groupMembership';
+import { FEATURES } from '../../config/features';
+import { useTeacherWorkspace } from '../../hooks/useTeacherWorkspace';
+import { canAddStudent, addStudentToGroup, removeStudentFromGroup, countSeatsUsed } from '../../utils/groupMembership';
 import {
     SKILLS,
     collectAssignedTestIds,
@@ -72,13 +73,13 @@ import {
 } from '../../components/teacher/groupStats/GroupCharts';
 import StudentRow from '../../components/teacher/groupStats/StudentRow';
 import AddStudentModal from '../../components/teacher/groupStats/AddStudentModal';
-import ConfirmDialog from '../../components/teacher/groupStats/ConfirmDialog';
+import ConfirmDialog from '../../components/teacher/ConfirmDialog';
 
 export default function TeacherGroupStats() {
     const { userData } = useAuth();
     const { t } = useTranslation();
     const { groups, students, results, testSetsMap, loading, isRefreshing, error, refresh } =
-        useGroupStats(userData);
+        useTeacherWorkspace({ uid: userData?.uid });
 
     const RANGES = useMemo(() => [
         { value: 30, label: t('teacher.groupStats.ranges.days30') },
@@ -209,7 +210,9 @@ export default function TeacherGroupStats() {
     }, [groupStudents, statsMap, searchTerm, filter, sortBy]);
 
     const planUsage = {
-        used: new Set(groups.flatMap((g) => g.studentIds || [])).size,
+        // Band joylar — barcha guruhlar bo'yicha unique o'quvchilar.
+        // Server (`manageGroupStudent`) ham aynan shu hisobni qiladi.
+        used: countSeatsUsed(groups),
         max: Number(userData?.teacherSubscription?.maxStudents) || 0,
     };
 
@@ -344,13 +347,17 @@ export default function TeacherGroupStats() {
                     <Button onClick={handleExportCSV} disabled={!visibleStudents.length}>
                         <Download size={13} /> {t('teacher.groupStats.exportCSV')}
                     </Button>
-                    {/* Davomat ekrani — hozircha namuna ma'lumot bilan. */}
-                    <Button
-                        onClick={() => navigate(`/teacher/group/${currentGroup?.id || 'go-english'}`)}
-                        disabled={!currentGroup}
-                    >
-                        <ClipboardText size={13} /> {t('teacher.groupDetail.takeAttendance')}
-                    </Button>
+                    {/* Davomat ekrani namuna ma'lumot bilan ishlaydi, shuning uchun
+                        flag ortida turadi — aks holda ustoz haqiqiy guruhini ochib
+                        begona ismlarni ko'rardi (src/config/features.js). */}
+                    {FEATURES.groupAttendance && (
+                        <Button
+                            onClick={() => navigate(`/teacher/group/${currentGroup.id}`)}
+                            disabled={!currentGroup}
+                        >
+                            <ClipboardText size={13} /> {t('teacher.groupDetail.takeAttendance')}
+                        </Button>
+                    )}
                     <Button variant="primary" onClick={() => setShowAdd(true)}>
                         <UserPlus size={13} /> {t('teacher.groupStats.addStudent')}
                     </Button>

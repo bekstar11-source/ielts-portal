@@ -7,9 +7,13 @@
 // "Deyarli to'g'ri" ulushi alohida ta'kidlanadi: agar xatolarning yarmi imlo bo'lsa,
 // o'quvchi Reading ni emas, yozilishni mashq qilishi kerak — bu band ni eng tez
 // ko'taradigan yo'l.
+//
+// Yuqoridagi kartochka esa o'sha ulushni BALLGA aylantiradi. Foiz o'z-o'zicha
+// harakatga undamaydi ("40% ko'pmi?"), band esa undaydi: "6.0 → 6.5" ni ko'rgan
+// o'quvchi imlo mashqiga hafta ajratishga arziy-arzimasligini darhol biladi.
 
 import React from 'react';
-import { Stethoscope, Sparkles } from 'lucide-react';
+import { Stethoscope, Sparkles, ArrowRight } from 'lucide-react';
 
 import { useTranslation } from '../../../context/LanguageContext';
 import { Card, CardHeader, ProBadge, ProCurtain, EmptyState } from './ui';
@@ -20,7 +24,12 @@ const PATTERN_TONE = {
   singular_plural: 'bg-warm-warning',
   word_form: 'bg-warm-accent-teal',
   extra_words: 'bg-warm-primary',
-  wrong_option: 'bg-warm-error',
+  // T/F/NG oilasi — bitta rang oilasi ichida, chunki uchalasi ham matnni
+  // tushunish muammosi; qolgan variant xatolaridan ajralib turishi kerak.
+  tf_flip: 'bg-warm-error/60',
+  ng_missed: 'bg-warm-error/80',
+  ng_overclaim: 'bg-warm-error',
+  wrong_option: 'bg-warm-error/40',
   no_answer: 'bg-warm-muted-soft',
   off_target: 'bg-warm-body'
 };
@@ -74,9 +83,62 @@ function PatternRow({ row, t }) {
   );
 }
 
+/** Ball ta'siri kartochkasi — bo'lim boshidagi asosiy xulosa. */
+function BandImpactCallout({ impact, t }) {
+  const { best, rows } = impact;
+  // Boshqa ko'nikmalar faqat haqiqiy yutuq bo'lsa ko'rsatiladi: "+0.0" ro'yxatga
+  // ishonchni yo'qotadi.
+  const others = rows.filter((row) => row !== best && row.gain > 0);
+
+  return (
+    <div className="mx-6 mb-6 rounded-xl border border-warm-success/25 bg-warm-success/[0.07] p-4 md:mx-8">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-warm-success">
+        {t('analytics.bandImpactTitle')}
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-sm font-bold text-warm-ink dark:text-warm-on-dark">
+          {t(`dashboard.${best.skill}`)}
+        </span>
+        <span className="inline-flex items-baseline gap-2 tabular-nums">
+          <span className="text-lg font-semibold text-warm-muted dark:text-warm-on-dark-soft">
+            {best.current.toFixed(1)}
+          </span>
+          <ArrowRight size={14} className="shrink-0 self-center text-warm-success" />
+          <span className="text-2xl font-bold text-warm-success">{best.potential.toFixed(1)}</span>
+        </span>
+        <span className="rounded-md bg-warm-success/15 px-2 py-0.5 text-xs font-bold tabular-nums text-warm-success">
+          +{best.gain.toFixed(1)}
+        </span>
+      </div>
+
+      <p className="mt-2.5 text-sm font-medium leading-relaxed text-warm-body dark:text-warm-on-dark">
+        {t('analytics.bandImpactLead')}{' '}
+        <strong className="text-warm-ink dark:text-warm-on-dark">{best.nearMiss}</strong>{' '}
+        {t('analytics.bandImpactTail')}
+      </p>
+
+      {others.length > 0 && (
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-warm-muted dark:text-warm-on-dark-soft">
+          <span>{t('analytics.bandImpactAlso')}</span>
+          {others.map((row) => (
+            <span key={row.skill} className="tabular-nums">
+              {t(`dashboard.${row.skill}`)} {row.current.toFixed(1)} → {row.potential.toFixed(1)}
+            </span>
+          ))}
+        </p>
+      )}
+
+      <p className="mt-2 text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft">
+        {t('analytics.bandImpactNote')}
+      </p>
+    </div>
+  );
+}
+
 export default function PatternBreakdown({ analytics, hasPro }) {
   const { t } = useTranslation();
-  const { patterns } = analytics;
+  const { patterns, bandImpact } = analytics;
 
   const body = (rows) => (
     <div className="divide-y divide-warm-hairline px-6 pb-6 dark:divide-white/10 md:px-8 md:pb-8">
@@ -105,7 +167,9 @@ export default function PatternBreakdown({ analytics, hasPro }) {
         />
       ) : (
         <>
-          {patterns.nearMissShare !== null && patterns.nearMissShare >= 25 && (
+          {bandImpact?.best ? (
+            <BandImpactCallout impact={bandImpact} t={t} />
+          ) : patterns.nearMissShare !== null && patterns.nearMissShare >= 25 ? (
             <div className="mx-6 mb-6 rounded-xl border border-warm-success/20 bg-warm-success/[0.07] p-4 md:mx-8">
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-warm-success">
                 {t('analytics.quickWin')}
@@ -118,7 +182,7 @@ export default function PatternBreakdown({ analytics, hasPro }) {
                 ({patterns.nearMissCount}/{patterns.total}) — {t('analytics.nearMissTail')}
               </p>
             </div>
-          )}
+          ) : null}
 
           {body(patterns.rows)}
         </>

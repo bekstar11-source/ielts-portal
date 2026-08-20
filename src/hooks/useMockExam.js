@@ -4,6 +4,7 @@ import { doc, getDoc, serverTimestamp, setDoc, deleteDoc } from "firebase/firest
 import { httpsCallable } from "firebase/functions";
 import { syncServerTime, getCurrentServerTime } from "../utils/timeSync";
 import { revokeMockAudioBlobs } from "../utils/audioBlobRegistry";
+import { parseAudioTime } from "../utils/audioTime";
 
 const STORAGE_KEY = 'ielts_mock_session';
 const DEVICE_KEY = 'ielts_device_id';
@@ -77,13 +78,20 @@ export function getListeningDuration(listeningTest) {
         const partMeta = listeningTest.parts?.[partKey];
         const defaultStart = passage.audio ? 0 : (i * 450);
         const defaultEnd = passage.audio ? 0 : ((i + 1) * 450);
-        const startTime = (partMeta?.startSec !== undefined && partMeta?.startSec !== null)
-            ? Number(partMeta.startSec)
-            : (passage.startTime || defaultStart);
-        const endTime = (partMeta?.endSec !== undefined && partMeta?.endSec !== null)
-            ? Number(partMeta.endSec)
-            : (passage.endTime || defaultEnd);
-        
+        // TestHeader bilan bir xil ustunlik tartibi: admin tahrirlaydigan
+        // `passage.startTime` birinchi, hosila `parts.partN.*` — zaxira.
+        const startTime = parseAudioTime(
+            (passage.startTime !== undefined && passage.startTime !== null && passage.startTime !== "")
+                ? passage.startTime
+                : (partMeta?.startSec ?? defaultStart)
+        );
+        const endTime = parseAudioTime(
+            (passage.endTime !== undefined && passage.endTime !== null && passage.endTime !== "")
+                ? passage.endTime
+                : (partMeta?.endSec ?? defaultEnd)
+        );
+
+
         if (endTime && endTime > startTime) {
             total += (endTime - startTime) + (Number(passage.extraSilentTime) || 0);
         } else {

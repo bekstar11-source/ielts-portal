@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../context/LanguageContext';
 
 import { Spinner } from '@phosphor-icons/react';
+import AssignmentSettings from '../../components/teacher/tests/AssignmentSettings';
 
 export default function TeacherCreateWriting() {
     const { theme } = useTheme();
@@ -37,7 +38,7 @@ export default function TeacherCreateWriting() {
     const [templates, setTemplates] = useState([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
-    const cw = 'teacher.testing.createWriting';
+    const cw = 'teacher.createWriting';
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -484,68 +485,20 @@ export default function TeacherCreateWriting() {
                 {/* Additional Settings */}
                 <div className="p-4 rounded-xl border border-gray-200/50 dark:border-white/5 bg-gray-50/30 dark:bg-white/5 space-y-4 text-left">
                     <h3 className={`text-sm font-bold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {t(`${cw}.settingsSection`) || (lang === 'uz' ? "Qo'shimcha Vazifa Sozlamalari" : 'Additional Task Settings')}
+                        {t(`${cw}.settingsSection`, lang === 'uz' ? "Qo'shimcha Vazifa Sozlamalari" : 'Additional Task Settings')}
                     </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {/* Deadline */}
-                        <div>
-                            <label className={labelClasses}>
-                                {t(`${cw}.deadline`) || (lang === 'uz' ? 'Deadline (Muddati)' : 'Deadline')}
-                            </label>
-                            <input
-                                type="datetime-local"
-                                value={deadline}
-                                onChange={e => setDeadline(e.target.value)}
-                                className={inputClasses}
-                            />
-                        </div>
-
-                        {/* Max attempts */}
-                        <div>
-                            <label className={labelClasses}>
-                                {t(`${cw}.maxAttempts`) || (lang === 'uz' ? 'Maksimal urinishlar' : 'Max Attempts')}
-                            </label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={maxAttempts}
-                                onChange={e => setMaxAttempts(e.target.value)}
-                                className={inputClasses}
-                            />
-                        </div>
-
-                        {/* Priority */}
-                        <div>
-                            <label className={labelClasses}>
-                                {t(`${cw}.priority`) || (lang === 'uz' ? 'Muhimlik darajasi' : 'Priority Level')}
-                            </label>
-                            <select
-                                value={priority}
-                                onChange={e => setPriority(e.target.value)}
-                                className={inputClasses}
-                            >
-                                <option value="low">{t(`${cw}.priorityLow`) || (lang === 'uz' ? 'Past (Low)' : 'Low')}</option>
-                                <option value="medium">{t(`${cw}.priorityMedium`) || (lang === 'uz' ? "O'rtacha (Medium)" : 'Medium')}</option>
-                                <option value="high">{t(`${cw}.priorityHigh`) || (lang === 'uz' ? 'Yuqori (High)' : 'High')}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Teacher Note */}
-                    <div>
-                        <label className={labelClasses}>
-                            {t(`${cw}.teacherNote`) || (lang === 'uz' ? "O'quvchilarga eslatma / izoh" : 'Note / instructions for students')}
-                        </label>
-                        <textarea
-                            value={teacherNote}
-                            onChange={e => setTeacherNote(e.target.value)}
-                            placeholder={t(`${cw}.teacherNotePlaceholder`) || (lang === 'uz' ? 'Masalan: Ushbu Writing testining har bir qismini vaqt limitiga rioya qilgan holda yozing...' : 'e.g. Write each part of this test adhering to the time limit...')}
-                            rows={3}
-                            className={inputClasses}
-                        />
-                    </div>
+                    {/* Panelning qolgan joylaridagi bilan AYNAN bir xil blok. */}
+                    <AssignmentSettings
+                        isDark={isDark}
+                        value={{ deadline, maxAttempts, priority, teacherNote }}
+                        onChange={patch => {
+                            if ('deadline' in patch) setDeadline(patch.deadline);
+                            if ('maxAttempts' in patch) setMaxAttempts(patch.maxAttempts);
+                            if ('priority' in patch) setPriority(patch.priority);
+                            if ('teacherNote' in patch) setTeacherNote(patch.teacherNote);
+                        }}
+                    />
                 </div>
 
                 {/* Save as template */}

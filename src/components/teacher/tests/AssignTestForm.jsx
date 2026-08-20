@@ -6,27 +6,12 @@ import {
 import { useTranslation } from '../../../context/LanguageContext';
 import { getTestTypeMeta } from './testTypeIcon';
 import { formatQType, getReadingPassages, getListeningParts } from '../../../utils/TestUtils';
-import { toDateTimeLocalValue } from '../../../utils/teacherResults';
+import { isDeadlinePast } from '../../../utils/teacherResults';
 import { Shimmer } from '../TeacherSkeletons';
-
-const NOTE_MAX = 300;
-
-/** Deadline uchun "3 kun qoldi" ko'rinishidagi ishora + o'tib ketganini aniqlash. */
-const describeDeadline = (value, lang = 'uz') => {
-    if (!value) return null;
-    const ts = new Date(value).getTime();
-    if (Number.isNaN(ts)) return null;
-    const diff = ts - Date.now();
-    if (diff <= 0) return { text: lang === 'uz' ? "Muddat allaqachon o'tib ketgan" : "Deadline has already passed", isPast: true };
-    const mins = Math.round(diff / 60000);
-    if (mins < 60) return { text: lang === 'uz' ? `${mins} daqiqa qoldi` : `${mins}m left`, isPast: false };
-    const hours = Math.round(mins / 60);
-    if (hours < 48) return { text: lang === 'uz' ? `${hours} soat qoldi` : `${hours}h left`, isPast: false };
-    return { text: lang === 'uz' ? `${Math.round(hours / 24)} kun qoldi` : `${Math.round(hours / 24)}d left`, isPast: false };
-};
+import AssignmentSettings from './AssignmentSettings';
 
 export default function AssignTestForm({
-    isDark, toast,
+    isDark,
     groups, availableTests, catalogLoading = false,
     selectedGroupIds, setSelectedGroupIds,
     searchTestQuery, setSearchTestQuery,
@@ -84,9 +69,8 @@ export default function AssignTestForm({
     const selectedGroups = groups.filter(g => selectedGroupIds.has(g.id));
     const studentTotal = selectedGroups.reduce((s, g) => s + (g.studentIds?.length || 0), 0);
     const duplicateCount = selectedTests.filter(t => isTestPrevAssignedInAny(t.id)).length;
-    const deadlineInfo = describeDeadline(deadline);
     const hasDraft = selectedTests.length > 0 || selectedGroupIds.size > 0 || Boolean(deadline) || Boolean(teacherNote);
-    const blocked = assigning || selectedTests.length === 0 || selectedGroupIds.size === 0 || Boolean(deadlineInfo?.isPast);
+    const blocked = assigning || selectedTests.length === 0 || selectedGroupIds.size === 0 || isDeadlinePast(deadline);
 
     // Dropdown tashqarisiga bosilganda yoki Escape bosilganda yopilsin.
     useEffect(() => {
@@ -137,20 +121,6 @@ export default function AssignTestForm({
 
     return (
         <div className={`space-y-6 ${isDark ? 'text-white' : 'text-slate-800'}`}>
-            {toast && (
-                <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-fade-in-up ${
-                    toast.type === 'error'
-                        ? (isDark ? 'bg-[#1E1E1E] border-rose-500/30 text-rose-300' : 'bg-white border-rose-200 text-rose-700')
-                        : (isDark ? 'bg-[#1E1E1E] border-emerald-500/30 text-emerald-300' : 'bg-white border-emerald-200 text-emerald-700')
-                }`}>
-                    {toast.type === 'error'
-                        ? <X size={15} weight="bold" className="text-rose-500 shrink-0" />
-                        : <CheckCircle size={15} weight="fill" className="text-emerald-500 shrink-0" />
-                    }
-                    {toast.message}
-                </div>
-            )}
-
             {/* Tasodifan chiqib ketishdan saqlaydi — tanlovlar saqlanmaydi */}
             {confirmLeave && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmLeave(false)}>
@@ -189,12 +159,12 @@ export default function AssignTestForm({
                 className={`flex items-center gap-2 text-sm font-medium transition-colors -mb-1 ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}
             >
                 <CaretLeft size={15} weight="bold" />
-                {t('teacher.testing.assignForm.backToTests') || (lang === 'uz' ? "Tayinlangan testlar" : "Assigned Tests")}
+                {t('teacher.assignForm.backToTests') || (lang === 'uz' ? "Tayinlangan testlar" : "Assigned Tests")}
             </button>
 
             <div className="min-w-0">
                 <h1 className={`text-[28px] leading-tight font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    {t('teacher.testing.assignForm.title') || (lang === 'uz' ? "Yangi tayinlash" : "New Assignment")}
+                    {t('teacher.assignForm.title') || (lang === 'uz' ? "Yangi tayinlash" : "New Assignment")}
                 </h1>
                 <p className={`text-sm mt-1 ${muted}`}>
                     {lang === 'uz' ? "Testlarni tanlang, guruh va muddatni belgilang." : "Select tests, group and set deadline."}
@@ -228,7 +198,7 @@ export default function AssignTestForm({
                                             onClick={clearSelectedTests}
                                             className={`h-8 px-2.5 rounded-lg text-[13px] font-medium transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
                                         >
-                                            {t('teacher.testing.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
+                                            {t('teacher.tests.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
                                         </button>
                                     </>
                                 )}
@@ -237,7 +207,7 @@ export default function AssignTestForm({
 
                         <div className="flex flex-wrap items-center gap-1.5">
                             {[
-                                { key: 'all', label: t('teacher.testing.tabAll') || (lang === 'uz' ? 'Hammasi' : 'All') },
+                                { key: 'all', label: t('teacher.assignForm.filterAll') || (lang === 'uz' ? 'Hammasi' : 'All') },
                                 { key: 'reading', label: 'Reading' },
                                 { key: 'listening', label: 'Listening' },
                                 { key: 'writing', label: 'Writing' },
@@ -537,7 +507,7 @@ export default function AssignTestForm({
                                                 onClick={() => setSelectedGroupIds(new Set())}
                                                 className={`font-medium ${muted} hover:underline`}
                                             >
-                                                {t('teacher.testing.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
+                                                {t('teacher.tests.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
                                             </button>
                                         </div>
                                         <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
@@ -577,131 +547,16 @@ export default function AssignTestForm({
                             )}
                         </div>
 
-                        {/* Muddat */}
-                        <div className="space-y-2">
-                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {lang === 'uz' ? "Muddat" : "Deadline"}
-                            </label>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                {[
-                                    { label: lang === 'uz' ? '1 kun' : '1 day', days: 1 },
-                                    { label: lang === 'uz' ? '3 kun' : '3 days', days: 3 },
-                                    { label: lang === 'uz' ? '1 hafta' : '1 week', days: 7 },
-                                    { label: lang === 'uz' ? '2 hafta' : '2 weeks', days: 14 },
-                                ].map(({ label, days }) => (
-                                    <button
-                                        key={days}
-                                        type="button"
-                                        onClick={() => {
-                                            const d = new Date();
-                                            d.setDate(d.getDate() + days);
-                                            d.setSeconds(0, 0);
-                                            setDeadline(toDateTimeLocalValue(d));
-                                        }}
-                                        className={`h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors ${isDark ? 'border-white/8 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                                {deadline && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setDeadline('')}
-                                        className={`h-8 px-2.5 rounded-lg text-[13px] font-medium transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
-                                    >
-                                        {t('teacher.testing.copyModal.clear') || (lang === 'uz' ? "Tozalash" : "Clear")}
-                                    </button>
-                                )}
-                            </div>
-                            <input
-                                type="datetime-local"
-                                value={deadline}
-                                onChange={e => setDeadline(e.target.value)}
-                                className={`w-full h-10 px-3 rounded-xl border text-sm outline-none transition-colors ${field}`}
-                            />
-                            {deadlineInfo && (
-                                <p className={`flex items-center gap-1.5 text-[13px] ${deadlineInfo.isPast ? 'text-rose-500' : muted}`}>
-                                    {deadlineInfo.isPast ? <Warning size={13} weight="fill" /> : <Clock size={13} />}
-                                    {deadlineInfo.text}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Urinishlar */}
-                        <div className="space-y-2">
-                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {lang === 'uz' ? "Urinishlar soni" : "Max Attempts"}
-                            </label>
-                            <div className={`inline-flex items-center rounded-xl border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-                                <button
-                                    type="button"
-                                    aria-label="Decrease"
-                                    disabled={Number(maxAttempts) <= 1}
-                                    onClick={() => setMaxAttempts(prev => String(Math.max(1, Number(prev) - 1)))}
-                                    className={`w-10 h-10 flex items-center justify-center rounded-l-xl transition-colors disabled:opacity-30 ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-50'}`}
-                                >
-                                    <Minus size={14} weight="bold" />
-                                </button>
-                                <span className={`w-10 text-center text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{maxAttempts}</span>
-                                <button
-                                    type="button"
-                                    aria-label="Increase"
-                                    disabled={Number(maxAttempts) >= 10}
-                                    onClick={() => setMaxAttempts(prev => String(Math.min(10, Number(prev) + 1)))}
-                                    className={`w-10 h-10 flex items-center justify-center rounded-r-xl transition-colors disabled:opacity-30 ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-600 hover:bg-gray-50'}`}
-                                >
-                                    <Plus size={14} weight="bold" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Muhimlik */}
-                        <div className="space-y-2">
-                            <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {lang === 'uz' ? "Muhimlik" : "Priority"}
-                            </label>
-                            <div className={`grid grid-cols-3 gap-1 p-1 rounded-xl ${isDark ? 'bg-white/[0.04]' : 'bg-gray-100'}`}>
-                                {[
-                                    { key: 'low', label: t('teacher.testing.priorityLow') || (lang === 'uz' ? 'Past' : 'Low') },
-                                    { key: 'medium', label: t('teacher.testing.priorityMedium') || (lang === 'uz' ? "O'rtacha" : 'Medium') },
-                                    { key: 'high', label: t('teacher.testing.priorityHigh') || (lang === 'uz' ? 'Yuqori' : 'High') },
-                                ].map(item => {
-                                    const active = priority === item.key;
-                                    return (
-                                        <button
-                                            key={item.key}
-                                            type="button"
-                                            onClick={() => setPriority(item.key)}
-                                            className={`h-8 rounded-lg text-[13px] font-medium transition-colors ${
-                                                active
-                                                    ? (isDark ? 'bg-[#1E1E1E] text-white' : 'bg-white text-gray-900 shadow-sm')
-                                                    : (isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900')
-                                            }`}
-                                        >
-                                            {item.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Izoh */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                    {lang === 'uz' ? "Izoh" : "Teacher Note"}
-                                </label>
-                                {teacherNote && <span className={`text-[13px] ${muted}`}>{teacherNote.length}/{NOTE_MAX}</span>}
-                            </div>
-                            <textarea
-                                value={teacherNote}
-                                maxLength={NOTE_MAX}
-                                onChange={e => setTeacherNote(e.target.value)}
-                                placeholder={lang === 'uz' ? "O'quvchilarga eslatma (ixtiyoriy)" : "Note / instructions for students (optional)"}
-                                rows={3}
-                                className={`w-full p-3 rounded-xl border text-sm outline-none resize-none transition-colors ${field}`}
-                            />
-                        </div>
+                        <AssignmentSettings
+                            isDark={isDark}
+                            value={{ deadline, maxAttempts, priority, teacherNote }}
+                            onChange={patch => {
+                                if ('deadline' in patch) setDeadline(patch.deadline);
+                                if ('maxAttempts' in patch) setMaxAttempts(patch.maxAttempts);
+                                if ('priority' in patch) setPriority(patch.priority);
+                                if ('teacherNote' in patch) setTeacherNote(patch.teacherNote);
+                            }}
+                        />
                     </div>
 
                     {/* Yakuniy qadam */}
@@ -732,7 +587,7 @@ export default function AssignTestForm({
                         >
                             {assigning
                                 ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                : (t('teacher.testing.assignForm.assignBtn') || (lang === 'uz' ? 'Tayinlash' : 'Assign'))}
+                                : (t('teacher.assignForm.assignBtn') || (lang === 'uz' ? 'Tayinlash' : 'Assign'))}
                         </button>
                     </div>
                 </div>
