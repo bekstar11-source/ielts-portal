@@ -10,6 +10,7 @@ import { useTestAnswers } from "./test/useTestAnswers";
 import { useTestScoring } from "./test/useTestScoring";
 import { useTestSubmission } from "./test/useTestSubmission";
 import { useGamification } from "./useGamification";
+import toast from 'react-hot-toast';
 
 export function useTestLogic() {
     const { testId } = useParams();
@@ -215,6 +216,7 @@ export function useTestLogic() {
             }
         } catch (error) {
             console.error("Error submitting test:", error);
+            toast.error(error.message || "Testni yakunlashda xatolik yuz berdi. Iltimos qayta urinib ko'ring.");
         } finally {
             setIsSubmitting(false);
         }
