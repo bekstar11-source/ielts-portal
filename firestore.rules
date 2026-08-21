@@ -85,7 +85,11 @@ service cloud.firestore {
           'role', 'accountType', 'isPro', 'isPremium', 'isStandard', 'tier',
           'subscriptionStart', 'subscriptionEnd', 'teacherSubscription',
           'assignedTests', 'mockTests', 'groupId', 'signupDiscount',
-          'groupPro'
+          'groupPro',
+          // Telegram bog'lanishi — faqat `linkTelegram` yozadi. Klientga ochiq
+          // bo'lsa, o'quvchi boshqa odamning chat id sini yozib, uning
+          // xabarlarini o'ziga burib yuborardi.
+          'telegramChatId', 'telegramLinkedAt'
         ];
       }
 
@@ -472,9 +476,38 @@ service cloud.firestore {
     //
     // Yozuvni Cloud Functions Admin SDK bilan qiladi (`analyticsRollup`), u esa
     // qoidalardan chetlab o'tadi — shu sabab bu yerda yozish umuman yopiq.
+    // ⚠️ USTOZ BU YERDAN O'QIMAYDI. Ilgari `isTeacher()` bor edi va u HAR QANDAY
+    // ustozga HAR QANDAY o'quvchining batafsil tahlilini ochardi. To'g'ri shart —
+    // "shu ustozning guruhida shu o'quvchi bormi" — qoidalarda ifodalab
+    // bo'lmaydi: qoida kolleksiyaga so'rov yubora olmaydi, faqat ma'lum
+    // hujjatni `get()` qiladi. Shuning uchun ustoz uchun yo'l `getStudentAnalytics`
+    // callable'i orqali o'tadi va guruh a'zoligi o'sha yerda tekshiriladi.
     match /analyticsSummaries/{uid} {
-      allow read: if isAuth() && (request.auth.uid == uid || isAdmin() || isTeacher());
+      allow read: if isAuth() && (request.auth.uid == uid || isAdmin());
       allow write: if false; // Faqat Admin SDK (analyticsRollup / rebuildAnalyticsSummary)
+    }
+
+    // STATS (anonim taqqoslash jadvali)
+    //
+    // Bitta hujjat, hamma uchun bir xil: daraja guruhlari bo'yicha savol
+    // turlarining o'rtacha aniqligi. Shaxsiy ma'lumot yo'q — guruhda kamida
+    // 20 ta o'quvchi bo'lmasa u umuman e'lon qilinmaydi (`buildBenchmarks.js`).
+    //
+    // Yozuvni faqat scheduled function qiladi; klientga ochilsa, o'quvchi
+    // taqqoslash sonlarini o'ziga qulay qilib yozib qo'yardi.
+    match /stats/{docId} {
+      allow read: if isAuth();
+      allow write: if false; // Faqat Admin SDK (buildBenchmarks)
+    }
+
+    // DRILL PROGRESS (xatolar ustida mashqning takrorlash jadvali)
+    //
+    // Bu hujjat — o'quvchining O'Z mashq jadvali: qaysi so'z qachon qaytadi.
+    // `analyticsSummaries` dan farqli, uni klient yozadi va bu xavfsiz: jadvalni
+    // "aldash" faqat o'z mashqini buzadi, hech qanday ball yoki obunaga ta'sir
+    // qilmaydi. Ustoz ham ko'rmaydi, shuning uchun o'qish ham faqat egasiga.
+    match /drillProgress/{uid} {
+      allow read, write: if isAuth() && request.auth.uid == uid;
     }
 
     // TRIAL RESULTS (landing page'dagi bepul test natijalari)

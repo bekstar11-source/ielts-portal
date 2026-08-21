@@ -23,6 +23,7 @@ import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/dashboard/BottomNav';
 import SiteFooter from '../../components/common/SiteFooter';
+import TelegramLink from '../../components/settings/TelegramLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../../context/LanguageContext';
 import { getTier, getSubscriptionEnd, isGrouped } from '../../utils/subscription';
@@ -509,6 +510,20 @@ export default function Settings() {
                                                     </button>
                                                 </Field>
                                             </div>
+                                        </Card>
+
+                                        {/* Telegram bog'lanishi — haftalik tahlil xulosasi shu kanal
+                                            orqali boradi. Telegram bilan kirganlarda u allaqachon bor,
+                                            email bilan kirganlar esa shu yerdan bog'laydi. */}
+                                        <Card isDark={isDark} className="p-lg">
+                                            <CardHead
+                                                title={t('settings.telegramTitle')}
+                                                desc={t('settings.telegramDesc')}
+                                            />
+                                            <TelegramLink
+                                                inputClass={inputClass}
+                                                mutedClass={isDark ? 'text-warm-on-dark-soft' : 'text-warm-muted'}
+                                            />
                                         </Card>
 
                                         {/* Qurilma va kirish — reference dizayndagi "Active sessions" o'rniga

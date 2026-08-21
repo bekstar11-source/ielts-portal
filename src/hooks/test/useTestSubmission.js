@@ -19,7 +19,10 @@ export function useTestSubmission(user, userData) {
                 userAnswers: resultData.userAnswers || {},
                 timeSpent: resultData.timeSpent || 0,
                 violationType: resultData.violation || null,
-                partNumber: resultData.partNumber || null
+                partNumber: resultData.partNumber || null,
+                // Savol → javob berilgan soniya. Ballga ta'sir qilmaydi, faqat
+                // vaqt tahlilida ishlatiladi.
+                answerTimes: resultData.answerTimes || {}
             });
 
             if (res.data && res.data.success) {
@@ -31,6 +34,9 @@ export function useTestSubmission(user, userData) {
                 // sahifasi yangi xatolarni darhol ko'rsatadi va shu bilan birga
                 // oddiy ko'rishlarda qayta o'qish bo'lmaydi.
                 queryClient.invalidateQueries({ queryKey: ['mistakeSessions', user.uid] });
+                // Jamlanma ham shu topshiriqda o'zgardi — analitika sahifasi
+                // eski keshdan yangilanmagan raqamlarni ko'rsatmasligi kerak.
+                queryClient.invalidateQueries({ queryKey: ['analyticsSummary', user.uid] });
 
                 return {
                     success: true,

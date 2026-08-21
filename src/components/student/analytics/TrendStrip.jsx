@@ -11,11 +11,19 @@
 //
 // Ma'lumot jamlanmada allaqachon bor, ya'ni bu bo'lim bironta qo'shimcha
 // Firestore o'qishi talab qilmaydi.
+//
+// MAQSAD BAND shu kartochkada turadi — u trend chizig'ining DAVOMI, alohida
+// mavzu emas: "shu tempda 9 haftada 6.5 ga chiqasiz" degan jumla faqat o'sha
+// chiziqdan chiqadi. Prognoz ehtiyotkor: yetarli ma'lumot yoki aniq o'sish
+// bo'lmasa muddat umuman aytilmaydi (`bandForecast.js` ga qarang).
 
-import React from 'react';
-import { TrendingUp, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { TrendingUp, Sparkles, Target } from 'lucide-react';
 
+import { useAuth } from '../../../context/AuthContext';
 import { useTranslation } from '../../../context/LanguageContext';
+import { db } from '../../../firebase/firebase';
 import { weekKeyToMonday } from '../../../utils/isoWeek';
 import { toSparklineSegments } from '../../../utils/weeklyTrend';
 import { Card, CardHeader, ProBadge, ProCurtain, EmptyState } from './ui';
@@ -158,9 +166,85 @@ function FamilyCell({ series, label }) {
   );
 }
 
-export default function TrendStrip({ analytics, hasPro }) {
+/** IELTS maqsad ballari — 0.5 qadam bilan. */
+const TARGET_OPTIONS = [5, 5.5, 6, 6.5, 7, 7.5, 8];
+
+/** Maqsad band tanlash va prognoz. */
+function TargetBand({ forecast, target, onPick, saving, readOnly, t }) {
+  // Ustoz ko'rinishida maqsadni O'ZGARTIRIB bo'lmaydi: tugma bosilsa, band
+  // ustozning o'z profiliga yozilardi. Maqsad qo'yilmagan bo'lsa, ko'rsatadigan
+  // narsa ham yo'q.
+  if (readOnly && !target) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-warm-hairline bg-warm-canvas p-4 dark:border-white/10 dark:bg-white/[0.03]">
+      <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-warm-muted dark:text-warm-on-dark-soft">
+        <Target size={13} className="text-warm-primary" />
+        {t('analytics.targetTitle')}
+      </p>
+
+      <div className={`mt-3 flex flex-wrap gap-1.5 ${readOnly ? 'hidden' : ''}`}>
+        {TARGET_OPTIONS.map((band) => (
+          <button
+            key={band}
+            type="button"
+            disabled={saving}
+            onClick={() => onPick(band === target ? null : band)}
+            className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold tabular-nums transition-colors disabled:opacity-50 ${
+              band === target
+                ? 'border-warm-primary bg-warm-primary text-white'
+                : 'border-warm-hairline bg-white text-warm-body hover:border-warm-muted-soft dark:border-white/10 dark:bg-transparent dark:text-warm-on-dark-soft'
+            }`}
+          >
+            {band.toFixed(1)}
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-3 text-sm font-medium leading-relaxed text-warm-body dark:text-warm-on-dark">
+        {!target
+          ? t('analytics.targetPrompt')
+          : !forecast?.ready
+            ? t('analytics.targetNeedData')
+                .replace('{have}', forecast?.weeksOfData ?? 0)
+                .replace('{need}', forecast?.needed ?? 6)
+            : forecast.reached
+              ? t('analytics.targetReached')
+              : forecast.weeksToTarget
+                ? t('analytics.targetWeeks')
+                    .replace('{weeks}', forecast.weeksToTarget)
+                    .replace('{target}', target.toFixed(1))
+                : t('analytics.targetStalled').replace('{gap}', forecast.gap?.toFixed(1) ?? '')}
+      </p>
+    </div>
+  );
+}
+
+export default function TrendStrip({ analytics, hasPro, readOnly = false }) {
   const { t, lang } = useTranslation();
+  const { user, userData, updateUserLocalData } = useAuth();
   const trend = analytics.trend;
+
+  const [saving, setSaving] = useState(false);
+  // Ustoz ko'rinishida maqsad o'quvchinikidan olinadi — kirgan foydalanuvchidan emas.
+  const target = readOnly
+    ? Number(analytics.forecast?.target) || null
+    : Number(userData?.targetBand) || null;
+
+  const pickTarget = async (band) => {
+    if (!user?.uid || saving) return;
+    setSaving(true);
+    // Lokal holat darhol yangilanadi — tanlov "yopishib qolgandek" tuyulmasin.
+    updateUserLocalData({ targetBand: band });
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { targetBand: band });
+    } catch (error) {
+      console.error('Maqsad band saqlanmadi:', error);
+      updateUserLocalData({ targetBand: target });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Namunaviy qatorlarni haqiqiy qatorlar shakliga keltiramiz — `Sparkline` va
   // `FamilyCell` ikkala holatda bir xil kod bilan ishlaydi.
@@ -218,6 +302,17 @@ export default function TrendStrip({ analytics, hasPro }) {
         </div>
       )}
 
+      {hasPro && (
+        <TargetBand
+          forecast={analytics.forecast}
+          target={target}
+          onPick={pickTarget}
+          saving={saving}
+          readOnly={readOnly}
+          t={t}
+        />
+      )}
+
       <p className="mt-4 text-[11px] leading-relaxed text-warm-muted dark:text-warm-on-dark-soft">
         {t('analytics.trendNote')}
       </p>
@@ -240,6 +335,9 @@ export default function TrendStrip({ analytics, hasPro }) {
           icon={Sparkles}
           title={t('analytics.emptyTrendTitle')}
           subtitle={t('analytics.emptyTrendSubtitle')}
+          have={analytics.forecast?.weeksOfData ?? 0}
+          need={2}
+          unitLabel={t('analytics.weeksLabel')}
         />
       ) : (
         body

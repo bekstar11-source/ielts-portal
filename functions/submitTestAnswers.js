@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const { evaluateTest } = require("./ieltsScoring");
 const { checkEntitlement } = require("./subscription");
 const { applyRollup, buildTestDelta, summarizeMistakeBatch } = require("./analyticsRollup");
+const { analyzeAttemptTiming } = require("./timingAnalysis.js");
 
 /**
  * Cloud Function to securely grade test answers on the backend, 
@@ -15,7 +16,7 @@ async function submitTestAnswers(data, context) {
     }
 
     const userId = context.auth.uid;
-    const { testId, testMode, userAnswers, timeSpent, violationType, partNumber = null } = data;
+    const { testId, testMode, userAnswers, timeSpent, violationType, partNumber = null, answerTimes = null } = data;
 
     if (!testId || typeof testId !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', 'Test identifikatori kiritilishi shart.');
@@ -25,6 +26,9 @@ async function submitTestAnswers(data, context) {
     const cleanTestMode = testMode || 'practice';
     const cleanTimeSpent = timeSpent || 0;
     const cleanViolationType = violationType || null;
+    // Savol → javob berilgan soniya. Klientdan keladi va faqat vaqt tahlilida
+    // ishlatiladi — ballga ta'sir qilmaydi, shuning uchun ishonchsizligi xavfsiz.
+    const cleanAnswerTimes = (answerTimes && typeof answerTimes === 'object') ? answerTimes : {};
     const parsedPartNumber = partNumber ? Number(partNumber) : null;
 
     try {
@@ -58,7 +62,7 @@ async function submitTestAnswers(data, context) {
         }
 
         // 4. Securely evaluate answers
-        const { correctCount, totalQ, band, mistakes, missingKeys, typeStats } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
+        const { correctCount, totalQ, band, mistakes, missingKeys, typeStats, questionOrder } = evaluateTest(testData, cleanUserAnswers, parsedPartNumber);
 
         // Per-passage breakdown (question count + mistake count only — never answers)
         // so the result screen can show an accurate "mistakes per part" view without
@@ -115,7 +119,41 @@ async function submitTestAnswers(data, context) {
         // jamlanmaga FARQNI qo'shish uchun oldingi urinishning shu soni kerak
         // (xuddi `typeStats` kabi). Bu son "xatolarni tuzatsangiz band qancha
         // ko'tariladi" hisobining asosi.
-        const mistakeStats = summarizeMistakeBatch(mistakes);
+        //
+        // ⚠️ Bu hisob topshiriqni YIQITMASLIGI shart. Ilgari u himoyasiz turardi
+        // va `analyticsRollup` dan eksport tushib qolganida ("summarizeMistakeBatch
+        // is not a function") butun topshirish 500 bilan qulab, o'quvchi Finish
+        // bosgach natija o'rniga testga qaytib qolardi. Natijaning o'zi bu sonsiz
+        // ham to'g'ri saqlanadi.
+        let mistakeStats = null;
+        try {
+            mistakeStats = summarizeMistakeBatch(mistakes);
+        } catch (statErr) {
+            functions.logger.error("[submitTestAnswers] mistakeStats hisoblanmadi:", statErr);
+        }
+
+        // Vaqt manzarasi: javoblar test davomiyligi bo'ylab qanday taqsimlangan,
+        // oxirida shoshilganmi, javobsizlar oxirida to'planganmi. Yuqoridagi bilan
+        // bir xil sabab bo'yicha himoyalangan — analitika hech qachon topshirishni
+        // qulatmasligi kerak. Ma'lumot yetarli bo'lmasa `null` qaytadi.
+        let timing = null;
+        try {
+            // Javob yozilib, keyin O'CHIRILGAN savol vaqt yozuvida qolib ketadi.
+            // Uni "javoblangan" deb hisoblasak, "javobsizlar oxirida to'plangan"
+            // signali ball hisobidagi bo'shliqlar bilan mos kelmasdi.
+            const answeredTimes = {};
+            Object.entries(cleanAnswerTimes).forEach(([id, seconds]) => {
+                if (String(cleanUserAnswers[id] ?? '').trim() !== '') answeredTimes[id] = seconds;
+            });
+
+            timing = analyzeAttemptTiming({
+                answerTimes: answeredTimes,
+                questionOrder,
+                timeSpent: cleanTimeSpent
+            });
+        } catch (timingErr) {
+            functions.logger.error("[submitTestAnswers] vaqt tahlili hisoblanmadi:", timingErr);
+        }
 
         // Rollup uchun kerak bo'ladigan "oldingi holat". Tranzaksiya ichida
         // o'qiladi, chunki hujjat baribir o'sha yerda o'qilyapti — alohida
@@ -177,6 +215,9 @@ async function submitTestAnswers(data, context) {
                 // Oxirgi urinishdagi tasniflangan va "yaqin marra" xatolar soni.
                 mistakeStats: mistakeStats,
 
+                // Oxirgi urinishning vaqt manzarasi (natija ekranida ham asqotadi).
+                timing: timing,
+
                 attempts: admin.firestore.FieldValue.arrayUnion(currentAttempt),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             };
@@ -223,6 +264,10 @@ async function submitTestAnswers(data, context) {
                 // Ko'nikma ochiq yoziladi: ilgari uni faqat `testId` orqali natija
                 // hujjatiga ulanib aniqlash mumkin edi.
                 skill: testType,
+                // Natija hujjatining ID si — xatolar jurnalidan `/review/:id` ga
+                // o'tish uchun. Uni `testId` dan tiklab bo'lmaydi: alohida part
+                // topshirilganda ID ga `_part_N` qo'shiladi.
+                resultId: resultDocId,
                 date: now,
                 testId: testId,
                 testTitle: testData.title || 'Untitled Test'
@@ -230,32 +275,41 @@ async function submitTestAnswers(data, context) {
         }
 
         // 7. Analitika jamlanmasi. `/analytics` sahifasi shu bitta hujjatni o'qiydi.
-        //    Xatolik bo'lsa ham topshiriq muvaffaqiyatli hisoblanadi — `applyRollup`
-        //    o'zi log yozadi va `false` qaytaradi.
+        //
+        //    BUTUN BLOK himoyalangan: `applyRollup` faqat O'Z tranzaksiyasidagi
+        //    xatoni yutadi, undan oldingi `buildTestDelta` (va modul importi) esa
+        //    yutmaydi. Bu yerdagi har qanday nosozlik o'quvchining allaqachon
+        //    saqlangan natijasini ko'rsatishga to'sqinlik qilmasligi kerak —
+        //    jamlanma keyingi topshiriqda yoki `rebuildSummary` da tiklanadi.
         if (testType === 'reading' || testType === 'listening') {
-            // Alohida part topshirilganda `partBreakdown` bitta elementli bo'ladi va
-            // u 0-indeksda turadi. Jamlanmada indeks — bo'lim raqami, shuning uchun
-            // yozuv o'z o'rniga suriladi: Part 3 natijasi Part 1 ustiga tushmasin.
-            let rollupParts = partBreakdown;
-            if (parsedPartNumber) {
-                rollupParts = new Array(parsedPartNumber).fill(null);
-                rollupParts[parsedPartNumber - 1] = partBreakdown[0] || null;
-            }
+            try {
+                // Alohida part topshirilganda `partBreakdown` bitta elementli bo'ladi va
+                // u 0-indeksda turadi. Jamlanmada indeks — bo'lim raqami, shuning uchun
+                // yozuv o'z o'rniga suriladi: Part 3 natijasi Part 1 ustiga tushmasin.
+                let rollupParts = partBreakdown;
+                if (parsedPartNumber) {
+                    rollupParts = new Array(parsedPartNumber).fill(null);
+                    rollupParts[parsedPartNumber - 1] = partBreakdown[0] || null;
+                }
 
-            await applyRollup(db, userId, buildTestDelta({
-                skill: testType,
-                typeStats,
-                prevTypeStats: previousTypeStats,
-                mistakes,
-                partBreakdown: rollupParts,
-                prevPartBreakdown: previousPartBreakdown,
-                prevMistakeStats: previousMistakeStats,
-                band: band || 0,
-                timeSpent: cleanTimeSpent,
-                date: new Date(now),
-                isFirstAttempt,
-                sourceId: currentAttempt.attemptId
-            }));
+                await applyRollup(db, userId, buildTestDelta({
+                    skill: testType,
+                    typeStats,
+                    prevTypeStats: previousTypeStats,
+                    mistakes,
+                    partBreakdown: rollupParts,
+                    prevPartBreakdown: previousPartBreakdown,
+                    prevMistakeStats: previousMistakeStats,
+                    band: band || 0,
+                    timeSpent: cleanTimeSpent,
+                    timing,
+                    date: new Date(now),
+                    isFirstAttempt,
+                    sourceId: currentAttempt.attemptId
+                }));
+            } catch (rollupErr) {
+                functions.logger.error("[submitTestAnswers] analitika jamlanmasi yangilanmadi:", rollupErr);
+            }
         }
 
         return {

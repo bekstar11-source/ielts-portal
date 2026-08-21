@@ -3,6 +3,7 @@ const admin = require('firebase-admin');
 const { OpenAI } = require('openai');
 const fetch = require('node-fetch');
 const { applyRollup, buildWritingDelta } = require('./analyticsRollup');
+const { canonicalWritingError, WRITING_ERROR_TYPE_LIST } = require('./writingErrors.js');
 
 // Task 1 rasmi (grafik/diagramma) modelga base64 sifatida yuboriladi. 10MB dan
 // katta fayl Vision uchun ham keraksiz, ham funksiya xotirasini yeydi.
@@ -233,6 +234,10 @@ never invent a description of a chart you cannot see.
 - Do NOT invent errors. "original" MUST be an exact, verbatim substring of the student's answer for that task,
   so it can be highlighted in the text. Never quote text from the prompt or from another task.
 - Bands are on the 0-9 scale in 0.5 steps.
+- EVERY error object MUST carry a "type" field chosen from this exact list, nothing else:
+  ${WRITING_ERROR_TYPE_LIST}
+  Pick the single closest category. These are aggregated across all the student's essays,
+  so inventing new names makes the statistics useless.
 - ALL feedback and explanations are written in UZBEK. Error "original"/"correction" stay in English.
 
 === OUTPUT ===
@@ -243,10 +248,10 @@ EXPECTED JSON FORMAT:
   "task1": {
     "imageAnalysis": "Uzbek: rasmda nima tasvirlangan — turi, o'lchov birligi, davri, asosiy trendlar va raqamlar.",
     "grammarErrors": [
-      { "original": "exact text from the answer", "correction": "corrected text", "explanation": "Uzbek explanation of the rule" }
+      { "original": "exact text from the answer", "correction": "corrected text", "explanation": "Uzbek explanation of the rule", "type": "<one of: ${WRITING_ERROR_TYPE_LIST}>" }
     ],
     "lexicalErrors": [
-      { "original": "wrong word / wrong number from the answer", "correction": "better word / correct number from the image", "explanation": "Uzbek explanation" }
+      { "original": "wrong word / wrong number from the answer", "correction": "better word / correct number from the image", "explanation": "Uzbek explanation", "type": "<one of: ${WRITING_ERROR_TYPE_LIST}>" }
     ],
     "criteria": {
       "taskAchievement": { "band": 7.0, "feedback": "Uzbek feedback. Overview bormi, ma'lumotlar to'g'rimi, so'z soni yetarlimi." },
@@ -377,7 +382,12 @@ Notes:
                 .map(e => ({
                     original: String(e.original || ''),
                     correction: String(e.correction || ''),
-                    explanation: String(e.explanation || '')
+                    explanation: String(e.explanation || ''),
+                    // Xato turi analitikada jamlanadi ("artikllar: 22 ta").
+                    // Model ro'yxatdan chetga chiqsa, `canonicalWritingError`
+                    // uni yaqin turga keltiradi yoki `other` ga tushiradi —
+                    // aks holda jamlanma o'nlab bir martalik qatorga bo'linardi.
+                    type: canonicalWritingError(e.type)
                 }));
 
             return {

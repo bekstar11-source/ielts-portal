@@ -12,9 +12,9 @@ import { accuracyTone } from './format';
 
 /** Qulf ostida ko'rsatiladigan namunaviy qatorlar (haqiqiy ma'lumot emas). */
 const TEASER_ROWS = [
-  { family: 'headings', accuracy: 48, total: 22, wrong: 11, reliable: true, trend: -6, wilson: { low: 31, high: 66, margin: 18 } },
-  { family: 'matching', accuracy: 61, total: 18, wrong: 7, reliable: true, trend: null, wilson: { low: 42, high: 78, margin: 18 } },
-  { family: 'completion', accuracy: 74, total: 40, wrong: 10, reliable: true, trend: 4, wilson: { low: 62, high: 83, margin: 11 } },
+  { family: 'headings', accuracy: 48, total: 22, wrong: 11, reliable: true, trend: -6, wilson: { low: 31, high: 66, margin: 18 }, peer: 63 },
+  { family: 'matching', accuracy: 61, total: 18, wrong: 7, reliable: true, trend: null, wilson: { low: 42, high: 78, margin: 18 }, peer: 58 },
+  { family: 'completion', accuracy: 74, total: 40, wrong: 10, reliable: true, trend: 4, wilson: { low: 62, high: 83, margin: 11 }, peer: 76 },
   { family: 'true_false_ng', accuracy: 82, total: 27, wrong: 5, reliable: true, trend: null, wilson: { low: 68, high: 91, margin: 12 } },
   { family: 'multiple_choice', accuracy: 91, total: 33, wrong: 3, reliable: true, trend: 8, wilson: { low: 79, high: 96, margin: 9 } }
 ];
@@ -59,11 +59,21 @@ function TypeRow({ row, t }) {
         <TrendChip trend={row.trend} t={t} />
       </div>
 
-      <div className="col-span-2 order-last h-2 overflow-hidden rounded-full bg-warm-surface dark:bg-white/10 sm:order-none sm:col-span-1">
+      <div className="relative col-span-2 order-last h-2 rounded-full bg-warm-surface dark:bg-white/10 sm:order-none sm:col-span-1">
         <div
           className={`h-full rounded-full transition-[width] duration-700 ease-out ${tone.bar}`}
           style={{ width: `${Math.max(row.accuracy ?? 0, 2)}%` }}
         />
+        {/* Shu darajadagi o'quvchilarning o'rtachasi. Raqam emas, belgi:
+            chiziqdagi o'rin "orqadaman / oldindaman" ni bir qarashda aytadi,
+            va ikkinchi foizni o'qishga majburlamaydi. */}
+        {row.peer !== null && row.peer !== undefined && (
+          <span
+            className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-warm-ink/40 dark:bg-white/40"
+            style={{ left: `${Math.min(Math.max(row.peer, 0), 100)}%` }}
+            title={`${t('analytics.peerAverage')}: ${row.peer}%`}
+          />
+        )}
       </div>
 
       <div className="flex items-baseline justify-end gap-3">
@@ -117,6 +127,9 @@ export default function AccuracyByType({ analytics, hasPro }) {
           icon={Sparkles}
           title={t('analytics.emptyTypeTitle')}
           subtitle={t('analytics.emptyTypeSubtitle')}
+          have={analytics.testsAnalyzed}
+          need={2}
+          unitLabel={t('analytics.testsLabel')}
         />
       ) : (
         <>
@@ -147,6 +160,14 @@ export default function AccuracyByType({ analytics, hasPro }) {
               <span className="text-xs font-medium text-warm-success">
                 {t('analytics.strongest')}: {t(`questionTypes.${analytics.strongest.family}`)} (
                 {analytics.strongest.accuracy}%)
+              </span>
+            )}
+            {analytics.peerGroup && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warm-muted dark:text-warm-on-dark-soft">
+                <span className="h-3 w-0.5 rounded-full bg-warm-ink/40 dark:bg-white/40" />
+                {t('analytics.peerLegend')
+                  .replace('{band}', analytics.peerGroup.band.toFixed(1))
+                  .replace('{users}', analytics.peerGroup.users)}
               </span>
             )}
           </div>

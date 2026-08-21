@@ -123,8 +123,17 @@ export function UpgradeBanner({ title, subtitle, cta }) {
   );
 }
 
-/** Ma'lumot hali yig'ilmagan bo'limlar uchun. */
-export function EmptyState({ icon: Icon, title, subtitle }) {
+/**
+ * Ma'lumot hali yig'ilmagan bo'limlar uchun.
+ *
+ * `have` va `need` berilsa, "ma'lumot yo'q" o'rniga PROGRESS ko'rsatiladi.
+ * Farqi katta: birinchisi qulfdek tuyuladi va o'quvchi bo'limni ishlamayapti
+ * deb o'ylaydi, ikkinchisi esa aniq masofani aytadi — "yana 2 ta test".
+ */
+export function EmptyState({ icon: Icon, title, subtitle, have, need, unitLabel }) {
+  const showProgress = Number.isFinite(have) && Number.isFinite(need) && need > 0;
+  const done = showProgress ? Math.min(have, need) : 0;
+
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
       {Icon && <Icon size={22} className="mb-3 text-warm-muted-soft" />}
@@ -132,6 +141,25 @@ export function EmptyState({ icon: Icon, title, subtitle }) {
       <p className="mt-1 max-w-sm text-xs leading-relaxed text-warm-muted dark:text-warm-on-dark-soft">
         {subtitle}
       </p>
+
+      {showProgress && (
+        <div className="mt-5 w-full max-w-[16rem]">
+          <div className="flex items-center justify-center gap-1.5">
+            {Array.from({ length: need }, (_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 flex-1 rounded-full ${
+                  i < done ? 'bg-warm-primary' : 'bg-warm-surface dark:bg-white/10'
+                }`}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] font-bold tabular-nums text-warm-muted dark:text-warm-on-dark-soft">
+            {done} / {need}
+            {unitLabel ? ` ${unitLabel}` : ''}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

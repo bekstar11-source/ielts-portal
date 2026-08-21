@@ -30,3 +30,54 @@ export function formatShortDate(date, lang) {
     return '';
   }
 }
+
+/**
+ * Xatoning aniq sababini bitta qisqa jumlaga siqadi.
+ *
+ * `mistakePatterns.<pattern>.advice` UMUMIY maslahat beradi ("so'z limitiga
+ * e'tibor bering") va u naqshlar bo'limida bir marta ko'rsatiladi. Jurnaldagi
+ * har bir qatorga uni takrorlash foydasiz — o'quvchi bir xil matnni yigirma
+ * marta o'qiydi. Bu yerda esa AYNAN SHU xato haqida gapiriladi: "kalitda 1 ta
+ * so'z, siz 3 ta yozgansiz".
+ *
+ * Kalitlar statik ro'yxatda — `mistakeReasonKeys` testi ularning ikkala tilda
+ * ham mavjudligini tekshiradi.
+ *
+ * @returns {{key: string, count?: number}|null} sabab, yoki aytadigan aniq
+ *          gap bo'lmasa `null` (u holda qator sabab qatorisiz chiziladi).
+ */
+export const MISTAKE_REASON_KEYS = {
+  spelling: 'analytics.whySpelling',
+  singular_plural: 'analytics.whyPlural',
+  word_form: 'analytics.whyWordForm',
+  extra_words: 'analytics.whyExtraWords',
+  ng_overclaim: 'analytics.whyNgOverclaim',
+  ng_missed: 'analytics.whyNgMissed',
+  tf_flip: 'analytics.whyTfFlip',
+  no_answer: 'analytics.whyNoAnswer'
+};
+
+const wordCount = (text) =>
+  String(text || '').trim().split(/\s+/).filter(Boolean).length;
+
+export function mistakeReason(row) {
+  const key = Object.prototype.hasOwnProperty.call(MISTAKE_REASON_KEYS, row?.pattern)
+    ? MISTAKE_REASON_KEYS[row.pattern]
+    : null;
+  if (!key) return null;
+
+  if (row.pattern === 'spelling') {
+    // Masofa yo'q bo'lsa aniq gap ham yo'q — umumiy "imlo" yorlig'i qatorda
+    // allaqachon turibdi.
+    return row.distance > 0 ? { key, count: row.distance } : null;
+  }
+
+  if (row.pattern === 'extra_words') {
+    // Kalit bir necha variantli bo'lishi mumkin ("museum / gallery") — so'z
+    // limitini birinchisidan olamiz, ular bir xil uzunlikda bo'ladi.
+    const need = wordCount(String(row.correctText || '').split(' / ')[0]);
+    return need > 0 ? { key, count: need } : null;
+  }
+
+  return { key };
+}

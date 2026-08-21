@@ -13,22 +13,24 @@
 // foydalanuvchi uchun sahifa narxi bitta o'qish bo'lib qoladi.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, ArrowRight, Sparkles } from 'lucide-react';
+import { ClipboardList, ArrowRight, Sparkles, ExternalLink } from 'lucide-react';
 
 import { useTranslation } from '../../../context/LanguageContext';
+import { useNavigate } from 'react-router-dom';
+
 import { useInView } from '../../../hooks/useInView';
 import { Card, CardHeader, ProBadge, ProCurtain, EmptyState } from './ui';
-import { formatShortDate } from './format';
+import { formatShortDate, mistakeReason } from './format';
 
 /** Bir marta ko'rsatiladigan xatolar soni — qolgani "yana ko'rsatish" bilan ochiladi. */
 const PAGE_SIZE = 12;
 
 const TEASER_ROWS = [
-  { key: 't1', family: 'completion', pattern: 'spelling', userText: 'goverment', correctText: 'government', testTitle: 'Cambridge 18 · Test 2' },
-  { key: 't2', family: 'true_false_ng', pattern: 'ng_overclaim', userText: 'TRUE', correctText: 'NOT GIVEN', testTitle: 'Cambridge 18 · Test 2' },
-  { key: 't3', family: 'completion', pattern: 'singular_plural', userText: 'child', correctText: 'children', testTitle: 'Cambridge 17 · Test 4' },
+  { key: 't1', family: 'completion', pattern: 'spelling', distance: 1, questionId: '7', userText: 'goverment', correctText: 'government', testTitle: 'Cambridge 18 · Test 2' },
+  { key: 't2', family: 'true_false_ng', pattern: 'ng_overclaim', questionId: '3', userText: 'TRUE', correctText: 'NOT GIVEN', testTitle: 'Cambridge 18 · Test 2' },
+  { key: 't3', family: 'completion', pattern: 'singular_plural', questionId: '11', userText: 'child', correctText: 'children', testTitle: 'Cambridge 17 · Test 4' },
   { key: 't4', family: 'headings', pattern: 'wrong_option', userText: 'iv', correctText: 'vii', testTitle: 'Cambridge 17 · Test 4' },
-  { key: 't5', family: 'completion', pattern: 'extra_words', userText: 'the local museum', correctText: 'museum', testTitle: 'Listening Test 9' }
+  { key: 't5', family: 'completion', pattern: 'extra_words', questionId: '24', userText: 'the local museum', correctText: 'museum', testTitle: 'Listening Test 9' }
 ];
 
 function FilterChip({ active, onClick, children, count }) {
@@ -52,20 +54,41 @@ function FilterChip({ active, onClick, children, count }) {
   );
 }
 
-function MistakeRow({ row, t, lang }) {
+function MistakeRow({ row, t, lang, onOpen }) {
+  const reason = mistakeReason(row);
+  // Tarjima `{count}` bilan keladi — sonli sabablarda uni almashtiramiz.
+  const reasonText = reason
+    ? String(t(reason.key)).replace('{count}', reason.count ?? '')
+    : null;
+
   return (
-    <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1">
-        <span className="max-w-full truncate rounded-md bg-warm-error/[0.08] px-2 py-1 text-sm font-semibold text-warm-error line-through decoration-warm-error/40">
-          {row.userText || t('analytics.blankAnswer')}
-        </span>
-        <ArrowRight size={13} className="shrink-0 text-warm-muted-soft" />
-        <span className="max-w-full truncate rounded-md bg-warm-success/[0.08] px-2 py-1 text-sm font-semibold text-warm-success">
-          {row.correctText}
-        </span>
+    <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          {/* Savol raqami — o'quvchi xatoni testdagi o'rniga bog'lay olishi uchun. */}
+          {row.questionId && (
+            <span className="shrink-0 rounded-md bg-warm-surface px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-warm-muted dark:bg-white/10 dark:text-warm-on-dark-soft">
+              {t('analytics.questionShort')} {row.questionId}
+            </span>
+          )}
+          <span className="max-w-full truncate rounded-md bg-warm-error/[0.08] px-2 py-1 text-sm font-semibold text-warm-error line-through decoration-warm-error/40">
+            {row.userText || t('analytics.blankAnswer')}
+          </span>
+          <ArrowRight size={13} className="shrink-0 text-warm-muted-soft" />
+          <span className="max-w-full truncate rounded-md bg-warm-success/[0.08] px-2 py-1 text-sm font-semibold text-warm-success">
+            {row.correctText}
+          </span>
+        </div>
+
+        {/* Aynan shu xato nega yuz bergani. Umumiy maslahat naqshlar bo'limida. */}
+        {reasonText && (
+          <p className="text-xs font-medium text-warm-muted dark:text-warm-on-dark-soft">
+            {reasonText}
+          </p>
+        )}
       </div>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-warm-muted dark:text-warm-on-dark-soft">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-warm-muted dark:text-warm-on-dark-soft sm:pt-1">
         <span className="font-semibold text-warm-body dark:text-warm-on-dark-soft">
           {t(`mistakePatterns.${row.pattern}.label`)}
         </span>
@@ -76,7 +99,22 @@ function MistakeRow({ row, t, lang }) {
         {row.testTitle && (
           <>
             <span className="hidden sm:inline">·</span>
-            <span className="max-w-[14rem] truncate">{row.testTitle}</span>
+            {/* Havola faqat natija hujjati ma'lum bo'lganda. Eski yozuvlarda u
+                saqlanmagan va `testId` dan tiklab bo'lmaydi (part testlarida
+                ID ga `_part_N` qo'shiladi). */}
+            {row.resultId ? (
+              <button
+                type="button"
+                onClick={() => onOpen(row.resultId)}
+                className="inline-flex max-w-[14rem] items-center gap-1 truncate font-semibold text-warm-primary transition-colors hover:text-warm-primary-active"
+                title={t('analytics.openInTest')}
+              >
+                <span className="truncate">{row.testTitle}</span>
+                <ExternalLink size={11} className="shrink-0" />
+              </button>
+            ) : (
+              <span className="max-w-[14rem] truncate">{row.testTitle}</span>
+            )}
           </>
         )}
         {row.date && (
@@ -92,6 +130,7 @@ function MistakeRow({ row, t, lang }) {
 
 export default function MistakeLog({ analytics, hasPro }) {
   const { t, lang } = useTranslation();
+  const navigate = useNavigate();
   const [familyFilter, setFamilyFilter] = useState('all');
   const [patternFilter, setPatternFilter] = useState('all');
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -135,7 +174,13 @@ export default function MistakeLog({ analytics, hasPro }) {
   const body = (rows) => (
     <div className="divide-y divide-warm-hairline px-6 pb-2 dark:divide-white/10 md:px-8">
       {rows.map((row) => (
-        <MistakeRow key={row.key} row={row} t={t} lang={lang} />
+        <MistakeRow
+          key={row.key}
+          row={row}
+          t={t}
+          lang={lang}
+          onOpen={(resultId) => navigate(`/review/${resultId}`)}
+        />
       ))}
     </div>
   );

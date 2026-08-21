@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
+import { resolveQtypeParam } from "../../utils/practiceLink";
 import { useStudentData } from "../../hooks/useStudentData";
 import { db, functions } from "../../firebase/firebase";
 import { collection, query, where, getDocs, limit, startAfter, getCountFromServer, orderBy } from "firebase/firestore";
@@ -48,10 +49,18 @@ export default function ListeningParts() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
+  // Analitika sahifasidan kelgan havola: `?qtype=headings` → shu turdagi
+  // mashqlar darhol filtrlangan holda ochiladi. Boshlang'ich qiymatda
+  // yechiladi, effektda emas — aks holda ro'yxat avval to'liq, keyin
+  // filtrlangan bo'lib ikki marta chizilardi.
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState(
+    () => resolveQtypeParam(new URLSearchParams(location.search).get('qtype'))
+  );
   const [selectedStatus, setSelectedStatus] = useState("all"); 
   const [selectedParts, setSelectedParts] = useState([]);
-  const [showQuestionFilters, setShowQuestionFilters] = useState(false);
+  const [showQuestionFilters, setShowQuestionFilters] = useState(
+    () => resolveQtypeParam(new URLSearchParams(location.search).get('qtype')).length > 0
+  );
   const [activePartFilter, setActivePartFilter] = useState('all');
   const [freeOnly, setFreeOnly] = useState(false);
   const [sortOrder, setSortOrder] = useState('desc');

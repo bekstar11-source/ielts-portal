@@ -13,7 +13,8 @@
 // o'quvchi imlo mashqiga hafta ajratishga arziy-arzimasligini darhol biladi.
 
 import React from 'react';
-import { Stethoscope, Sparkles, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Stethoscope, Sparkles, ArrowRight, Dumbbell } from 'lucide-react';
 
 import { useTranslation } from '../../../context/LanguageContext';
 import { Card, CardHeader, ProBadge, ProCurtain, EmptyState } from './ui';
@@ -84,7 +85,9 @@ function PatternRow({ row, t }) {
 }
 
 /** Ball ta'siri kartochkasi — bo'lim boshidagi asosiy xulosa. */
-function BandImpactCallout({ impact, t }) {
+function BandImpactCallout({ impact, t, onDrill }) {
+  // `onDrill` berilmasa (ustoz ko'rinishi) tugma chizilmaydi — u o'quvchining
+  // o'z mashq sahifasiga olib boradi va ustoz uchun yopiq yo'l.
   const { best, rows } = impact;
   // Boshqa ko'nikmalar faqat haqiqiy yutuq bo'lsa ko'rsatiladi: "+0.0" ro'yxatga
   // ishonchni yo'qotadi.
@@ -129,15 +132,28 @@ function BandImpactCallout({ impact, t }) {
         </p>
       )}
 
-      <p className="mt-2 text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft">
+      {/* Va'da shu yerda beriladi, mashq ham shu yerdan boshlansin. */}
+      {onDrill && (
+        <button
+          type="button"
+          onClick={onDrill}
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-warm-success px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+        >
+          <Dumbbell size={14} />
+          {t('analytics.bandImpactDrill')}
+        </button>
+      )}
+
+      <p className="mt-3 text-[11px] text-warm-muted-soft dark:text-warm-on-dark-soft">
         {t('analytics.bandImpactNote')}
       </p>
     </div>
   );
 }
 
-export default function PatternBreakdown({ analytics, hasPro }) {
+export default function PatternBreakdown({ analytics, hasPro, readOnly = false }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { patterns, bandImpact } = analytics;
 
   const body = (rows) => (
@@ -168,7 +184,11 @@ export default function PatternBreakdown({ analytics, hasPro }) {
       ) : (
         <>
           {bandImpact?.best ? (
-            <BandImpactCallout impact={bandImpact} t={t} />
+            <BandImpactCallout
+              impact={bandImpact}
+              t={t}
+              onDrill={readOnly ? null : () => navigate('/analytics/drill')}
+            />
           ) : patterns.nearMissShare !== null && patterns.nearMissShare >= 25 ? (
             <div className="mx-6 mb-6 rounded-xl border border-warm-success/20 bg-warm-success/[0.07] p-4 md:mx-8">
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-warm-success">

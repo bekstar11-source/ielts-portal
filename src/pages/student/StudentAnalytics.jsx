@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Crosshair, ListX, Clock, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Crosshair, ListX, Clock, AlertTriangle, Printer } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
@@ -25,6 +25,8 @@ import TrendStrip from '../../components/student/analytics/TrendStrip';
 import PatternBreakdown from '../../components/student/analytics/PatternBreakdown';
 import MistakeLog from '../../components/student/analytics/MistakeLog';
 import SkillSplit from '../../components/student/analytics/SkillSplit';
+import ProductiveSkills from '../../components/student/analytics/ProductiveSkills';
+import PartHeatmap from '../../components/student/analytics/PartHeatmap';
 import ActionPlan from '../../components/student/analytics/ActionPlan';
 import { ProCurtain, UpgradeBanner } from '../../components/student/analytics/ui';
 import { accuracyTone } from '../../components/student/analytics/format';
@@ -41,7 +43,7 @@ function StatTile({ icon: Icon, label, value, suffix, tone, hint }) {
   return (
     <div className="rounded-2xl border border-warm-hairline bg-white p-5 dark:border-white/10 dark:bg-warm-dark-elevated">
       <div className="flex items-center gap-2 text-warm-muted dark:text-warm-on-dark-soft">
-        <Icon size={14} />
+        {Icon && <Icon size={14} />}
         <span className="text-[10px] font-black uppercase tracking-[0.14em]">{label}</span>
       </div>
       <p
@@ -74,7 +76,10 @@ export default function StudentAnalytics() {
   // Bu sahifa ataylab `useStudentData` ni CHAQIRMAYDI: u 50 ta natija hujjatini
   // va butun podcast urinishlari ro'yxatini olib kelardi, analitikaga esa
   // ularning hech biri kerak emas — hammasi jamlanmada.
-  const analytics = useStudentAnalytics(user, hasPro);
+  const analytics = useStudentAnalytics(user, {
+    enabled: hasPro,
+    targetBand: Number(userData?.targetBand) || null
+  });
 
   const loading = analytics.loading;
 
@@ -177,7 +182,7 @@ export default function StudentAnalytics() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="group mb-5 inline-flex items-center gap-1 text-sm font-medium text-warm-muted transition-colors hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark"
+            className="analytics-noprint group mb-5 inline-flex items-center gap-1 text-sm font-medium text-warm-muted transition-colors hover:text-warm-ink dark:text-warm-on-dark-soft dark:hover:text-warm-on-dark"
           >
             <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-1" />
             {t('analytics.back')}
@@ -193,13 +198,25 @@ export default function StudentAnalytics() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => navigate('/statistics')}
-              className="shrink-0 self-start rounded-xl border border-warm-hairline bg-white px-4 py-2.5 text-sm font-semibold text-warm-body transition-colors hover:bg-warm-surface dark:border-white/10 dark:bg-warm-dark-elevated dark:text-warm-on-dark-soft dark:hover:bg-white/5 md:self-auto"
-            >
-              {t('analytics.toProgress')}
-            </button>
+            <div className="flex shrink-0 flex-wrap gap-2 self-start md:self-auto">
+              {hasPro && (
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="analytics-noprint inline-flex items-center gap-1.5 rounded-xl border border-warm-hairline bg-white px-4 py-2.5 text-sm font-semibold text-warm-body transition-colors hover:bg-warm-surface dark:border-white/10 dark:bg-warm-dark-elevated dark:text-warm-on-dark-soft dark:hover:bg-white/5"
+                >
+                  <Printer size={14} />
+                  {t('analytics.print')}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate('/statistics')}
+                className="analytics-noprint rounded-xl border border-warm-hairline bg-white px-4 py-2.5 text-sm font-semibold text-warm-body transition-colors hover:bg-warm-surface dark:border-white/10 dark:bg-warm-dark-elevated dark:text-warm-on-dark-soft dark:hover:bg-white/5"
+              >
+                {t('analytics.toProgress')}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -245,6 +262,14 @@ export default function StudentAnalytics() {
             <SkillSplit analytics={analytics} hasPro={hasPro} />
           </div>
 
+          <div className="analytics-fade" style={{ animationDelay: '0.28s' }}>
+            <PartHeatmap analytics={analytics} hasPro={hasPro} />
+          </div>
+
+          <div className="analytics-fade" style={{ animationDelay: '0.31s' }}>
+            <ProductiveSkills analytics={analytics} hasPro={hasPro} />
+          </div>
+
           <div className="analytics-fade" style={{ animationDelay: '0.3s' }}>
             <ActionPlan analytics={analytics} hasPro={hasPro} />
           </div>
@@ -269,6 +294,28 @@ export default function StudentAnalytics() {
         }
         @media (prefers-reduced-motion: reduce) {
           .analytics-fade { animation: none; }
+        }
+
+        /* Chop etish / PDF.
+           Kutubxona ishlatilmadi: brauzerning o'z "PDF ga saqlash" oynasi
+           allaqachon bor va u har qanday jsPDF yechimidan yaxshiroq chiqadi —
+           matn tanlanadigan, shrift aniq, hajmi kichik. Bu yerda faqat
+           ekranga tegishli narsalar olib tashlanadi. */
+        @media print {
+          /* Ilova xromi: yon panel, yuqoridagi panel va futer. Sahifaning O'Z
+             sarlavhasi ham "header" — u "main" ichida va o'z o'rnida qoladi. */
+          header:not(main header),
+          nav,
+          aside,
+          footer,
+          .analytics-noprint {
+            display: none !important;
+          }
+          .analytics-fade { animation: none !important; }
+          /* Kartochka sahifa chegarasida ikkiga bo'linmasin. */
+          main section { break-inside: avoid; page-break-inside: avoid; }
+          main { max-width: none !important; padding: 0 !important; }
+          body { background: #fff !important; }
         }
       `}</style>
     </div>

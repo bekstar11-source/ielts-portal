@@ -212,20 +212,29 @@ async function submitMockExam(data, context) {
         //      `resultId` deterministik (mockKey asosida), ya'ni takroran
         //      chaqirilsa `sourceId` bir xil bo'ladi va rollup ikkinchi marta
         //      qo'llanmaydi.
-        const mockDate = new Date();
-        for (const [skill, evaluation, moduleBand] of [
-            ['listening', lEval, lBand],
-            ['reading', rEval, rBand]
-        ]) {
-            await applyRollup(db, userId, buildTestDelta({
-                skill,
-                typeStats: evaluation.typeStats || {},
-                mistakes: evaluation.mistakes || [],
-                band: moduleBand,
-                date: mockDate,
-                isFirstAttempt: true,
-                sourceId: `${resRef.id}_${skill}`
-            }));
+        //
+        //      BUTUN BLOK himoyalangan: `applyRollup` faqat o'z tranzaksiyasidagi
+        //      xatoni yutadi, `buildTestDelta` esa yutmaydi. Natija allaqachon
+        //      saqlangan — jamlanmadagi nosozlik uni ko'rsatishga to'sqinlik
+        //      qilmasligi kerak (jamlanma `rebuildSummary` da tiklanadi).
+        try {
+            const mockDate = new Date();
+            for (const [skill, evaluation, moduleBand] of [
+                ['listening', lEval, lBand],
+                ['reading', rEval, rBand]
+            ]) {
+                await applyRollup(db, userId, buildTestDelta({
+                    skill,
+                    typeStats: evaluation.typeStats || {},
+                    mistakes: evaluation.mistakes || [],
+                    band: moduleBand,
+                    date: mockDate,
+                    isFirstAttempt: true,
+                    sourceId: `${resRef.id}_${skill}`
+                }));
+            }
+        } catch (rollupErr) {
+            functions.logger.error("[submitMockExam] analitika jamlanmasi yangilanmadi:", rollupErr);
         }
 
         // 7. Tayinlovni "completed" ga o'tkazamiz. Tranzaksiya kerak, chunki `mockTests`

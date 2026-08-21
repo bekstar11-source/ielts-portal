@@ -21,7 +21,13 @@ import path from 'node:path';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Nusxalanadigan fayllar: `src/utils/<name>` → `functions/<name>`. */
-const MIRRORED = ['questionTypes.js', 'mistakePatterns.js', 'isoWeek.js'];
+const MIRRORED = [
+  'questionTypes.js',
+  'mistakePatterns.js',
+  'isoWeek.js',
+  'writingErrors.js',
+  'timingAnalysis.js'
+];
 
 const BANNER = (name) =>
   `// functions/${name}\n` +

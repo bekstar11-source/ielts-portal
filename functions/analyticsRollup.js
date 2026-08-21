@@ -49,6 +49,7 @@ const admin = require("firebase-admin");
 const { mergeTypeStats } = require("./questionTypes");
 const { classifyMistake, NEAR_MISS_PATTERNS } = require("./mistakePatterns");
 const { normalizeString } = require("./ieltsScoring");
+const { canonicalWritingError } = require("./writingErrors.js");
 const { isoWeekKey } = require("./isoWeek.js");
 
 /** Summary hujjatlari yotadigan to'plam. */
@@ -248,6 +249,28 @@ function addWeeks(base, incoming) {
     return out;
 }
 
+/**
+ * Vaqt statistikasini qo'shadi.
+ *
+ * `weeks` kabi XOM FAOLIYAT: har bir urinish sanaladi, deduplikatsiya yo'q.
+ * Sabab — bu ko'nikma emas, ODAT o'lchovi: bitta testni uch marta ishlab, uch
+ * marta oxirida shoshgan o'quvchida muammo aynan shu takrorda ko'rinadi.
+ */
+function addTiming(base, incoming) {
+    const prev = base || { tests: 0, rushed: 0, ranOut: 0, quarters: [0, 0, 0, 0] };
+    const prevQuarters = Array.isArray(prev.quarters) ? prev.quarters : [0, 0, 0, 0];
+    const nextQuarters = Array.isArray(incoming?.quarters) ? incoming.quarters : [0, 0, 0, 0];
+
+    return {
+        tests: Math.max(0, prev.tests + (Number(incoming?.tests) || 0)),
+        rushed: Math.max(0, prev.rushed + (Number(incoming?.rushed) || 0)),
+        ranOut: Math.max(0, prev.ranOut + (Number(incoming?.ranOut) || 0)),
+        quarters: [0, 1, 2, 3].map((i) =>
+            Math.max(0, (Number(prevQuarters[i]) || 0) + (Number(nextQuarters[i]) || 0))
+        )
+    };
+}
+
 /** Reading/Listening ko'nikma jamlanmasini qo'shadi. */
 function addTestSkill(base, incoming) {
     const prev = base || {
@@ -332,6 +355,7 @@ function buildTestDelta(input) {
         prevPartBreakdown = null,
         band = 0,
         timeSpent = 0,
+        timing = null,
         date = new Date(),
         isFirstAttempt = true,
         sourceId = null
@@ -399,7 +423,18 @@ function buildTestDelta(input) {
 
         patterns,
         repeated,
-        nearMiss: { count: nearMissCount, ofTotal: classifiedTotal }
+        nearMiss: { count: nearMissCount, ofTotal: classifiedTotal },
+
+        // Vaqt tahlili faqat yetarli javob bo'lganda quriladi — `null` bo'lsa
+        // jamlanmaga umuman tegilmaydi.
+        timing: timing
+            ? {
+                tests: 1,
+                rushed: timing.rushed ? 1 : 0,
+                ranOut: timing.ranOut ? 1 : 0,
+                quarters: timing.quarters
+            }
+            : null
     };
 }
 
@@ -429,9 +464,12 @@ function buildWritingDelta({ aiReview, sourceId = null }) {
     const errorTypes = {};
     tasks.forEach((task) => {
         [...(task?.grammarErrors || []), ...(task?.lexicalErrors || [])].forEach((err) => {
-            const raw = String(err?.type || "").toLowerCase().trim();
-            const key = SAFE_KEY.test(raw) ? raw : "other";
-            errorTypes[key] = (errorTypes[key] || 0) + 1;
+            // `checkWriting` turni allaqachon kanonik nomga keltiradi, lekin
+            // qayta qurish eski hujjatlarni ham o'qiydi — o'sha yerda xom qiymat
+            // uchrashi mumkin. Ikkinchi normalizatsiya arzon va jamlanmaning
+            // bir xil kalitlar bilan to'ldirilishini kafolatlaydi.
+            const key = canonicalWritingError(err?.type);
+            errorTypes[SAFE_KEY.test(key) ? key : "other"] = (errorTypes[key] || 0) + 1;
         });
     });
 
@@ -533,6 +571,7 @@ function emptySummary() {
         repeated: [],
         nearMiss: { count: 0, ofTotal: 0 },
         skills: {},
+        timing: { tests: 0, rushed: 0, ranOut: 0, quarters: [0, 0, 0, 0] },
         appliedIds: []
     };
 }
@@ -553,7 +592,8 @@ function mergeDelta(summary, delta) {
             count: Math.max(0, (base.nearMiss?.count || 0) + (delta.nearMiss?.count || 0)),
             ofTotal: Math.max(0, (base.nearMiss?.ofTotal || 0) + (delta.nearMiss?.ofTotal || 0))
         },
-        skills: { ...(base.skills || {}) }
+        skills: { ...(base.skills || {}) },
+        timing: delta.timing ? addTiming(base.timing, delta.timing) : (base.timing || null)
     };
 
     Object.entries(delta.skills || {}).forEach(([skill, stat]) => {
@@ -746,6 +786,7 @@ module.exports = {
     buildTestDelta,
     buildWritingDelta,
     buildSpeakingDelta,
+    summarizeMistakeBatch,
     // Sinov va qayta ishlatish uchun ochilgan sof funksiyalar:
     mergeDelta,
     emptySummary,

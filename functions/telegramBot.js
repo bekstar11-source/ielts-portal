@@ -1346,6 +1346,118 @@ const OTP_TTL_MS = 5 * 60 * 1000;
  * shart) va har bir kod uchun atigi 5 ta urinish beriladi — shundan keyin kod
  * o'chiriladi va qaytadan so'rash kerak bo'ladi.
  */
+/**
+ * OTP kodini tekshiradi va uni ISHLATILGAN deb belgilaydi.
+ *
+ * Ikkita chaqiruvchisi bor: `verifyTelegramOTP` (Telegram orqali KIRISH) va
+ * `linkTelegram` (mavjud hisobga Telegramni BOG'LASH). Ikkalasi bir xil
+ * xavfsizlik shartlariga tayanadi — muddat, urinishlar limiti, doimiy vaqtli
+ * solishtirish — shuning uchun mantiq bitta joyda turadi. Nusxalash bu yerda
+ * ayniqsa xavfli: bitta nusxada limit unutilsa, kodni taxmin qilib bo'lardi.
+ *
+ * @returns {{telegramId: string, data: object, ref: object}}
+ * @throws {functions.https.HttpsError}
+ */
+async function consumeTelegramOtp(phoneNumber, code) {
+  if (!code || !/^\d{6}$/.test(String(code))) {
+    throw new functions.https.HttpsError("invalid-argument", "Kod 6 xonali bo'lishi kerak.");
+  }
+
+  if (!phoneNumber || typeof phoneNumber !== "string") {
+    throw new functions.https.HttpsError("invalid-argument", "Telefon raqami kiritilishi shart.");
+  }
+
+  const cleanPhone = phoneNumber.replace(/\D/g, "");
+  if (cleanPhone.length < 9) {
+    throw new functions.https.HttpsError("invalid-argument", "Telefon raqami noto'g'ri.");
+  }
+
+  const snapshot = await admin.firestore().collection("telegram_codes")
+    .where("phoneNumber", "==", cleanPhone)
+    .get();
+
+  if (snapshot.empty) {
+    throw new functions.https.HttpsError("not-found", "Kod noto'g'ri yoki muddati o'tgan.");
+  }
+
+  const docs = snapshot.docs.sort((a, b) => {
+    const tA = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
+    const tB = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
+    return tB - tA;
+  });
+
+  const doc = docs[0];
+  const storedData = doc.data();
+
+  const timestamp = storedData.timestamp ? storedData.timestamp.toMillis() : 0;
+  if (!timestamp || Date.now() - timestamp > OTP_TTL_MS) {
+    await doc.ref.delete().catch(() => {});
+    throw new functions.https.HttpsError("deadline-exceeded", "Kod muddati tugagan. Yangi kod so'rang.");
+  }
+
+  const attempts = Number(storedData.attempts || 0);
+  if (attempts >= OTP_MAX_ATTEMPTS) {
+    await doc.ref.delete().catch(() => {});
+    throw new functions.https.HttpsError(
+      "resource-exhausted",
+      "Juda ko'p noto'g'ri urinish. Botdan yangi kod so'rang."
+    );
+  }
+
+  if (!safeEquals(String(storedData.code || ""), String(code))) {
+    const left = OTP_MAX_ATTEMPTS - (attempts + 1);
+    if (left <= 0) {
+      await doc.ref.delete().catch(() => {});
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        "Juda ko'p noto'g'ri urinish. Botdan yangi kod so'rang."
+      );
+    }
+    await doc.ref.update({ attempts: admin.firestore.FieldValue.increment(1) }).catch(() => {});
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      `Kod noto'g'ri. Yana ${left} ta urinish qoldi.`
+    );
+  }
+
+  return { telegramId: doc.id, data: storedData, ref: doc.ref };
+}
+
+/**
+ * Mavjud hisobga Telegramni bog'laydi.
+ *
+ * Email bilan ro'yxatdan o'tgan foydalanuvchida Telegram bilan hech qanday
+ * aloqa yo'q edi — ya'ni haftalik xulosa ularga umuman yetmasdi. Bu funksiya
+ * `users/{uid}.telegramChatId` ni yozadi va shundan keyin xabar boradi.
+ *
+ * Maydon `firestore.rules` da himoyalangan: uni faqat shu yerdan yozish mumkin,
+ * aks holda o'quvchi boshqa odamning chat id sini yozib, uning xabarlarini
+ * o'ziga burib yuborardi.
+ */
+exports.linkTelegram = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Avtorizatsiyadan o'tilmagan.");
+  }
+
+  const { phoneNumber, code } = data || {};
+  const { telegramId, ref } = await consumeTelegramOtp(phoneNumber, code);
+
+  // Kod bir martalik — bog'langach darhol o'chiriladi.
+  await ref.delete().catch(() => {});
+
+  await admin.firestore().collection("users").doc(context.auth.uid).set({
+    telegramChatId: String(telegramId),
+    telegramLinkedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  await sendMessage(
+    telegramId,
+    "🔗 <b>Hisobingiz bog'landi.</b>\n\nEndi har dushanba haftalik tahlil xulosasini shu yerda olasiz."
+  ).catch(() => {});
+
+  return { success: true };
+});
+
 exports.verifyTelegramOTP = functions.https.onCall(async (data, context) => {
   const { phoneNumber, code } = data || {};
 
@@ -1494,6 +1606,7 @@ exports.notifyAdmin = notifyAdmin;
 // Rejalashtirilgan eslatmalar shu yerdan yuboriladi (discountReminders.js).
 // Token/API manzili faqat SHU faylda turadi — nusxa ko'chirilmasin.
 exports.sendMessage = sendMessage;
+exports.consumeTelegramOtp = consumeTelegramOtp;
 
 async function sendPhotoToAdmin(fileId, caption, replyMarkup = null) {
   if (ADMIN_CHAT_ID) {

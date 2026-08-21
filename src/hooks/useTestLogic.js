@@ -61,7 +61,15 @@ export function useTestLogic() {
 
     // Modularized Logic
     const { test, loading, locked, lockedMeta } = useTestFetch(cleanTestId, user, userData, navigate, partNumber);
-    const { userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions, handleSelectAnswer, toggleFlag } = useTestAnswers();
+    // Testda o'tgan soniyalar. `useTestAnswers` taymerdan OLDIN chaqiriladi,
+    // shuning uchun qiymat ref orqali uzatiladi va quyida taymer bilan birga
+    // yangilanadi. Bundan javob berilgan daqiqalar yozib boriladi (vaqt tahlili).
+    const elapsedRef = useRef(0);
+
+    const {
+        userAnswers, setUserAnswers, writingEssay, setWritingEssay, flaggedQuestions,
+        handleSelectAnswer, toggleFlag, getAnswerTimes, resetAnswerTimes
+    } = useTestAnswers(elapsedRef);
     const initialDuration = useMemo(() => {
         if (partNumber) return 10 * 60; // 10 minutes per part practice
         if (test?.duration) return Number(test.duration) * 60;
@@ -102,6 +110,15 @@ export function useTestLogic() {
     const isTimerActive = !!test && !showModeSelection && !showResult && !showResumeModal;
     const { timeLeft, setTimeLeft, resetTimer } = useTestTimer(cleanTestId, user?.uid, testMode, effectiveDuration, isTimerActive, partNumber);
     const { saving, submitTest } = useTestSubmission(user, userData);
+
+    // Practice rejimida taymer yuqoriga, exam rejimida pastga sanaydi — o'tgan
+    // vaqt formulasi topshirishdagi `timeSpent` bilan aynan bir xil bo'lishi kerak,
+    // aks holda javob vaqtlari test davomiyligiga to'g'ri kelmasdi.
+    useEffect(() => {
+        elapsedRef.current = testMode === 'practice'
+            ? timeLeft
+            : Math.max(0, effectiveDuration - timeLeft);
+    }, [timeLeft, testMode, effectiveDuration]);
 
     // Initialize Mode & Settings
     useEffect(() => {
@@ -160,6 +177,7 @@ export function useTestLogic() {
         setUserAnswers({});
         setWritingEssay("");
         setDraftData(null);
+        resetAnswerTimes();
         // Storage tozalash o'zi yetarli emas: taymer state'i eski qiymatda qolib ketardi.
         resetTimer(null);
         if (['reading', 'listening', 'writing'].includes(test.type?.toLowerCase())) {
@@ -197,7 +215,8 @@ export function useTestLogic() {
                 violation: typeof violationType === 'string' ? violationType : null,
                 timeSpent,
                 userAnswers,
-                partNumber: partNumber || null
+                partNumber: partNumber || null,
+                answerTimes: getAnswerTimes()
             };
 
             const res = await submitTest(test, resultData);

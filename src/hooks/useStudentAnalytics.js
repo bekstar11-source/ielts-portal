@@ -19,13 +19,16 @@
 // ro'yxati esa "nega"sini.
 
 import { useCallback, useMemo, useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { collection, query, orderBy, limit, startAfter, getDocs } from 'firebase/firestore';
 
-import { db } from '../firebase/firebase';
 import { classifyMistake, summarizePatternCounts } from '../utils/mistakePatterns';
+import { useMistakeSessions } from './useMistakeSessions';
 import { computeBandImpact } from '../utils/bandImpact';
 import { wilsonInterval } from '../utils/wilson';
+import { buildProductiveSkill } from '../utils/productiveSkills';
+import { buildPartHeatmap } from '../utils/partHeatmap';
+import { summarizeTiming } from '../utils/timingAnalysis';
+import { forecastBand } from '../utils/bandForecast';
+import { useBenchmarks, bucketFor } from './useBenchmarks';
 import { buildWeeklyTrend } from '../utils/weeklyTrend';
 import { useAnalyticsSummary } from './useAnalyticsSummary';
 
@@ -48,20 +51,6 @@ export const MIN_SAMPLE = 5;
  */
 export const WEAK_THRESHOLD = 70;
 
-/**
- * Bir "sahifa"da nechta xato sessiyasi o'qiladi.
- *
- * Har bir sessiya — bitta hujjat, ya'ni bitta o'qish. Bitta sessiyada odatda
- * 5–15 ta xato bo'ladi, demak 8 ta sessiya ~40–120 ta xatoni beradi — birinchi
- * ekran uchun yetarli. Qolgani "Yana ko'rsatish" bilan kursor orqali olinadi,
- * ya'ni allaqachon o'qilgan hujjatlar qayta o'qilmaydi.
- */
-const SESSION_PAGE = 8;
-
-/** Xatolar tarixi faqat test topshirilganda o'zgaradi — uzun kesh oynasi. */
-const STALE_MS = 1000 * 60 * 30;
-const GC_MS = 1000 * 60 * 60;
-
 /** Trendni hisoblashda "yaqinda" deb qaraladigan haftalar soni. */
 const TREND_WINDOW = 4;
 
@@ -80,45 +69,6 @@ function toDate(value) {
   if (typeof value?.seconds === 'number') return new Date(value.seconds * 1000);
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d;
-}
-
-/**
- * Xato sessiyalarini kechiktirilgan va sahifalab o'qiydi.
- *
- * DIQQAT: bitta omborda `date` ikki xil turda yotadi — `submitTestAnswers` ISO
- * SATR yozadi, `evaluateSpeaking` esa Timestamp. Firestore turlarni tartiblaganda
- * satrlarni Timestamp'dan keyinga qo'yadi, ya'ni DESC saralashda satrli (reading/
- * listening) yozuvlar birinchi keladi — bizga aynan shular kerak. Shu sabab
- * `limit` speaking yozuvlari tufayli "yeb ketilmaydi". Agar kelajakda submit
- * tomoni Timestamp'ga o'tkazilsa, bu yerga `where('skill','!=','speaking')`
- * (yoki alohida so'rov) qo'shish kerak bo'ladi.
- */
-function useMistakeSessions(uid, enabled) {
-  return useInfiniteQuery({
-    queryKey: ['mistakeSessions', uid],
-    enabled: !!uid && enabled,
-    staleTime: STALE_MS,
-    gcTime: GC_MS,
-    initialPageParam: null,
-    queryFn: async ({ pageParam }) => {
-      const constraints = [orderBy('date', 'desc')];
-      if (pageParam) constraints.push(startAfter(pageParam));
-      constraints.push(limit(SESSION_PAGE));
-
-      const snap = await getDocs(
-        query(collection(db, 'users', uid, 'mistakeSessions'), ...constraints)
-      );
-
-      return {
-        sessions: snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((s) => s.skill !== 'speaking'),
-        // Kursor — keyingi sahifa shu hujjatdan keyin boshlanadi.
-        cursor: snap.docs.length === SESSION_PAGE ? snap.docs[snap.docs.length - 1] : null
-      };
-    },
-    getNextPageParam: (lastPage) => lastPage.cursor
-  });
 }
 
 /** Jamlanmadagi haftalarni eskidan yangiga qarab tartiblaydi. */
@@ -149,15 +99,33 @@ function foldWeeks(weekList) {
  *        foydalanuvchida bo'limlar xiralashgan namuna bilan ko'rsatiladi, ya'ni
  *        so'rovni o'chirish behuda Firestore o'qishlarini olib tashlaydi.
  */
-export function useStudentAnalytics(user, enabled = true) {
+/**
+ * @param {object} user Firebase auth foydalanuvchisi (yoki `{uid}`)
+ * @param {object} [options]
+ * @param {boolean} [options.enabled=true] Haqiqiy ma'lumot yuklansinmi
+ * @param {number|null} [options.targetBand] Maqsad band (prognoz uchun)
+ * @param {object|null} [options.summary] TAYYOR jamlanma. Berilsa, Firestore'dan
+ *        o'qilmaydi — ustoz ko'rinishi jamlanmani `getStudentAnalytics` callable'i
+ *        orqali oladi, chunki unga to'g'ridan-to'g'ri o'qish huquqi yo'q.
+ */
+export function useStudentAnalytics(user, options = {}) {
+  const { enabled = true, targetBand = null, summary: injected = null } = options;
+
   const uid = user?.uid;
-  const { summary, loading: summaryLoading, error: summaryError } = useAnalyticsSummary(uid, enabled);
+  // Tayyor jamlanma berilgan bo'lsa so'rov umuman yuborilmaydi.
+  const fetched = useAnalyticsSummary(uid, enabled && !injected);
+  const summary = injected || fetched.summary;
+  const summaryLoading = injected ? false : fetched.loading;
+  const summaryError = injected ? null : fetched.error;
 
   // Xatolar jurnali ko'rinishga kirmaguncha hech narsa o'qilmaydi.
   const [wantMistakes, setWantMistakes] = useState(false);
   const loadMistakes = useCallback(() => setWantMistakes(true), []);
 
   const sessionsQuery = useMistakeSessions(uid, enabled && wantMistakes);
+
+  // Taqqoslash jadvali — bitta hujjat, hamma uchun bir xil.
+  const { buckets } = useBenchmarks(enabled);
 
   const analytics = useMemo(() => {
     // ── 1. Savol turlari kesimidagi aniqlik ────────────────────────────────
@@ -172,6 +140,14 @@ export function useStudentAnalytics(user, enabled = true) {
       if (!stat || stat.total < MIN_SAMPLE) return null;
       return Math.round((Math.min(stat.correct, stat.total) / stat.total) * 100);
     };
+
+    // O'quvchining darajasi: taqqoslash guruhi shunga qarab tanlanadi.
+    const ownBand = Math.max(
+      0,
+      Number(summary.skills?.reading?.bestBand) || 0,
+      Number(summary.skills?.listening?.bestBand) || 0
+    );
+    const peers = bucketFor(buckets, ownBand);
 
     const typeRows = Object.entries(summary.byType || {})
       .map(([family, stat]) => {
@@ -190,7 +166,12 @@ export function useStudentAnalytics(user, enabled = true) {
           reliable: total >= MIN_SAMPLE,
           // Ikkala oynada ham yetarli savol bo'lgandagina ko'rsatiladi — aks holda
           // "+30%" tasodifiy sakrash bo'lardi.
-          trend: recent !== null && earlier !== null ? recent - earlier : null
+          trend: recent !== null && earlier !== null ? recent - earlier : null,
+          // Shu darajadagi boshqa o'quvchilarning o'rtachasi. Guruh kichik
+          // bo'lsa jadvalda umuman yo'q — u holda `null`.
+          peer: Object.prototype.hasOwnProperty.call(peers?.families || {}, family)
+            ? peers.families[family]
+            : null
         };
       })
       .filter((r) => r.total > 0)
@@ -240,6 +221,8 @@ export function useStudentAnalytics(user, enabled = true) {
             family: m.questionType || 'other',
             testId: session.testId || null,
             testTitle: session.testTitle || null,
+            // Faqat yangi yozuvlarda bor — eski xatolar havolasiz qoladi.
+            resultId: session.resultId || null,
             date: when,
             ...classified
           });
@@ -251,10 +234,22 @@ export function useStudentAnalytics(user, enabled = true) {
     // ── 4. Takrorlanayotgan xatolar ───────────────────────────────────────
     // Bir xil to'g'ri javobni bir necha marta o'tkazib yuborish — bu tasodif
     // emas, aniq bo'shliq. Jamlanmada allaqachon sanab qo'yilgan.
-    const repeated = (summary.repeated || [])
-      .filter((row) => (row?.count || 0) > 1)
+    // Speaking tuzatishlari xuddi shu ro'yxatda yotadi (`family: 'speaking'`),
+    // lekin ular boshqa tabiatda: javob kaliti emas, aytilgan jumlaning
+    // yaxshiroq varianti. Ularni Reading javoblari bilan aralashtirsak,
+    // "takrorlanuvchi xatolar" ro'yxati ma'nosini yo'qotadi.
+    const repeatedAll = (summary.repeated || []).filter((row) => (row?.count || 0) > 1);
+    const asRow = (row) => ({ correctText: row.text, family: row.family, count: row.count });
+
+    const repeated = repeatedAll
+      .filter((row) => row.family !== 'speaking')
       .slice(0, 6)
-      .map((row) => ({ correctText: row.text, family: row.family, count: row.count }));
+      .map(asRow);
+
+    const speakingFixes = repeatedAll
+      .filter((row) => row.family === 'speaking')
+      .slice(0, 6)
+      .map(asRow);
 
     // ── 5. Ko'nikmalar kesimi ─────────────────────────────────────────────
     const skills = SKILLS.map((skill) => {
@@ -276,6 +271,38 @@ export function useStudentAnalytics(user, enabled = true) {
         mistakes: Number(stat.mistakes) || 0
       };
     }).filter((s) => s && s.tests > 0);
+
+    // ── 5b. Writing va Speaking ───────────────────────────────────────────
+    const writing = buildProductiveSkill(summary.skills?.writing, {
+      errorTypes: Object.entries(summary.skills?.writing?.errorTypes || {})
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6)
+    });
+
+    const speaking = buildProductiveSkill(summary.skills?.speaking, { fixes: speakingFixes });
+
+    // ── 5c. Bo'limlar kesimi ──────────────────────────────────────────────
+    // Tayanch sifatida o'quvchining O'Z o'rtachasi olinadi: "P3 eng past" degan
+    // gap ma'nosiz (u eng qiyin qism), "P3 sizning o'rtachangizdan 25% orqada"
+    // esa ma'noli.
+    // Vaqt odati: javoblar test bo'ylab qanday taqsimlangan va shoshilish
+    // takrorlanadigan muammomi. Bo'limlar kesimi bilan bitta kartochkada
+    // ko'rsatiladi — ikkalasi ham "testning qayerida qulayapman" savoliga javob.
+    const timing = summarizeTiming(summary.timing);
+
+    // Prognoz — trend chizig'ining davomi. Ko'nikma sifatida o'quvchi ko'proq
+    // ishlagani olinadi: bandni haftalik aniqlikdan hisoblash uchun jadval
+    // kerak, u esa Reading va Listening'da har xil.
+    const mainSkill = skills.reduce(
+      (best, s) => (!best || s.total > best.total ? s : best),
+      null
+    )?.skill || 'reading';
+    const forecast = forecastBand({ weeks, skill: mainSkill, target: targetBand });
+
+    const partHeatmap = buildPartHeatmap(summary.byPart, {
+      reference: Object.fromEntries(skills.map((s) => [s.skill, s.accuracy]))
+    });
 
     // ── 6. Ball ta'siri ───────────────────────────────────────────────────
     // "Yaqin marra" xatolarini tuzatish bandni qanchaga ko'taradi. Foiz
@@ -315,6 +342,12 @@ export function useStudentAnalytics(user, enabled = true) {
       patterns,
       repeated,
       skills,
+      writing,
+      speaking,
+      partHeatmap,
+      timing,
+      forecast,
+      peerGroup: peers ? { band: ownBand, users: peers.users } : null,
       bandImpact,
       trend,
       weeks,
@@ -327,7 +360,7 @@ export function useStudentAnalytics(user, enabled = true) {
       // ko'rinardi.
       hasMistakeData: (summary.nearMiss?.ofTotal || 0) > 0
     };
-  }, [summary, sessionsQuery.data]);
+  }, [summary, sessionsQuery.data, targetBand, buckets]);
 
   return {
     ...analytics,

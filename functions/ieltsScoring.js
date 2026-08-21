@@ -611,7 +611,10 @@ const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
 
     const band = calculateBandScore(correctCount, testData.type || 'reading', totalQ);
 
-    return { correctCount, totalQ, band, mistakes, missingKeys, typeStats };
+    // `scoredIds` savollarni testdagi TARTIBDA to'playdi (Set kiritish tartibini
+    // saqlaydi). Vaqt tahlili uchun kerak: javobsizlar test oxirida to'planganmi
+    // degan savolga faqat tartib bilan javob berish mumkin.
+    return { correctCount, totalQ, band, mistakes, missingKeys, typeStats, questionOrder: [...scoredIds] };
 };
 
 // UTILITY TO CALCULATE SCORE FOR A SECTION (READING/LISTENING)

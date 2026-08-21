@@ -13,13 +13,13 @@ const { generateVocab } = require("./generateVocab");
 const { translateWord } = require("./translateWord");
 const { checkWriting } = require("./checkWriting");
 const { beautifyArticle } = require("./beautifyArticle");
-const { telegramWebhook, verifyTelegramOTP } = require("./telegramBot");
+const { telegramWebhook, verifyTelegramOTP, linkTelegram } = require("./telegramBot");
 const { claimTelegramLogin } = require("./telegramLogin");
 const { verifyAccessKey } = require("./verifyAccessKey");
 const { getSanitizedTest } = require("./getSanitizedTest");
 const { submitTestAnswers } = require("./submitTestAnswers");
 const { submitMockExam } = require("./submitMockExam");
-const { rebuildAnalyticsSummary } = require("./analyticsSummary");
+const { rebuildAnalyticsSummary, getStudentAnalytics } = require("./analyticsSummary");
 const { shareTest } = require("./shareTest");
 const { expireSubscriptions } = require("./expireSubscriptions");
 const { cleanupSpeakingAudio } = require("./cleanupSpeakingAudio");
@@ -99,6 +99,12 @@ exports.submitMockExam = functions
 exports.rebuildAnalyticsSummary = functions
     .runWith({ timeoutSeconds: 120, memory: "512MB" })
     .https.onCall(rebuildAnalyticsSummary);
+
+// Ustoz o'quvchi tahlilini shu yerdan oladi: guruh a'zoligi tekshiruvini
+// Firestore qoidalarida ifodalab bo'lmaydi (qoida so'rov yubora olmaydi).
+exports.getStudentAnalytics = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onCall(getStudentAnalytics);
 
 exports.sharePodcast = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })
@@ -186,6 +192,8 @@ exports.cleanupSpeakingAudio = cleanupSpeakingAudio;
 
 exports.telegramWebhook = telegramWebhook;
 exports.verifyTelegramOTP = verifyTelegramOTP;
+// Mavjud hisobga Telegramni bog'lash (haftalik xulosa uchun).
+exports.linkTelegram = linkTelegram;
 
 // Telegram login sessiyasidan tokenni olib kelish. `login_sessions` endi
 // klientga umuman ochiq emas — batafsil izoh telegramLogin.js da.
@@ -233,3 +241,11 @@ exports.syncGroupPro = functions
 // kelmaydi. Batafsil: functions/discountReminders.js.
 const { discountReminders } = require("./discountReminders");
 exports.discountReminders = discountReminders;
+
+// Haftalik analitika xulosasi (dushanba 10:00, Toshkent).
+const { weeklyDigest } = require("./weeklyDigest");
+exports.weeklyDigest = weeklyDigest;
+
+// Anonim taqqoslash jadvali (har kuni 03:00, Toshkent).
+const { buildBenchmarks } = require("./buildBenchmarks");
+exports.buildBenchmarks = buildBenchmarks;

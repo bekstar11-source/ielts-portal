@@ -36,6 +36,7 @@ const TeacherMonitorTest = lazy(() => import('./pages/teacher/TeacherMonitorTest
 const TeacherWritingReview = lazy(() => import('./pages/teacher/TeacherWritingReview'));
 const TeacherSpeakingReview = lazy(() => import('./pages/teacher/TeacherSpeakingReview'));
 const TeacherGroupStats = lazy(() => import('./pages/teacher/TeacherGroupStats'));
+const TeacherStudentAnalytics = lazy(() => import('./pages/teacher/TeacherStudentAnalytics'));
 const TeacherGroupDetail = lazy(() => import('./pages/teacher/TeacherGroupDetail'));
 const TeacherAllResults = lazy(() => import('./pages/teacher/TeacherAllResults'));
 const TeacherCreateWriting = lazy(() => import('./pages/teacher/TeacherCreateWriting'));
@@ -74,6 +75,7 @@ const SpotifyEpisodeDetails = lazy(() => import('./pages/podcasts/SpotifyEpisode
 const SharePodcastRedirect = lazy(() => import('./pages/podcasts/SharePodcastRedirect'));
 const StudentStatistics = lazy(() => import('./pages/student/StudentStatistics'));
 const StudentAnalytics = lazy(() => import('./pages/student/StudentAnalytics'));
+const MistakeDrill = lazy(() => import('./pages/student/MistakeDrill'));
 const StudentLeaderboard = lazy(() => import('./pages/student/StudentLeaderboard'));
 const SpeakingPractice = lazy(() => import('./pages/test/SpeakingPractice'));
 const ArticleReading = lazy(() => import('./pages/articles/ArticleReading'));
@@ -160,6 +162,7 @@ function App() {
             <Route path="/review/:id" element={<ProtectedRoute><TestReview /></ProtectedRoute>} />
             <Route path="/statistics" element={<ProtectedRoute><StudentStatistics /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><StudentAnalytics /></ProtectedRoute>} />
+            <Route path="/analytics/drill" element={<ProtectedRoute><MistakeDrill /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><StudentLeaderboard /></ProtectedRoute>} />
             <Route path="/my-results" element={<ProtectedRoute><MyResults /></ProtectedRoute>} />
             <Route path="/vocabulary" element={<ProtectedRoute><WordBank /></ProtectedRoute>} />
@@ -211,6 +214,7 @@ function App() {
               <Route path="speaking-review" element={<TeacherSpeakingReview />} />
               <Route path="create-writing" element={<TeacherCreateWriting />} />
               <Route path="group-stats" element={<TeacherGroupStats />} />
+              <Route path="student/:studentId/analytics" element={<TeacherStudentAnalytics />} />
               {/* Davomat ekrani namuna ma'lumot bilan ishlaydi — flag src/config/features.js da. */}
               <Route
                 path="group/:groupId"

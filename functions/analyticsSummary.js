@@ -80,4 +80,75 @@ async function rebuildAnalyticsSummary(data, context) {
     return { summary: { ...summary, updatedAt: now, rebuiltAt: now }, rebuilt: true };
 }
 
-module.exports = { rebuildAnalyticsSummary };
+/**
+ * Ustoz uchun o'quvchi jamlanmasi.
+ *
+ * NEGA CALLABLE, TO'G'RIDAN-TO'G'RI O'QISH EMAS
+ * ────────────────────────────────────────────
+ * Firestore qoidalari KOLLEKSIYAGA SO'ROV YUBORA OLMAYDI — faqat ma'lum
+ * yo'ldagi hujjatni `get()` qilishi mumkin. "Shu ustozning guruhlaridan birida
+ * shu o'quvchi bormi?" degan savol esa aynan so'rovni talab qiladi
+ * (`groups where teacherId == X and studentIds array-contains Y`).
+ *
+ * Shu sababdan qoida darajasida ikkita yo'l bor edi: yo HAR QANDAY ustozga
+ * HAR QANDAY o'quvchini ochish, yo tekshiruvni serverga ko'chirish. Birinchisi
+ * ilgari shunday edi va u haddan tashqari keng. Endi `analyticsSummaries` faqat
+ * egasi va adminga ochiq, ustoz esa shu funksiya orqali keladi.
+ *
+ * O'quvchi ismi va maqsad bandi ham shu yerda qaytariladi — aks holda klient
+ * `users/{uid}` ni alohida o'qishi kerak bo'lardi.
+ */
+async function getStudentAnalytics(data, context) {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Avtorizatsiyadan o'tilmagan.");
+    }
+
+    const studentId = String(data?.studentId || "").trim();
+    if (!studentId) {
+        throw new functions.https.HttpsError("invalid-argument", "O'quvchi identifikatori kerak.");
+    }
+
+    const db = admin.firestore();
+    const callerId = context.auth.uid;
+
+    const callerSnap = await db.collection("users").doc(callerId).get();
+    const role = callerSnap.exists ? (callerSnap.data()?.role || "student") : "student";
+
+    // O'quvchining o'zi ham shu yo'ldan kelishi mumkin — bu zarar qilmaydi.
+    if (callerId !== studentId && role !== "admin") {
+        if (role !== "teacher") {
+            throw new functions.https.HttpsError("permission-denied", "Ruxsat yo'q.");
+        }
+
+        // Ustoz faqat O'Z guruhidagi o'quvchini ko'ra oladi.
+        const groups = await db.collection("groups")
+            .where("teacherId", "==", callerId)
+            .where("studentIds", "array-contains", studentId)
+            .limit(1)
+            .get();
+
+        if (groups.empty) {
+            throw new functions.https.HttpsError(
+                "permission-denied",
+                "Bu o'quvchi sizning guruhlaringizda emas."
+            );
+        }
+    }
+
+    const [summarySnap, studentSnap] = await Promise.all([
+        db.collection(COLLECTION).doc(studentId).get(),
+        db.collection("users").doc(studentId).get()
+    ]);
+
+    const student = studentSnap.exists ? studentSnap.data() : null;
+
+    return {
+        summary: summarySnap.exists ? summarySnap.data() : null,
+        student: {
+            fullName: student?.fullName || null,
+            targetBand: Number(student?.targetBand) || null
+        }
+    };
+}
+
+module.exports = { rebuildAnalyticsSummary, getStudentAnalytics };

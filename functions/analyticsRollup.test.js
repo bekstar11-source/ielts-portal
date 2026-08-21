@@ -309,3 +309,25 @@ test("nearMiss hech qachon xatolar sonidan oshmaydi", () => {
     assert.strictEqual(summary.skills.reading.mistakes, 2, "xatolar total - correct dan oshmaydi");
     assert.strictEqual(summary.skills.reading.nearMiss, 2, "nearMiss xatolardan oshmaydi");
 });
+
+test("submitTestAnswers talab qilgan har bir eksport mavjud", () => {
+    // Bu modul `submitTestAnswers` uchun kutubxona. Eksportlar ro'yxatidan bittasi
+    // tushib qolsa, chaqiruv joyida `undefined` bo'lib qoladi va topshirish 500
+    // bilan qulaydi — o'quvchi Finish bosgach natija o'rniga testga qaytadi.
+    // Aynan shu bir marta yuz bergan (`summarizeMistakeBatch`), shuning uchun
+    // bog'liqlik shu yerda qotirilgan: import ro'yxati faylning o'zidan o'qiladi.
+    const fs = require("node:fs");
+    const path = require("node:path");
+
+    const source = fs.readFileSync(path.join(__dirname, "submitTestAnswers.js"), "utf8");
+    const match = source.match(/const\s*\{([^}]+)\}\s*=\s*require\(["']\.\/analyticsRollup["']\)/);
+    assert.ok(match, "submitTestAnswers analyticsRollup dan import qilishi kutilgan");
+
+    const imported = match[1].split(",").map((name) => name.trim()).filter(Boolean);
+    assert.ok(imported.length > 0, "import ro'yxati bo'sh bo'lmasligi kerak");
+
+    const rollup = require("./analyticsRollup");
+    imported.forEach((name) => {
+        assert.strictEqual(typeof rollup[name], "function", `analyticsRollup.${name} eksport qilinmagan`);
+    });
+});

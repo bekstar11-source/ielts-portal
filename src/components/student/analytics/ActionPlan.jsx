@@ -6,12 +6,20 @@
 //
 // Qadamlar YOZILGAN TARTIBDA emas, ta'siriga qarab tuziladi: avval "deyarli to'g'ri"
 // xatolar (eng tez natija), keyin eng kuchsiz savol turi, so'ng vaqt boshqaruvi.
+//
+// Har bir qadam iloji boricha FILTRLANGAN mashq ro'yxatiga ulanadi. Umumiy
+// `/practice` ga tashlash qadamning qiymatini yo'qotadi: o'quvchi "Matching
+// Headings ustida ishlang" degan maslahatni o'qib, keyin o'sha turdagi testni
+// o'zi qidirib topishi kerak bo'lardi.
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ListChecks, Repeat, ArrowRight } from 'lucide-react';
+import { ListChecks, Repeat, ArrowRight, Plus, Check } from 'lucide-react';
 
+import { useAuth } from '../../../context/AuthContext';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useAddToWordBank } from '../../../hooks/useAddToWordBank';
+import { buildPracticeLink, preferredSkillFor } from '../../../utils/practiceLink';
 import { Card, CardHeader, Eyebrow, ProBadge, ProCurtain } from './ui';
 
 /** Qulf ostidagi namunaviy reja (haqiqiy tahlil emas). */
@@ -31,9 +39,17 @@ function buildSteps(analytics, t) {
   const steps = [];
   const { patterns, weakest, skills, totalMistakes } = analytics;
 
+  /** Oila bo'yicha filtrlangan mashq havolasi (topilmasa `null`). */
+  const linkTo = (family) => buildPracticeLink(preferredSkillFor(family, skills), family);
+
   if (patterns.nearMissShare !== null && patterns.nearMissShare >= 25) {
     steps.push({
-      text: `${t('analytics.stepNearMissA')} ${patterns.nearMissShare}% ${t('analytics.stepNearMissB')}`
+      text: `${t('analytics.stepNearMissA')} ${patterns.nearMissShare}% ${t('analytics.stepNearMissB')}`,
+      // Aynan shu xatolar uchun mashq mavjud va u shu qadamning to'g'ridan-to'g'ri
+      // davomi: mashq o'quvchining o'sha imlo/shakl xatolaridan yig'iladi.
+      // Umumiy mashq ro'yxatiga yuborish bir pog'ona uzoqroq bo'lardi.
+      href: '/analytics/drill',
+      linkLabel: t('analytics.stepDrill')
     });
   }
 
@@ -46,12 +62,18 @@ function buildSteps(analytics, t) {
     const rule = ngOverclaim >= ngMissed
       ? t('analytics.stepNgOverclaim')
       : t('analytics.stepNgMissed');
-    steps.push({ text: `${ngOverclaim + ngMissed} ${t('analytics.stepNgLead')} ${rule}` });
+    steps.push({
+      text: `${ngOverclaim + ngMissed} ${t('analytics.stepNgLead')} ${rule}`,
+      href: buildPracticeLink('reading', 'true_false_ng')
+    });
   }
 
   if (weakest.length > 0) {
     const names = weakest.map((r) => t(`questionTypes.${r.family}`)).join(', ');
-    steps.push({ text: `${t('analytics.stepWeakA')} ${names} — ${t('analytics.stepWeakB')}` });
+    steps.push({
+      text: `${t('analytics.stepWeakA')} ${names} — ${t('analytics.stepWeakB')}`,
+      href: linkTo(weakest[0].family)
+    });
   }
 
   const blanks = patterns.counts?.no_answer || 0;
@@ -60,7 +82,7 @@ function buildSteps(analytics, t) {
   }
 
   if (patterns.counts?.wrong_option >= 5) {
-    steps.push({ text: t('analytics.stepOptions') });
+    steps.push({ text: t('analytics.stepOptions'), href: linkTo('multiple_choice') });
   }
 
   // Ikkala bo'lim ham ishlangan va farq sezilarli bo'lsa — orqada qolganini ta'kidlaymiz.
@@ -69,7 +91,10 @@ function buildSteps(analytics, t) {
     if (a.accuracy !== null && b.accuracy !== null && Math.abs(a.accuracy - b.accuracy) >= 10) {
       const behind = a.accuracy < b.accuracy ? a : b;
       steps.push({
-        text: `${t('analytics.stepSkillA')} ${t(`dashboard.${behind.skill}`)} (${behind.accuracy}%) — ${t('analytics.stepSkillB')}`
+        text: `${t('analytics.stepSkillA')} ${t(`dashboard.${behind.skill}`)} (${behind.accuracy}%) — ${t('analytics.stepSkillB')}`,
+        // Bu qadam savol turi haqida emas, butun bo'lim haqida — shuning uchun
+        // filtrsiz, faqat o'sha bo'limning ro'yxatiga.
+        href: buildPracticeLink(behind.skill, 'completion')?.split('?')[0] || null
       });
     }
   }
@@ -86,7 +111,9 @@ function buildSteps(analytics, t) {
 
 export default function ActionPlan({ analytics, hasPro }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const wordBank = useAddToWordBank(user);
 
   const steps = hasPro ? buildSteps(analytics, t) : TEASER_STEPS.map((text) => ({ text }));
   const repeated = hasPro
@@ -106,9 +133,21 @@ export default function ActionPlan({ analytics, hasPro }) {
               <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warm-primary/10 text-xs font-bold text-warm-primary">
                 {index + 1}
               </span>
-              <p className="text-sm font-medium leading-relaxed text-warm-body dark:text-warm-on-dark">
-                {step.text}
-              </p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium leading-relaxed text-warm-body dark:text-warm-on-dark">
+                  {step.text}
+                </p>
+                {step.href && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(step.href)}
+                    className="mt-1.5 inline-flex items-center gap-1 rounded text-xs font-bold text-warm-primary transition-colors hover:text-warm-primary-active"
+                  >
+                    {step.linkLabel || t('analytics.stepPractice')}
+                    <ArrowRight size={12} />
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ol>
@@ -122,18 +161,42 @@ export default function ActionPlan({ analytics, hasPro }) {
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {repeated.map((row) => (
-              <span
-                key={row.correctText}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-warm-hairline bg-warm-canvas px-2.5 py-1.5 text-xs font-semibold text-warm-body dark:border-white/10 dark:bg-white/5 dark:text-warm-on-dark"
-              >
-                {row.correctText}
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-warm-warning">
-                  <Repeat size={10} />
-                  {row.count}
+            {repeated.map((row) => {
+              // Bir necha so'zli javobni lug'atga qo'shish ma'nosiz — lug'at
+              // so'zlar uchun, ibora uchun emas.
+              const single = hasPro && !/\s/.test(row.correctText.trim());
+              const done = wordBank.added.has(row.correctText.trim());
+
+              return (
+                <span
+                  key={row.correctText}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-warm-hairline bg-warm-canvas px-2.5 py-1.5 text-xs font-semibold text-warm-body dark:border-white/10 dark:bg-white/5 dark:text-warm-on-dark"
+                >
+                  {row.correctText}
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-warm-warning">
+                    <Repeat size={10} />
+                    {row.count}
+                  </span>
+
+                  {single && (
+                    <button
+                      type="button"
+                      disabled={done || wordBank.pending === row.correctText.trim()}
+                      onClick={() => wordBank.addWord(row.correctText)}
+                      title={done ? t('analytics.addedToWordBank') : t('analytics.addToWordBank')}
+                      aria-label={done ? t('analytics.addedToWordBank') : t('analytics.addToWordBank')}
+                      className={`-mr-1 ml-0.5 rounded p-0.5 transition-colors ${
+                        done
+                          ? 'text-warm-success'
+                          : 'text-warm-muted-soft hover:text-warm-primary'
+                      }`}
+                    >
+                      {done ? <Check size={12} /> : <Plus size={12} />}
+                    </button>
+                  )}
                 </span>
-              </span>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
