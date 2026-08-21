@@ -3,24 +3,15 @@ import React, { useState } from 'react';
 import { extractTableQuestions } from '../../../utils/tableQuestions';
 // Tur → renderer moslamasi ham bitta manbadan: validator "bu turni renderer
 // taniydimi?" degan savolga dispatcher bilan AYNI javobni berishi shart.
-import { resolveListeningRenderer, KNOWN_LISTENING_TYPES } from '../../../utils/questionTypeRegistry';
+import { resolveListeningRenderer, KNOWN_LISTENING_TYPES, isNonScoredItem } from '../../../utils/questionTypeRegistry';
 import { isMultiAnswerType } from '../../../utils/ieltsScoring';
+// Part chegaralari admin sahifasi bilan AYNI funksiyada hisoblanadi — validator
+// "imtihonda nima bo'lishini" aytadi, "nima yozilganini" emas.
+import { analyzeListeningParts } from '../../../utils/listeningSegments';
 
-const isArrowGlyph = (text) => ["↓", "▼", "⬇", "arrow", "⇓"].includes(String(text || '').trim());
-
-// Decorative/non-scored pseudo-items (section headings, arrow connectors, header boxes)
-// are legitimately missing id/answer by design — the exam-taking renderers skip them too,
-// so the validator must not flag them as errors.
-export const isNonScoredItem = (q, itemIdx) => {
-    if (!q || typeof q !== 'object' || Object.keys(q).length === 0) return true;
-    if (q.isInfo || q.type === 'info' || q.type === 'text' || q.type === 'instruction' || q.isExample || q.type === 'example') return true;
-    if (q.type === 'heading') return true;
-    const itemText = typeof q.text === 'object' ? q.text?.text : q.text;
-    if (isArrowGlyph(itemText)) return true;
-    const hasInput = itemText && String(itemText).includes('[INPUT]');
-    if (itemIdx === 0 && q.isQuestion === false && !hasInput) return true;
-    return false;
-};
+// Baholanmaydigan elementlarni ajratish qoidasi `questionTypeRegistry` da —
+// skriptlar va testlar ham undan foydalanadi.
+export { isNonScoredItem };
 
 // Bu turdagi xatolar bilan test o'quvchida buziladi — ularni "baribir saqlash" bilan
 // o'tkazib yuborib bo'lmaydi.
@@ -95,6 +86,25 @@ export function runValidation(testData) {
                 errors.push({ id: `listening-p${num}-audio`, message: `Part ${num}: Audio fayli kiritilmagan`, category: 'Media & Audio' });
             }
         });
+
+        // Segment chegaralari: bo'shliq/ustma-ustlik va noto'g'ri yozilgan vaqtlar.
+        // Audio umuman biriktirilmagan bo'lsa tekshirilmaydi — u holda yuqoridagi
+        // "audio yo'q" xatosi yetarli, vaqt haqidagi shovqin ortiqcha.
+        const hasAudio = !!testData.audio_url || passages.some(p => p.audio);
+        if (hasAudio) {
+            analyzeListeningParts(passages, passages.length).forEach(part => {
+                part.issues.forEach(issue => {
+                    const entry = {
+                        id: `listening-p${part.index + 1}-${issue.code}`,
+                        message: `Part ${part.index + 1}: ${issue.message}`,
+                        category: 'Media & Audio',
+                        path: ['passages', part.index]
+                    };
+                    if (issue.level === 'error') errors.push(entry);
+                    else warnings.push(entry);
+                });
+            });
+        }
     }
 
     // 3. Questions and Answers
@@ -134,9 +144,25 @@ export function runValidation(testData) {
         // tushardi: variantsiz guruh javob maydonisiz chizilib, talaba savolga
         // javob bera olmasdi — ball esa uni maxrajga qo'shib bandni tushirardi.
         // Publish paytida ushlamasak, buni faqat talabaning shikoyatidan bilamiz.
+        // Turi UMUMAN yo'q guruh — har ikkala bo'lim uchun ham xato.
+        //
+        // Bazada shunday guruh topilgan (audit): 4 ta variantli, aniq MCQ savol,
+        // lekin `type` yozilmagan. Reading tasnifi bunday guruhni hech bir
+        // bayroqqa bog'lamaydi va u gap-fill bo'lib chiziladi: talaba BO'SH
+        // MATN MAYDONI ko'radi, variantlar esa ekranda umuman ko'rinmaydi —
+        // savolga javob berib bo'lmaydi, lekin u ball maxrajiga kiradi.
+        if (!String(group.type || '').trim()) {
+            errors.push({
+                id: `group-${gIdx}-no-type`,
+                message: `Savollar Guruhi #${gIdx + 1}: savol turi (type) yozilmagan — savol javob maydonisiz chiziladi, lekin ballga kiradi`,
+                category: 'Savollar Tuzilishi',
+                path: groupPath
+            });
+        }
+
         if (type === 'listening') {
             const known = resolveListeningRenderer(group.type) !== null || isMultiAnswerType(group.type);
-            if (!known) {
+            if (!known && String(group.type || '').trim()) {
                 errors.push({
                     id: `group-${gIdx}-unknown-type`,
                     message: `Savollar Guruhi #${gIdx + 1}: "${group.type || '(bo\'sh)'}" savol turini interfeys tanimaydi — savollar javob maydonisiz chiziladi. Ruxsat etilgan turlar: ${KNOWN_LISTENING_TYPES.join(', ')}`,

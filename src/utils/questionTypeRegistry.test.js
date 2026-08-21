@@ -20,6 +20,8 @@ import {
   resolveListeningRenderer,
   hasAnyOptions,
   classifyReadingGroup,
+  resolveReadingRenderer,
+  isNonScoredItem,
   KNOWN_LISTENING_TYPES,
   LISTENING_RENDERERS
 } from './questionTypeRegistry.js';
@@ -200,4 +202,66 @@ test('reading: yaroqsiz kirish xatolik bermaydi', () => {
   for (const bad of [null, undefined, {}, { type: null }, { options: 'matn' }]) {
     assert.doesNotThrow(() => classifyReadingGroup(bad, false));
   }
+});
+
+test('reading: turi yo\'q, lekin variantlari bor guruh — Choice', () => {
+  // ⚠️ Bazadagi HAQIQIY nuqson (audit orqali topilgan): `type` maydoni
+  // yozilmagan, 4 ta variantli MCQ savol. GapFill uni bo'sh matn maydoni
+  // qilib chizardi va variantlar ekranda umuman ko'rinmasdi — javob berib
+  // bo'lmaydigan, lekin baholanadigan savol.
+  const g = {
+    options: ['A. Birinchi', 'B. Ikkinchi', 'C. Uchinchi', 'D. To\'rtinchi'],
+    items: [{ id: '34', text: 'Muallifning asosiy fikri nima?', answer: 'B' }]
+  };
+  assert.equal(resolveReadingRenderer(g, false), 'Choice');
+});
+
+test('reading: [DROP] belgili guruh variantlari bo\'lsa ham GapFill bo\'lib qoladi', () => {
+  // GapFill bunday guruh uchun O'ZI dropdown chizadi — bazadagi 85 ta
+  // `matching` guruhi aynan shunday ishlaydi. Yuqoridagi qoida ularga
+  // TEGMASLIGI shart.
+  const g = {
+    type: 'matching',
+    instruction: 'Which paragraph contains the following information?',
+    options: ['A', 'B', 'C'],
+    items: [{ id: '1', text: 'ma\'lumot [DROP]' }]
+  };
+  assert.equal(resolveReadingRenderer(g, false), 'GapFill');
+});
+
+test('reading: variantsiz va belgisiz guruh GapFill bo\'lib qoladi', () => {
+  const g = { type: 'short_answer', items: [{ id: '1', text: 'Savol? [INPUT]', answer: 'javob' }] };
+  assert.equal(resolveReadingRenderer(g, false), 'GapFill');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BAHOLANMAYDIGAN ELEMENTLAR
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('isNonScoredItem: dekorativ elementlar savol emas', () => {
+  assert.equal(isNonScoredItem({ type: 'info' }, 1), true);
+  assert.equal(isNonScoredItem({ type: 'heading' }, 1), true);
+  assert.equal(isNonScoredItem({ isExample: true }, 1), true);
+  assert.equal(isNonScoredItem({ text: '↓' }, 1), true);
+  assert.equal(isNonScoredItem({}, 1), true);
+  assert.equal(isNonScoredItem(null, 1), true);
+});
+
+test('isNonScoredItem: `heading_N` ID li sarlavha katakchalari', () => {
+  // ⚠️ Bu qoida qo'shildi (avval yo'q edi). Bazadagi note_completion va
+  // gap_fill guruhlarida bo'lim sarlavhalari `heading_1`, `heading_2` … ID si
+  // bilan yoziladi. Ularda javob kaliti YO'Q va bo'lishi ham shart emas —
+  // ular savol emas. Ilgari validator ularni "kaliti yo'q savol" deb xato
+  // ko'rsatardi va "kalitsiz savollar" hisoboti ham ularni sanardi
+  // (93 o'rniga 215 ta).
+  assert.equal(isNonScoredItem({ id: 'heading_1', text: 'People' }, 3), true);
+  assert.equal(isNonScoredItem({ id: 'heading-2', text: 'Animals' }, 4), true);
+  assert.equal(isNonScoredItem({ id: 'heading', text: 'Research' }, 5), true);
+});
+
+test('isNonScoredItem: haqiqiy savol filtrlanmaydi', () => {
+  assert.equal(isNonScoredItem({ id: '11', text: 'Savol? [INPUT]', answer: 'x' }, 2), false);
+  assert.equal(isNonScoredItem({ id: '12', answer: 'x' }, 2), false);
+  // "heading" so'zi ID ning bir qismi bo'lsa ham, u sarlavha shakli emas.
+  assert.equal(isNonScoredItem({ id: 'heading_extra_1', text: 'Savol' }, 2), false);
 });

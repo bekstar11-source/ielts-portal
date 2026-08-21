@@ -11,6 +11,7 @@
     "mirror": "node scripts/mirror-shared.mjs",
     "check:mirror": "node scripts/mirror-shared.mjs --check",
     "audit:types": "node scripts/audit-question-types.mjs",
+    "backfill:question-counts": "node scripts/backfill-question-counts.mjs",
     "test:functions": "node --test functions/*.test.js",
     "test:utils": "node --test \"src/**/*.test.js\"",
     "test": "npm run check:mirror && npm run test:functions && npm run test:utils",

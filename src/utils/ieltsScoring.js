@@ -208,37 +208,47 @@ export const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'i
  * @param {object} node
  * @returns {Set<number>} savol raqamlari
  */
+/**
+ * ID qamrab olgan savol RAQAMLARI.
+ *
+ *   "7"      → [7]
+ *   "23-24"  → [23, 24]      (defis, en tire, em tire)
+ *   "23,24"  → [23, 24]
+ *   "q_a"    → []            (raqamli emas)
+ *
+ * Bitta savol bazada IKKI XIL ID bilan yozilishi mumkin — merged testlarda
+ * "23-24" diapazoni va alohida "23" / "24" yozuvlari yonma-yon uchraydi.
+ * Ularni bir xil raqamlarga keltirmasak, bitta savol ikki marta sanaladi.
+ */
+export const expandQuestionId = (rawId) => {
+    const idStr = String(rawId ?? '').trim();
+    if (!idStr) return [];
+
+    const range = idStr.split(/[-–—]/).map(x => x.trim());
+    if (range.length === 2 && /^\d+$/.test(range[0]) && /^\d+$/.test(range[1])) {
+        const a = Number(range[0]);
+        const b = Number(range[1]);
+        const out = [];
+        for (let n = Math.min(a, b); n <= Math.max(a, b); n++) out.push(n);
+        return out;
+    }
+
+    if (idStr.includes(',')) {
+        return idStr.split(',').map(x => parseInt(x.trim(), 10)).filter(n => !isNaN(n));
+    }
+
+    const n = parseInt(idStr, 10);
+    return isNaN(n) ? [] : [n];
+};
+
 export const collectQuestionNumbers = (node) => {
     const nums = new Set();
 
     /** @returns {number} nechta savol raqami topildi (0 = bu id savol raqami emas) */
     const addId = (rawId) => {
-        const idStr = String(rawId ?? '').trim();
-        if (!idStr) return 0;
-
-        // "35-36" / "35–36" — diapazon, ya'ni bir nechta savol.
-        const range = idStr.split(/[-–—]/).map(x => x.trim());
-        if (range.length === 2 && /^\d+$/.test(range[0]) && /^\d+$/.test(range[1])) {
-            const a = Number(range[0]);
-            const b = Number(range[1]);
-            for (let n = Math.min(a, b); n <= Math.max(a, b); n++) nums.add(n);
-            return Math.abs(b - a) + 1;
-        }
-
-        // "23,24" — ro'yxat.
-        if (idStr.includes(',')) {
-            let found = 0;
-            idStr.split(',').forEach(part => {
-                const n = parseInt(part.trim(), 10);
-                if (!isNaN(n)) { nums.add(n); found += 1; }
-            });
-            return found;
-        }
-
-        const n = parseInt(idStr, 10);
-        if (isNaN(n)) return 0;
-        nums.add(n);
-        return 1;
+        const found = expandQuestionId(rawId);
+        found.forEach(n => nums.add(n));
+        return found.length;
     };
 
     // `passages` / `sections` elementlarining O'Z id si savol raqami emas —
@@ -624,6 +634,12 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
     const mistakes = [];
     const missingKeys = [];   // talaba javob bergan, lekin javob kaliti yo'q savollar
     const scoredIds = new Set();
+    // Savol RAQAMLARI bo'yicha dedupe. `scoredIds` faqat ID SATRINI biladi,
+    // shuning uchun bitta savol "23-24" va "23"/"24" ko'rinishida ikki marta
+    // yozilgan bo'lsa (merged testlarda uchraydi), ikkalasi ham maxrajga
+    // kirardi: talaba 36 ta savolga javob berib, 40 tadan baholanardi va
+    // hammasini to'g'ri yechsa ham bandi tushib ketardi.
+    const scoredNumbers = new Set();
 
     // Savol turlari kesimidagi statistika: { multiple_choice: { total, correct } }.
     // Xatolar tahlili (Pro) shu yerdan oziqlanadi — faqat xatolar ro'yxatining o'zi
@@ -707,7 +723,11 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
                 if (result.matches < result.weight && allUser.trim()) {
                     mistakes.push({ questionId: groupItems.map(i => i.id).join(', '), userResponse: allUser, correctAnswer: allCorrect, isMulti: true, questionType: canonicalQuestionType(currentType) });
                 }
-                groupItems.forEach(i => scoredIds.add(String(i.id).trim()));
+                groupItems.forEach(i => {
+                    const gid = String(i.id).trim();
+                    scoredIds.add(gid);
+                    expandQuestionId(gid).forEach(n => scoredNumbers.add(n));
+                });
                 return;
             }
         }
@@ -715,8 +735,16 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
         const itemAns = getAnswerKey(obj);
         if (obj.id && itemAns !== undefined) {
             const idStr = String(obj.id).trim();
-            if (!scoredIds.has(idStr)) {
+            // Raqamlari ALLAQACHON to'liq baholangan bo'lsa, bu — o'sha savolning
+            // ikkinchi yozuvi. Qisman ustma-ustlik (bir qismi baholangan) juda
+            // kam uchraydi va oldingidek to'liq baholanadi — jimgina yarim ball
+            // berishdan ko'ra tushunarli xatti-harakat.
+            const idNumbers = expandQuestionId(idStr);
+            const alreadyScored = idNumbers.length > 0 && idNumbers.every(n => scoredNumbers.has(n));
+
+            if (!scoredIds.has(idStr) && !alreadyScored) {
                 scoredIds.add(idStr);
+                idNumbers.forEach(n => scoredNumbers.add(n));
                 const userResp = userAnswers[idStr] || "";
                 const weight = getQuestionWeight(idStr);
 

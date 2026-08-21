@@ -223,5 +223,59 @@ export const resolveReadingRenderer = (group, isMultiAnswer) => {
   if (f.isSummary && !f.isFlowChart) return 'SummaryGapFill';
   if (f.isFlowChart) return 'FlowChart';
   if (f.isChoiceType && !f.isMatching) return 'Choice';
+
+  // Variantlar bor, lekin ularni HECH KIM chizmaydigan holat.
+  //
+  // Bazada `type` maydoni umuman yo'q guruh uchraydi (audit: 1 ta —
+  // 4 ta variantli, aniq MCQ savol). GapFill uni bo'sh MATN MAYDONI qilib
+  // chizadi va `showStaticOptions` ham false bo'lgani uchun variantlar
+  // ekranda umuman ko'rinmaydi: savolga javob berib bo'lmaydi, lekin u ball
+  // maxrajiga kiradi.
+  //
+  // `[DROP]` / `[INPUT]` belgisi bo'lsa GapFill O'ZI dropdown chizadi —
+  // bunday guruhlar haqli ravishda GapFill bo'lib qoladi. Shart faqat
+  // belgisiz guruhlarga tegishli.
+  if (hasOptions) {
+    const hasGapMarker = Array.isArray(group?.items) && group.items.some(
+      (i) => typeof i?.text === 'string' && (i.text.includes('[DROP]') || i.text.includes('[INPUT]'))
+    );
+    if (!hasGapMarker) return 'Choice';
+  }
+
   return 'GapFill';
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BAHOLANMAYDIGAN ELEMENTLAR
+//
+// Guruh ichida savol bo'lmagan elementlar bo'ladi: bo'lim sarlavhalari,
+// yo'nalish o'qlari, "Example" qatorlari, sarlavha katakchalari. Ularda `id`
+// bo'lishi mumkin, lekin javob kaliti YO'Q — va bu to'g'ri, chunki ular savol
+// emas. Test yechish interfeysi ham ularni o'tkazib yuboradi.
+//
+// Qoida ilgari `TestValidator.jsx` ichida yashardi — JSX fayl bo'lgani uchun
+// uni na skript, na test import qila olardi. Natijada "kaliti yo'q savollar"
+// hisoboti sarlavhalarni ham savol deb sanardi.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const isArrowGlyph = (text) => ['↓', '▼', '⬇', 'arrow', '⇓'].includes(String(text || '').trim());
+
+/**
+ * @param {object} q       guruh ichidagi element
+ * @param {number} itemIdx elementning guruhdagi tartibi
+ */
+export const isNonScoredItem = (q, itemIdx) => {
+  if (!q || typeof q !== 'object' || Object.keys(q).length === 0) return true;
+  if (q.isInfo || q.type === 'info' || q.type === 'text' || q.type === 'instruction' || q.isExample || q.type === 'example') return true;
+  if (q.type === 'heading') return true;
+
+  const itemText = typeof q.text === 'object' ? q.text?.text : q.text;
+  if (isArrowGlyph(itemText)) return true;
+
+  // Sarlavha katakchalari `heading_1`, `heading_2` … ko'rinishida yoziladi.
+  if (/^heading[_-]?\d*$/i.test(String(q.id ?? ''))) return true;
+
+  const hasInput = itemText && String(itemText).includes('[INPUT]');
+  if (itemIdx === 0 && q.isQuestion === false && !hasInput) return true;
+  return false;
 };

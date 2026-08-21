@@ -325,16 +325,32 @@ export const mergeTestsLogic = (selectedTestObjects, mergeTitle, options = {}) =
                     return newNum;
                 };
 
+                const CHILD_KEYS = ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts'];
+
                 const walkAndReindex = (obj) => {
                     if (!obj || typeof obj !== 'object') return obj;
                     if (Array.isArray(obj)) return obj.map(walkAndReindex);
                     const updated = { ...obj };
                     if (updated.passageId) updated.passageId = newPassageId;
 
-                    const hasChildren = ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts']
-                        .some(k => Array.isArray(updated[k]));
+                    // AVVAL bolalar: ular savol berdimi?
+                    //
+                    // Ilgari bu yerda oddiy `hasChildren` tekshiruvi turardi va
+                    // "bolasi bor ⇒ konteyner" deb qaralardi. Lekin jadval
+                    // katakchasida `id` bor-u `parts` faqat MATNDAN iborat
+                    // bo'lishi mumkin: u haqiqiy savol (renderer ham,
+                    // `getCellQuestions` ham shunday biladi), lekin konteyner
+                    // deb hisoblanib QAYTA RAQAMLANMASDI. Birlashtirilgan
+                    // testda ikkala manbadagi katakcha ham eski `id` bilan
+                    // qolib, savollar bir-birini bosib ketardi — yarmi ball
+                    // hisobidan tushib qolardi.
+                    const before = assignedNumbers.length;
+                    for (const key of CHILD_KEYS) {
+                        if (updated[key]) updated[key] = walkAndReindex(updated[key]);
+                    }
+                    const childrenAssigned = assignedNumbers.length - before;
 
-                    if (updated.id != null && !hasChildren) {
+                    if (updated.id != null && childrenAssigned === 0) {
                         const idStr = String(updated.id);
                         if (/^\d+$/.test(idStr)) {
                             updated.id = String(assign(parseInt(idStr, 10)));
@@ -358,9 +374,6 @@ export const mergeTestsLogic = (selectedTestObjects, mergeTitle, options = {}) =
                         }
                     }
 
-                    for (const key of ['items', 'questions', 'groups', 'rows', 'cells', 'content', 'parts']) {
-                        if (updated[key]) updated[key] = walkAndReindex(updated[key]);
-                    }
                     return updated;
                 };
 
@@ -556,11 +569,24 @@ export const getActualQuestionCount = (test, partNumber = null) => {
     if (!test) return 0;
 
     const partNum = partNumber ?? test.partNumber ?? test.part_number ?? null;
-    if (partNum == null && test.totalQuestions) return test.totalQuestions;
 
     let items = test.questions || test.sections;
+
+    // USTUVORLIK: kontent → saqlangan son → taxmin.
+    //
+    // Ilgari saqlangan `totalQuestions` kontentdan USTUN turardi va hisob
+    // umuman bajarilmasdi — test tahrirlangandan keyin eskirgan son ko'rinib
+    // qolardi. Kontent bor bo'lsa, haqiqat o'sha.
+    if (partNum == null && Number(test.totalQuestions) > 0 && (!items || !Array.isArray(items))) {
+        return Number(test.totalQuestions);
+    }
+
     if (!items || !Array.isArray(items)) {
-        // Fallback if no questions array
+        // ⚠️ TAXMIN. Bu yerga faqat `questions` ham, saqlangan `totalQuestions`
+        // ham bo'lmaganda tushiladi — ya'ni `totalQuestions` maydoni
+        // qo'shilishidan OLDIN yozilgan eski `tests_metadata` hujjatlari uchun.
+        // Yangi va tahrirlangan testlarda bu yo'l ishlamaydi.
+        // Eski hujjatlarni to'ldirish uchun: `npm run backfill:question-counts`.
         const type = test.type?.toLowerCase() || "";
         if (partNum != null) {
             return type === 'reading' ? 13 : 10;

@@ -20,7 +20,7 @@
 
 import { createRequire } from 'node:module';
 import { resolveListeningRenderer, normalizeTypeKey } from '../src/utils/questionTypeRegistry.js';
-import { isMultiAnswerType } from '../src/utils/ieltsScoring.js';
+import { isMultiAnswerType, collectQuestionNumbers } from '../src/utils/ieltsScoring.js';
 import { canonicalQuestionType } from '../src/utils/questionTypes.js';
 
 const PROJECT = 'ielts-portal-v1';
@@ -80,20 +80,14 @@ async function fetchPage(token, pageToken) {
 }
 
 /**
- * Guruh ichida savol elementi bormi? Registrga qo'shish qaroriga ta'sir qiladi:
- * savolsiz dekorativ guruhni tur sifatida ro'yxatga olish shart emas.
+ * Guruhdagi savollar soni.
+ *
+ * ⚠️ Bu yerda ALOHIDA sanagich yozilmaydi: `collectQuestionNumbers` — ball
+ * hisobi, kartochka va footer bilan bitta manba. Audit o'z sanog'ini yozsa,
+ * u boshqalardan siljib ketardi va aynan shu siljishni topish uchun yozilgan
+ * skript o'zi noto'g'ri raqam ko'rsatardi.
  */
-const countItems = (group) => {
-  let n = 0;
-  const walk = (o) => {
-    if (!o || typeof o !== 'object') return;
-    if (Array.isArray(o)) { o.forEach(walk); return; }
-    if (o.id != null) n += 1;
-    ['questions', 'items', 'groups', 'rows', 'cells', 'content', 'parts'].forEach((k) => walk(o[k]));
-  };
-  ['questions', 'items', 'groups', 'rows'].forEach((k) => walk(group[k]));
-  return n;
-};
+const countItems = (group) => collectQuestionNumbers(group).size;
 
 const hasOptionsDeep = (group) => {
   let found = false;
@@ -163,16 +157,21 @@ async function run() {
   }
 
   console.log(`\nSkanerlangan test: ${scanned}\n`);
-  console.log('TUR'.padEnd(26), 'GURUH'.padStart(6), 'SAVOL'.padStart(6), 'OPT'.padStart(5), '  LISTENING RENDERER   TAHLIL OILASI');
-  console.log('-'.repeat(100));
+  console.log('TUR'.padEnd(20), 'GURUH'.padStart(6), 'SAVOL'.padStart(6), 'OPT'.padStart(4),
+              ' READING'.padStart(9), 'LISTENING'.padStart(10), '  RENDERER (listening)  TAHLIL');
+  console.log('-'.repeat(112));
   for (const r of rows) {
     const rend = r.multiSelect ? 'SelectionBox' : (r.renderer ?? '❌ TANILMAYDI');
     const fam = r.family === 'other' ? '⚠️ other' : r.family;
+    const rd = r.skills.reading || 0;
+    const ls = r.skills.listening || 0;
     console.log(
-      r.type.padEnd(26),
+      r.type.padEnd(20),
       String(r.groups).padStart(6),
       String(r.items).padStart(6),
-      String(r.withOptions).padStart(5),
+      String(r.withOptions).padStart(4),
+      String(rd).padStart(9),
+      String(ls).padStart(10),
       '  ' + rend.padEnd(20),
       fam
     );

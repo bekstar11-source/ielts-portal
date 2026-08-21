@@ -6,6 +6,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { invalidateAdminTestsCache } from "../utils/adminTestsCache";
 import { parseAudioTime } from "../utils/audioTime";
+import { collectQuestionNumbers } from "../utils/ieltsScoring";
 import { 
     detectSectionFromQuestions, 
     getQuestionTypesFromQuestions,
@@ -50,6 +51,16 @@ const compileMetadata = (testId, payload) => {
         collectionId: payload.collectionId && payload.collectionId !== "None" ? payload.collectionId : null,
         thumbnail: payload.thumbnail || "",
         combinedContent: combinedContent.trim(),
+        // Savollar soni SAQLASH PAYTIDA hisoblanadi.
+        //
+        // `tests_metadata` hujjatlarida `questions` massivi yo'q (kartochkalar
+        // yengil bo'lishi uchun), shuning uchun kartochka sonni hisoblay
+        // olmasdi va sarlavhaga qarab TAXMIN qilardi:
+        // `title.includes('full') ? 40 : 13`. Ya'ni o'quvchi ko'rgan "13 ta
+        // savol" yozuvi haqiqiy son emas edi. Bu son testlarni "full" va
+        // "part" ro'yxatlariga ajratishda ham ishlatiladi (`> 14`), shuning
+        // uchun taxmin faqat ko'rsatishga emas, filtrga ham ta'sir qilardi.
+        totalQuestions: collectQuestionNumbers(payload).size || null,
     };
 
     if (payload.type === 'listening') {

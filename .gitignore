@@ -25,3 +25,11 @@ dist-ssr
 # Environment variables (SECRETS)
 .env
 .env.*
+
+# Service account kalitlari (SECRETS) — loyihaga yuklab olinsa, hech qachon commit qilinmasin.
+serviceAccountKey.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+
+# Auditdan generatsiya qilinadigan hisobotlar (repo'da saqlanmaydi)
+KALITSIZ_SAVOLLAR.txt

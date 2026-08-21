@@ -53,7 +53,12 @@ const getActualQuestionCount = (questions) => {
     const cacheKey = `${questions.length}-${questions[0]?.id || 'no-id'}`;
     if (questionCountCache.has(cacheKey)) return questionCountCache.get(cacheKey);
 
-    const count = collectQuestionNumbers({ questions }).size || questions.length;
+    // Raqamli ID topilmasa 0 qaytadi — ATAYLAB. Ilgari bu yerda
+    // `|| questions.length` turardi va u GURUHLAR sonini qaytarardi:
+    // 4 guruhli test "4 ta savol" deb ko'rinardi. Ikkala chaqiruvchi ham
+    // 0 ni to'g'ri qayta ishlaydi (saqlangan `totalQuestions` ga o'tadi),
+    // shuning uchun noto'g'ri sondan ko'ra "bilmadim" yaxshiroq.
+    const count = collectQuestionNumbers({ questions }).size;
     questionCountCache.set(cacheKey, count);
     return count;
 };

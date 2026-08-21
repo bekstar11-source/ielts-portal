@@ -14,6 +14,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 
 import { collectQuestionNumbers } from './ieltsScoring.js';
+import { getActualQuestionCount } from './TestUtils.js';
 
 const nums = (node) => [...collectQuestionNumbers(node)].sort((a, b) => a - b);
 
@@ -103,4 +104,37 @@ test('yaroqsiz kirish xatolik bermaydi', () => {
 test('sikl bo\'lmagan chuqur ichma-ichlik', () => {
   const t = { sections: [{ groups: [{ questions: [{ items: [{ id: '12' }] }] }] }] };
   assert.deepEqual(nums(t), [12]);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getActualQuestionCount — USTUVORLIK: kontent → saqlangan son → taxmin
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('kontent saqlangan `totalQuestions` dan USTUN', () => {
+  // Ilgari saqlangan son kontentdan ustun turardi va hisob umuman
+  // bajarilmasdi: test tahrirlangandan keyin eskirgan son ko'rinib qolardi.
+  const t = {
+    type: 'reading',
+    totalQuestions: 99,
+    passages: [{ id: 'p1' }],
+    questions: [{ passageId: 'p1', items: [{ id: '1' }, { id: '2' }] }]
+  };
+  assert.equal(getActualQuestionCount(t), 2);
+});
+
+test('kontent bo\'lmasa saqlangan son ishlatiladi (taxmin EMAS)', () => {
+  // `tests_metadata` hujjatlarida `questions` yo'q — kartochka aynan shu
+  // yo'ldan o'tadi. Saqlangan son bo'lsa, sarlavhaga qarab taxmin qilinmaydi.
+  const t = { type: 'reading', title: 'IELTS Full Test 1', totalQuestions: 40 };
+  assert.equal(getActualQuestionCount(t), 40);
+
+  const part = { type: 'reading', title: 'Passage 2', totalQuestions: 13 };
+  assert.equal(getActualQuestionCount(part), 13);
+});
+
+test('kontent ham, saqlangan son ham yo\'q — oxirgi chora taxmini', () => {
+  // Bu yo'l faqat `totalQuestions` maydoni qo'shilishidan OLDIN yozilgan
+  // eski hujjatlar uchun qoladi (`npm run backfill:question-counts`).
+  const t = { type: 'reading', title: 'IELTS Full Test 1' };
+  assert.equal(getActualQuestionCount(t), 40);
 });
