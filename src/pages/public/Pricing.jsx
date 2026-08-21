@@ -8,6 +8,7 @@ import DashboardModals from '../../components/dashboard/DashboardModals';
 import SiteFooter from '../../components/common/SiteFooter';
 import { useTranslation } from '../../context/LanguageContext';
 import Navbar from '../../components/common/Navbar';
+import { useSeo } from '../../hooks/useSeo';
 import {
   getSignupDiscount,
   discountAppliesTo,
@@ -32,6 +33,14 @@ export default function PricingPage() {
   const { user, logout, userData } = useAuth();
   const navigate = useNavigate();
   const [billing, setBilling] = useState('monthly');
+
+  useSeo({
+    title: "Narxlar — ENGLEV obuna tariflari",
+    description:
+      "ENGLEV tariflari: bepul sinov, Standard va Pro. Oylik va 3 oylik obuna, " +
+      "o'quv markazlari uchun guruh tariflari.",
+    path: "/pricing",
+  });
 
   // Ilgari uid o'rniga `'guest'` yuborilardi: o'quvchi to'lovni qilib bo'lgach
   // bot `users/guest` hujjatini topolmay xato berardi. Endi avval login.

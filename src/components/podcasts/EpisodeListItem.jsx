@@ -50,7 +50,7 @@ export default function EpisodeListItem({
     const handleLikeClick = (e) => {
         e.stopPropagation();
         if (!user?.uid) {
-            navigate('/auth/login');
+            navigate('/login');
             return;
         }
         toggleLike(user.uid, p.id);

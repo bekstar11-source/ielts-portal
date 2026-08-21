@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "../../firebase/firebase";
-import { collection, getDocs, query, orderBy, limit, startAfter } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, startAfter, where } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     BookOpen, Search, ChevronRight, Clock, User,
@@ -12,6 +12,8 @@ import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import { useAuth } from "../../context/AuthContext";
 import SiteFooter from "../../components/common/SiteFooter";
 import BottomNav from "../../components/dashboard/BottomNav";
+import Navbar from "../../components/common/Navbar";
+import { useSeo } from "../../hooks/useSeo";
 import { useTranslation } from "../../context/LanguageContext";
 
 import { stripHtml } from "../../utils/textUtils";
@@ -26,9 +28,15 @@ import Logo from "../../components/common/Logo";
 const CATEGORY_INITIAL_LIMIT = 6;
 
 export default function Articles() {
-    const { user, userData, updateUserLocalData } = useAuth();
+    const { user, userData, updateUserLocalData, isGuest } = useAuth();
     const { t } = useTranslation();
     const isTeacher = userData?.role === 'teacher';
+
+    // Anonim (trial) sessiyada `user` to'ldirilgan bo'ladi, lekin Firestore
+    // uni avtorizatsiya qilingan deb HISOBLAMAYDI — saqlash/qarsak kabi
+    // yozuvlar rad etiladi. Shuning uchun maqolalar sahifasi uchun bunday
+    // sessiya ham oddiy mehmon.
+    const isVisitor = !user || isGuest;
     const navigate = useNavigate();
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -84,8 +92,8 @@ export default function Articles() {
 
     const handleToggleSave = async (e, articleId) => {
         e.stopPropagation();
-        if (!user) {
-            navigate('/auth/login');
+        if (isVisitor) {
+            navigate('/register');
             return;
         }
         if (savingId) return;
@@ -115,9 +123,12 @@ export default function Articles() {
 
     const popularArticles = useMemo(() => getPopularArticles(articles, 5), [articles]);
 
+    // `isVisitor` o'zgarsa (chiqish/kirish) ro'yxat qayta yuklanadi — mehmon
+    // va a'zo uchun so'rov har xil (pastga qarang).
     useEffect(() => {
         fetchArticles(true);
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isVisitor]);
 
     const fetchArticles = async (isInitial = false) => {
         if (isInitial) {
@@ -128,14 +139,23 @@ export default function Articles() {
             setLoadingMore(true);
         }
         try {
+            // ⚠️ Mehmon so'roviga `where('isMemberOnly','==',false)` SHART.
+            // Firestore ommaviy o'qishda qoidani har bir hujjatga emas,
+            // BUTUN so'rovga qo'llaydi: filtrsiz so'rov premium maqolani ham
+            // qamrab olishi mumkin deb hisoblanadi va butunlay rad etiladi
+            // (natijada mehmon bo'sh ro'yxat ko'rardi, xatosiz).
+            const visibility = isVisitor ? [where("isMemberOnly", "==", false)] : [];
+
             let q = query(
                 collection(db, "articles"),
+                ...visibility,
                 orderBy("createdAt", "desc"),
                 limit(12)
             );
             if (!isInitial && lastVisible) {
                 q = query(
                     collection(db, "articles"),
+                    ...visibility,
                     orderBy("createdAt", "desc"),
                     startAfter(lastVisible),
                     limit(12)
@@ -224,8 +244,30 @@ export default function Articles() {
     });
     const feedLoading = showSavedOnly ? savedLoading : loading;
 
+    // Ro'yxat sahifasining o'z sarlavhasi va tavsifi — `index.html` dagi
+    // umumiy matn har bir marshrutda takrorlanmasin.
+    useSeo({
+        title: "Ingliz tili maqolalari — daraja bo'yicha o'qish (B1, B2, C1)",
+        description:
+            "Har bir maqola uch darajada: B1, B2 va C1. Lug'at, ovozli o'qish va " +
+            "tarjima bilan ingliz tilida o'qishni mashq qiling. Ro'yxatdan o'tmasdan o'qing.",
+        path: "/articles",
+        jsonLd: {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: "ENGLEV — ingliz tili maqolalari",
+            url: "https://englev.uz/articles",
+            inLanguage: "uz",
+            isPartOf: { "@type": "WebSite", name: "ENGLEV", url: "https://englev.uz" },
+        },
+    });
+
     const handleClap = async (e, articleId) => {
         e.stopPropagation();
+        if (isVisitor) {
+            navigate('/register');
+            return;
+        }
         const isClapped = clappedArticleIds.has(articleId);
 
         if (isClapped) {
@@ -303,11 +345,19 @@ export default function Articles() {
 
     return (
         <div className="min-h-screen bg-[#F5F5F7] dark:bg-black font-sans text-[#1d1d1f] dark:text-[#f5f5f7] antialiased selection:bg-[#0066cc]/10 selection:text-[#0066cc] transition-colors duration-300">
-            {!isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
+            {/*
+              * Mehmonga `DashboardHeader` ko'rsatib bo'lmaydi: uning barcha
+              * havolalari (/dashboard, /vocabulary, /settings) yopiq
+              * marshrutlar — bosilsa foydalanuvchi bosh sahifaga uloqtiriladi.
+              * Shuning uchun u landing sahifasining `Navbar` ini oladi.
+              */}
+            {isVisitor
+                ? <Navbar />
+                : !isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
 
             {/* ARTICLES TOP BAR (Medium-style) */}
             <header
-                className={`sticky ${isTeacher ? 'top-0' : 'top-12'} z-40 bg-white/85 dark:bg-black/80 backdrop-blur-xl border-b border-black/[0.07] dark:border-white/[0.08]`}
+                className={`sticky ${isTeacher || isVisitor ? 'top-0' : 'top-12'} z-40 bg-white/85 dark:bg-black/80 backdrop-blur-xl border-b border-black/[0.07] dark:border-white/[0.08]`}
             >
                 <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-14 md:h-[60px] flex items-center gap-3 sm:gap-5">
                     {/* Wordmark */}
@@ -660,7 +710,7 @@ export default function Articles() {
                 </div>
             </main>
 
-            {!isTeacher && <BottomNav activeTab="articles" />}
+            {!isTeacher && !isVisitor && <BottomNav activeTab="articles" />}
             {!isTeacher && <SiteFooter />}
         </div>
     );

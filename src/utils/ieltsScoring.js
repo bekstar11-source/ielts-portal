@@ -68,9 +68,12 @@ export const calculateOverallBand = (...args) => {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ⚠️ SINXRON SAQLASH SHART: quyidagi baholash mantiqi `functions/ieltsScoring.js`
-// bilan bir xil bo'lishi kerak. Ball SERVERDA hisoblanadi, review esa shu fayldan
-// foydalanadi — ular farq qilsa, talaba review'da yashil ✓ ko'rib, ball olmaydi.
+// ⚠️ BU FAYL SERVERGA NUSXALANADI: `functions/ieltsScoring.js` shu fayldan
+// `npm run mirror` orqali generatsiya qilinadi. Ball SERVERDA hisoblanadi, review
+// esa shu fayldan foydalanadi — ular farq qilsa, talaba review'da yashil ✓ ko'rib,
+// ball olmaydi. Shuning uchun server nusxasini QO'LDA tahrirlamang; o'zgarishni
+// shu yerga kiriting va `npm run mirror` ni ishga tushiring (CI `npm run
+// check:mirror` bilan eskirgan nusxani bloklaydi).
 // ─────────────────────────────────────────────────────────────────────────────
 
 // COLLAPSE WHITESPACE & CLEAN
@@ -183,6 +186,101 @@ export const getQuestionWeight = (id) => {
     return 1;
 };
 
+// Test daraxtidagi konteyner kalitlari. `evaluateTest`, `buildReviewQuestions`
+// va savol sanagich AYNI shu ro'yxat bo'yicha yuradi — biri ikkinchisidan
+// qisqa bo'lsa, savol bir joyda ko'rinib boshqasida yo'qoladi.
+export const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
+
+/**
+ * Testdagi savol RAQAMLARINI yig'adi (1, 2, ... 40).
+ *
+ * Nega alohida funksiya: `evaluateTest.totalQ` javob kalitiga tayanadi, lekin
+ * o'quvchiga beriladigan test SANITIZED — kalitlar olib tashlangan. Shuning
+ * uchun "bu testda nechta savol bor?" savoliga kalitsiz javob bera oladigan
+ * yuruvchi kerak.
+ *
+ * ⚠️ Ilgari bu mantiq UCH joyda alohida yozilgan edi (`TestUtils`,
+ * `useStudentData`, `RightPaneUtils`) va uchalasi turlicha yurardi: biri
+ * `parts`/`content`/`cells` ga umuman kirmasdi, ikkinchisi "35–36" kabi
+ * diapazonni bitta savol deb sanardi. Natijada kartochkada "39 ta savol",
+ * ball hisobida 40 chiqardi.
+ *
+ * @param {object} node
+ * @returns {Set<number>} savol raqamlari
+ */
+export const collectQuestionNumbers = (node) => {
+    const nums = new Set();
+
+    /** @returns {number} nechta savol raqami topildi (0 = bu id savol raqami emas) */
+    const addId = (rawId) => {
+        const idStr = String(rawId ?? '').trim();
+        if (!idStr) return 0;
+
+        // "35-36" / "35–36" — diapazon, ya'ni bir nechta savol.
+        const range = idStr.split(/[-–—]/).map(x => x.trim());
+        if (range.length === 2 && /^\d+$/.test(range[0]) && /^\d+$/.test(range[1])) {
+            const a = Number(range[0]);
+            const b = Number(range[1]);
+            for (let n = Math.min(a, b); n <= Math.max(a, b); n++) nums.add(n);
+            return Math.abs(b - a) + 1;
+        }
+
+        // "23,24" — ro'yxat.
+        if (idStr.includes(',')) {
+            let found = 0;
+            idStr.split(',').forEach(part => {
+                const n = parseInt(part.trim(), 10);
+                if (!isNaN(n)) { nums.add(n); found += 1; }
+            });
+            return found;
+        }
+
+        const n = parseInt(idStr, 10);
+        if (isNaN(n)) return 0;
+        nums.add(n);
+        return 1;
+    };
+
+    // `passages` / `sections` elementlarining O'Z id si savol raqami emas —
+    // bazada u "1", "2", "3" ko'rinishida yoziladi va savol raqamlari bilan
+    // to'qnashadi. Ularning ichidagi savollar esa, albatta, sanaladi.
+    const ID_LESS_KEYS = new Set(['passages', 'sections']);
+
+    /**
+     * @returns {number} shu tugun (va uning ostidagilar) bergan savol raqamlari soni
+     *
+     * Tugunning O'Z `id` si faqat ICHIDAN savol chiqmagan holda sanaladi.
+     * Nega shunday: guruh ID lari bazada "1–6" ko'rinishida yoziladi va uni
+     * elementlari bilan birga sanasak, guruh ID si elementlaridan farq qilgan
+     * zahoti sanoq shishib ketardi. Lekin oddiy "barg" tekshiruvi ham yetmaydi:
+     * jadval katakchasida `id` bor-u, `parts` faqat matndan iborat bo'lishi
+     * mumkin — renderer uni savol deb chizadi (`getCellQuestions` ham shunday),
+     * ball hisobi ball beradi, "konteyner" deb hisoblasak esa sanoqdan
+     * tushib qolardi. Shuning uchun qaror ICHIDAN NIMA CHIQQANIGA qarab
+     * qabul qilinadi.
+     */
+    const visit = (val, ownIdCounts) => {
+        if (!val || typeof val !== 'object') return 0;
+        // Massiv ichidagi massiv (`rows: [[cell, cell]]`) ham ochilishi shart.
+        if (Array.isArray(val)) {
+            let total = 0;
+            val.forEach(v => { total += visit(v, ownIdCounts); });
+            return total;
+        }
+
+        let fromChildren = 0;
+        CONTAINER_KEYS.forEach(key => {
+            fromChildren += visit(val[key], !ID_LESS_KEYS.has(key));
+        });
+
+        if (fromChildren === 0 && ownIdCounts && val.id != null) return addId(val.id);
+        return fromChildren;
+    };
+
+    visit(node, true);
+    return nums;
+};
+
 // Defisli yozuvlarni solishtirish uchun variantlar: "car-park" ≈ "car park" ≈ "carpark"
 const hyphenVariants = (s) => {
     const spaced = s.replace(/[-–—]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -283,12 +381,47 @@ export const getOptionLabel = (opt, idx = 0) => {
     return String.fromCharCode(65 + idx);
 };
 
+// Ro'yxat izchil HARF YORLIQLARI bilan yozilganmi? — "A ...", "B ...", "C ..."
+//
+// Nega ro'yxat kerak: bitta variantga qarab "A big house" dagi "A" yorliqmi yoki
+// artiklmi, ajratib bo'lmaydi. Butun ro'yxatga qaralsa esa savol yo'qoladi —
+// harflar A, B, C tartibida ketma-ket kelsa, ular yorliq bo'lishi aniq.
+//
+// Talab qat'iy ATAYLAB: har bir variant bitta harf + bo'shliq + matn bilan
+// boshlanishi va harflar tartib bilan A dan boshlanishi shart. Bo'shashtirilsa,
+// "A big house" / "A small car" kabi ro'yxat ham kesilib, variant matni
+// buzilardi.
+export const hasSequentialLetterLabels = (choiceOptions) => {
+    if (!Array.isArray(choiceOptions) || choiceOptions.length < 2) return false;
+
+    // Rim raqamli ro'yxatlar shu yerning o'zida rad etiladi: birinchi element
+    // "A" ga aylanishi shart, raqamli prefiks sifatida ishlatiladigan yagona
+    // harflar esa i / v / x — ular hech qachon "A" bermaydi. Shuning uchun
+    // alohida `getNumeralPrefix` tekshiruvi kerak emas.
+    return choiceOptions.every((opt, idx) => {
+        const m = getOptionRawText(opt).match(/^([A-Za-z])\s+\S/);
+        return !!m && m[1].toUpperCase() === String.fromCharCode(65 + idx);
+    });
+};
+
 // Variant matni prefiksisiz: "B. adaptation" → "adaptation", "iv Heading" → "Heading"
-export const getOptionText = (opt) => {
+//
+// `choiceOptions` berilsa, "B the no-eye-contact condition" kabi TINISH
+// BELGISIZ yorliq ham kesiladi — lekin faqat butun ro'yxat izchil A/B/C
+// ketma-ketligi bo'lganda. Ro'yxatsiz chaqirilganda xatti-harakat o'zgarmaydi.
+export const getOptionText = (opt, choiceOptions = null) => {
     const raw = getOptionRawText(opt);
     if (getNumeralPrefix(raw)) return stripNumeralPrefix(raw);
-    const stripped = raw.replace(/^[A-Za-z][.)]\s*/, '').trim();
-    return stripped || raw;
+
+    const byPunct = raw.replace(/^[A-Za-z][.)]\s*/, '').trim();
+    if (byPunct !== raw) return byPunct || raw;
+
+    if (hasSequentialLetterLabels(choiceOptions)) {
+        const byLetter = raw.replace(/^[A-Za-z]\s+/, '').trim();
+        if (byLetter && byLetter !== raw) return byLetter;
+    }
+
+    return raw;
 };
 
 // Qiymat (harf yoki so'z) ro'yxatdagi qaysi variantga tegishli? Topilmasa -1.
@@ -333,10 +466,10 @@ export const findOptionIndex = (value, choiceOptions) => {
         if (byLabel !== -1) return byLabel;
     }
 
-    const valueForms = new Set([normalizeString(raw), normalizeString(getOptionText(raw))].filter(Boolean));
+    const valueForms = new Set([normalizeString(raw), normalizeString(getOptionText(raw, choiceOptions))].filter(Boolean));
     if (valueForms.size === 0) return -1;
     return choiceOptions.findIndex(o =>
-        [normalizeString(getOptionRawText(o)), normalizeString(getOptionText(o))]
+        [normalizeString(getOptionRawText(o)), normalizeString(getOptionText(o, choiceOptions))]
             .some(f => f && valueForms.has(f))
     );
 };
@@ -351,7 +484,7 @@ export const resolveOptionDisplay = (value, choiceOptions) => {
         return raw.split(/[/|,]/).map(v => resolveOptionDisplay(v.trim(), choiceOptions)).filter(Boolean).join(' / ');
     }
     const idx = findOptionIndex(raw, choiceOptions);
-    return idx === -1 ? raw : getOptionText(choiceOptions[idx]);
+    return idx === -1 ? raw : getOptionText(choiceOptions[idx], choiceOptions);
 };
 
 // JAVOBNI TEKSHIRISH FUNKSIYASI
@@ -508,7 +641,7 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
     };
 
     if (!testData || typeof testData !== 'object') {
-        return { correctCount: 0, totalQ: 0, band: 0, mistakes, missingKeys, typeStats };
+        return { correctCount: 0, totalQ: 0, band: 0, mistakes, missingKeys, typeStats, questionOrder: [] };
     }
 
     let targetPassageId = null;
@@ -525,7 +658,14 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
             if (obj.id && (obj.audio || obj.passageNumber) && String(obj.id) !== String(targetPassageId)) return;
         }
 
-        const currentType = String(obj.type || parentType || "").toLowerCase();
+        // `parts: [{ type: 'input' }, { type: 'text' }]` — bular TUZILMA belgisi, savol
+        // turi emas. Ilgari ular `currentType` ni bosib ketardi va jadval/gap-fill
+        // ichidagi har bir input `canonicalQuestionType('input')` → "other" oilasiga
+        // tushardi: talaba xatolar tahlilida "table completion" o'rniga "boshqa"
+        // turini ko'rardi. Shuning uchun bunday turlarda ota-guruh turi saqlanadi.
+        const rawType = String(obj.type || "").toLowerCase();
+        const isStructuralType = rawType === 'input' || rawType === 'text';
+        const currentType = (isStructuralType ? String(parentType || "") : String(obj.type || parentType || "")).toLowerCase();
         // `options` bo'lgan guruh — variant-tanlash guruhi (map_labeling, options'li flow_chart).
         // Review UI ham aynan shu qoidaga tayanadi, shuning uchun ikkalasi bir xil natija beradi.
         const ownOptions = (Array.isArray(obj.options) && obj.options.length > 0) ? obj.options : null;
@@ -539,8 +679,11 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
                 if (!o || typeof o !== 'object') return;
                 if (o.id && getAnswerKey(o) !== undefined) groupItems.push(o);
                 ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'].forEach(sk => {
-                    if (o[sk] && Array.isArray(o[sk])) o[sk].forEach(collectItems);
-                    else if (o[sk] && typeof o[sk] === 'object') collectItems(o[sk]);
+                    const child = o[sk];
+                    if (!child || typeof child !== 'object') return;
+                    // Massiv ichidagi massiv (`rows: [[cell]]`) ham ochilishi shart.
+                    if (Array.isArray(child)) child.flat(Infinity).forEach(collectItems);
+                    else collectItems(child);
                 });
             };
             collectItems(obj);
@@ -577,7 +720,12 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
                 const userResp = userAnswers[idStr] || "";
                 const weight = getQuestionWeight(idStr);
 
-                if (isMultiAnswerType(currentType) || idStr.includes('-') || idStr.includes(',')) {
+                // "Bu ID bir nechta savolni bildiradimi?" degan savolga yagona javob —
+                // `getQuestionWeight`. Ilgari bu yerda `idStr.includes('-')` turardi va u
+                // EN TIRE ni ("35–36" — bazada aynan shunday yoziladi) ko'rmasdi: ko'p
+                // javobli bo'lmagan turdagi diapazon ID 2 o'rniga 1 ball maxrajiga
+                // kirardi, savol sanagichi esa 2 deb hisoblardi.
+                if (isMultiAnswerType(currentType) || weight > 1) {
                     const result = scoreMultiAnswer(itemAns, userResp, weight);
                     correctCount += result.matches;
                     totalQ += result.weight;
@@ -603,18 +751,34 @@ export const evaluateTest = (testData, userAnswers = {}, partNumber = null) => {
             }
         }
 
-        ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'].forEach(key => {
-            const val = obj[key];
-            if (val && Array.isArray(val)) val.forEach(child => walk(child, currentType, hasOptions, groupOptions));
-            else if (val && typeof val === 'object') walk(val, currentType, hasOptions, groupOptions);
-        });
+        // Ichma-ich massivlarni ham ochamiz. Jadval qatorlari ikki xil yoziladi:
+        // `rows: [{ cells: [...] }]` va `rows: [[cell, cell]]`. Ilgari ikkinchi
+        // ko'rinishda qator MASSIV bo'lgani uchun `walk` unda hech qanday kalit
+        // topmasdi va butun jadval savollari ball hisobidan ham, `totalQ`
+        // maxrajidan ham jimgina tushib qolardi (40 o'rniga 34 ta savol).
+        const visit = (val) => {
+            if (!val || typeof val !== 'object') return;
+            if (Array.isArray(val)) { val.forEach(visit); return; }
+            walk(val, currentType, hasOptions, groupOptions);
+        };
+        ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'].forEach(key => visit(obj[key]));
     };
 
     walk(testData, null, false, null);
 
+    // Jadval katakchasi kalitni o'zida saqlamay, faqat id ga havola qilishi mumkin
+    // (kalit `items` da turadi). Bunday savol bir marta to'g'ri sanaladi, lekin
+    // katakcha ko'rilganda "kalit yo'q" deb ham belgilanardi — server logida
+    // mavjud bo'lmagan test xatosi haqida ogohlantirish chiqardi. Ball hisobiga
+    // KIRGAN savol ta'rifi bo'yicha kalitsiz emas.
+    const unscoredMissingKeys = missingKeys.filter(id => !scoredIds.has(id));
+
     const band = calculateBandScore(correctCount, testData.type || 'reading', totalQ);
 
-    return { correctCount, totalQ, band, mistakes, missingKeys, typeStats };
+    // `scoredIds` savollarni testdagi TARTIBDA to'playdi (Set kiritish tartibini
+    // saqlaydi). Vaqt tahlili uchun kerak: javobsizlar test oxirida to'planganmi
+    // degan savolga faqat tartib bilan javob berish mumkin.
+    return { correctCount, totalQ, band, mistakes, missingKeys: unscoredMissingKeys, typeStats, questionOrder: [...scoredIds] };
 };
 
 // UTILITY TO CALCULATE SCORE FOR A SECTION (READING/LISTENING)

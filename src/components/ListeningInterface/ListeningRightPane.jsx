@@ -1,8 +1,13 @@
 import React, { memo } from "react";
 import { MapLabeling, Matching, SelectionBox, TableCompletion, NoteCompletion, FlowChart, MultipleChoice } from "./ListeningQuestionTypes";
 import { useListeningHighlight } from "../../hooks/useListeningHighlight";
-// Bir ro'yxat — render (SelectionBox) va ball hisobi (isMultiAnswerType) bir xil turlarni ko'radi
-import { MULTI_SELECT_TYPES } from "../../utils/ieltsScoring";
+// Bitta predikat — render (SelectionBox) va ball hisobi ayni bir savolni
+// "ko'p javobli" deb biladi. Ilgari bu yerda alohida `MULTI_SELECT_TYPES`
+// ro'yxati ishlatilardi va u `isMultiAnswerType` dan tor edi: ro'yxatda yo'q,
+// lekin ball hisobida ko'p javobli sanalgan guruh MCQ bo'lib chizilardi.
+import { isMultiAnswerType } from "../../utils/ieltsScoring";
+import { resolveListeningRenderer, hasAnyOptions } from "../../utils/questionTypeRegistry";
+import { extractTableQuestions } from "../../utils/tableQuestions";
 
 const formatIELTSInstruction = (text) => {
     if (!text) return "";
@@ -37,26 +42,7 @@ const formatIELTSInstruction = (text) => {
     return result;
 };
 
-const getInputsFromRows = (rows) => {
-    const inputs = [];
-    rows.forEach(row => {
-        const cells = Array.isArray(row) ? row : (row.cells || []);
-        cells.forEach(cell => {
-            if (cell.id && !cell.isMixed && !cell.isMultiQuestion) {
-                inputs.push(cell);
-            }
-            if (cell.isMultiQuestion && cell.content) {
-                inputs.push(...cell.content);
-            }
-            if (cell.isMixed && cell.parts) {
-                cell.parts.forEach(p => {
-                    if (p.type === 'input') inputs.push(p);
-                });
-            }
-        });
-    });
-    return inputs;
-};
+const getInputsFromRows = (rows) => extractTableQuestions(rows);
 
 const ListeningRightPane = memo(({
     testData,
@@ -103,19 +89,55 @@ const ListeningRightPane = memo(({
     // during the previous render" bilan yiqilardi.
 
     // --- MAIN DISPATCHER ---
+    // Tur → renderer moslamasi `questionTypeRegistry` da. Bu yerda ANIQ TENGLIK
+    // ishlatilardi, shuning uchun `map-labeling` yoki `MAP_LABELING` kabi
+    // yozuvlar hech bir shoxga tushmasdi; registry ularni normallashtiradi.
     const renderGroupContent = (group) => {
-        if (group.type === 'map_labeling') return <MapLabeling group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
-        if (group.type === 'matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
-        if (MULTI_SELECT_TYPES.includes(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
-        if (['table_completion', 'table'].includes(group.type)) return <TableCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
-        const completionTypes = ['note_completion', 'gap_fill', 'sentence_completion', 'summary_completion', 'form_completion'];
-        if (completionTypes.includes(group.type)) {
+        // Ko'p javobli guruh — turdan qat'i nazar, ball hisobi bilan bir xil predikat.
+        if (isMultiAnswerType(group.type)) return <SelectionBox group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+
+        const renderer = resolveListeningRenderer(group.type);
+
+        if (renderer === 'MapLabeling') return <MapLabeling group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        if (renderer === 'Matching') return <Matching group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        if (renderer === 'TableCompletion') return <TableCompletion group={group} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        if (renderer === 'NoteCompletion') {
             const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
             return <NoteCompletion group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
         }
-        if (group.type === 'flow_chart') {
+        if (renderer === 'FlowChart') {
             const normalized = group.groups ? group : { ...group, groups: [{ items: group.items || group.questions || [] }] };
             return <FlowChart group={normalized} userAnswers={userAnswers} onAnswerChange={onAnswerChange} isReviewMode={isReviewMode} handleLocationClick={handleLocationClick} onSeekTo={onSeekTo} activePart={activePart} />;
+        }
+
+        // TANILMAGAN TUR.
+        // Ilgari bu holat JIM ravishda MCQ ga tushardi va variantsiz guruh
+        // javob maydonisiz chizilardi: talaba savolni ko'radi, javob yoza
+        // olmaydi, `evaluateTest` esa uni maxrajga qo'shib bandni tushiradi —
+        // hech qayerda birorta xatolik izi qolmasdan.
+        //
+        // Endi har holat monitoringga yozib qo'yiladi va dev'da ko'rinadigan
+        // blok bilan ko'rsatiladi. Prod'da talabaga qizil xato ko'rsatmaymiz
+        // (imtihon o'rtasida qo'rqinchli) — eng yaxshi taxmin bo'lgan MCQ
+        // saqlanadi, lekin tur endi admin validatorida bloklanadi.
+        if (renderer === null) {
+            const canBeMcq = hasAnyOptions(group);
+            console.error(
+                `[ListeningRightPane] Tanilmagan savol turi: "${group.type ?? '(bo\'sh)'}"`,
+                { testId: testData?.id, passageId: group.passageId, canBeMcq }
+            );
+            if (import.meta.env?.DEV) {
+                return (
+                    <div className="p-4 border-2 border-dashed border-red-400 bg-red-50 rounded-lg text-sm text-red-800">
+                        <div className="font-semibold">Tanilmagan savol turi: <code>{String(group.type ?? '(bo\'sh)')}</code></div>
+                        <div className="mt-1">
+                            {canBeMcq
+                                ? 'Variantlar bor — MCQ sifatida chizilmoqda. Turni `questionTypeRegistry` ga qo\'shing.'
+                                : 'Variantlar ham yo\'q — bu guruh javob maydonisiz chiziladi. Test JSON\'idagi `type` ni tuzating.'}
+                        </div>
+                    </div>
+                );
+            }
         }
 
         // --- MCQ HANDLER ---

@@ -10,9 +10,10 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "mirror": "node scripts/mirror-shared.mjs",
     "check:mirror": "node scripts/mirror-shared.mjs --check",
+    "audit:types": "node scripts/audit-question-types.mjs",
     "test:functions": "node --test functions/*.test.js",
     "test:utils": "node --test \"src/**/*.test.js\"",
-    "test": "npm run test:functions && npm run test:utils",
+    "test": "npm run check:mirror && npm run test:functions && npm run test:utils",
     "preview": "vite preview"
   },
   "dependencies": {

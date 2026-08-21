@@ -58,7 +58,7 @@ export default function EpisodeGridItem({
     const handleLikeClick = (e) => {
         e.stopPropagation();
         if (!user?.uid) {
-            navigate('/auth/login');
+            navigate('/login');
             return;
         }
         setLikeDelta((d) => d + (isLiked ? -1 : 1));

@@ -309,6 +309,20 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "articles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "isMemberOnly",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

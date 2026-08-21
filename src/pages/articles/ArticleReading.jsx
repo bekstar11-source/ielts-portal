@@ -12,6 +12,8 @@ import { db } from "../../firebase/firebase";
 import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useAuth } from '../../context/AuthContext';
+import Navbar from '../../components/common/Navbar';
+import { useSeo } from '../../hooks/useSeo';
 import SiteFooter from '../../components/common/SiteFooter';
 import { useTranslation } from '../../context/LanguageContext';
 import { stripHtml } from '../../utils/textUtils';
@@ -152,13 +154,21 @@ const formatRelativeTime = (value, t) => {
 };
 
 export default function ArticleReading() {
-  const { user, userData, updateUserLocalData } = useAuth();
+  const { user, userData, updateUserLocalData, isGuest } = useAuth();
   const { lang, t } = useTranslation();
   const isTeacher = userData?.role === 'teacher';
   const { id } = useParams();
   const navigate = useNavigate();
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
+  // 'notfound' | 'members' | null — maqola ochilmaganda NIMA sababdan
+  // ochilmaganini ajratamiz: mehmonni bo'sh ekranga qoldirish o'rniga
+  // ro'yxatdan o'tishga taklif qilamiz.
+  const [loadError, setLoadError] = useState(null);
+
+  // Anonim (trial) sessiyada `user` bor, lekin Firestore uni avtorizatsiya
+  // qilingan deb hisoblamaydi — qarsak/saqlash yozuvlari rad etiladi.
+  const isVisitor = !user || isGuest;
   const commentsRef = useRef(null);
 
   const [selectionMenu, setSelectionMenu] = useState(null);
@@ -305,7 +315,7 @@ export default function ArticleReading() {
 
   const handleAddToWordBank = async () => {
     if (!selectionMenu || isWordBankLoading || isWordBankAdded) return;
-    if (!user) {
+    if (isVisitor) {
       showToast(t('articles.loginToSaveWord') || "So'zni saqlash uchun tizimga kiring.", 'error');
       return;
     }
@@ -605,16 +615,26 @@ export default function ArticleReading() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             const data = docSnap.data();
+            setLoadError(null);
             setArticle({ id: docSnap.id, ...data });
             // claps eski yozuvlarda "4.8K" kabi matn bo'lishi mumkin → raqamga aylantiramiz
             setClaps(parseArticleClaps(data.claps));
             setComments(Array.isArray(data.comments) ? data.comments : []);
         } else {
-            console.error("Article not found");
-            navigate('/articles');
+            // Ilgari bu yerda `/articles` ga qaytarilardi. Endi maqola manzili
+            // qidiruv natijalarida chiqadi — o'chirilgan maqolaga kirgan odam
+            // sababini ko'rishi kerak, aks holda bu "yumshoq 404" bo'ladi.
+            setLoadError('notfound');
         }
     } catch (err) {
-        console.error("Error fetching article:", err);
+        // Mehmon premium maqolani so'raganda Firestore qoidasi
+        // `permission-denied` qaytaradi — bu xato emas, kutilgan holat.
+        if (err?.code === 'permission-denied') {
+            setLoadError('members');
+        } else {
+            console.error("Error fetching article:", err);
+            setLoadError('notfound');
+        }
     } finally {
         setLoading(false);
     }
@@ -625,6 +645,12 @@ export default function ArticleReading() {
   const handleClap = async () => {
     // Tez-tez bosilganda Firestore'ga qarama-qarshi so'rovlar ketmasligi uchun qulf
     if (!article || clapPendingRef.current) return;
+    // Mehmonda qarsak Firestore qoidasidan o'tmaydi (`allow update: if isAuth()`) —
+    // optimistik hisobni ko'tarib, keyin orqaga qaytarish o'rniga darhol aytamiz.
+    if (isVisitor) {
+      showToast(t('articles.loginToClapComment') || "Qarsak chalish uchun tizimga kiring.", 'error');
+      return;
+    }
     clapPendingRef.current = true;
 
     setIsClapping(true);
@@ -671,7 +697,7 @@ export default function ArticleReading() {
 
   // Maqolani saqlash / saqlanganlardan olib tashlash
   const handleToggleSave = async () => {
-    if (!user) {
+    if (isVisitor) {
       showToast(t('articles.loginToSaveArticle') || "Maqolani saqlash uchun tizimga kiring.", 'error');
       return;
     }
@@ -768,7 +794,7 @@ export default function ArticleReading() {
   };
 
   const handleClapComment = async (commentId) => {
-    if (!user) {
+    if (isVisitor) {
       showToast(t('articles.loginToClapComment') || "Izohga qarsak chalish uchun tizimga kiring.", 'error');
       return;
     }
@@ -939,9 +965,10 @@ export default function ArticleReading() {
       return;
     }
 
-    // Neural ovoz serverdan keladi va avtorizatsiya talab qiladi.
-    // Mehmon foydalanuvchi uchun to'g'ridan-to'g'ri brauzer ovoziga o'tamiz.
-    if (!user) {
+    // Neural ovoz serverdan keladi va avtorizatsiya talab qiladi. Anonim
+    // sessiya ham avtorizatsiya hisoblanmaydi, shuning uchun `isVisitor` —
+    // mehmon uchun to'g'ridan-to'g'ri brauzer ovoziga o'tamiz.
+    if (isVisitor) {
       speakWithBrowser(items);
       return;
     }
@@ -1012,6 +1039,49 @@ export default function ArticleReading() {
     };
   }, [synth]);
 
+  // ⚠️ Hook'lar quyidagi erta `return` lardan OLDIN chaqirilishi shart.
+  const seoDescription = useMemo(() => {
+    if (!article) return '';
+    // ⚠️ `activeContent` ga BOG'LANMAYMIZ: u har renderda yangi massiv bo'lib
+    // qayta yaratiladi (memo qilinmagan), ya'ni bu useMemo hech qachon
+    // keshlanmasdi. Shuning uchun manbadan qayta hisoblaymiz.
+    const blocks = getArticleContent(article, readingLevel) || [];
+    const raw = article.subtitle
+      ? stripHtml(article.subtitle)
+      : blocks.map((b) => stripHtml(b?.text || '')).join(' ');
+    const clean = raw.replace(/\s+/g, ' ').trim();
+    // Google qidiruv natijasida ~155 belgidan keyingisini kesadi — jumlani
+    // yarmida uzmaslik uchun oxirgi probelgacha qaytamiz.
+    if (clean.length <= 155) return clean;
+    const cut = clean.slice(0, 155);
+    return cut.slice(0, cut.lastIndexOf(' ')) + '…';
+  }, [article, readingLevel]);
+
+  useSeo({
+    enabled: Boolean(article),
+    title: article?.title,
+    description: seoDescription,
+    path: `/article/${id}`,
+    image: article?.coverImage || article?.image || article?.thumbnail || undefined,
+    jsonLd: article && {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: article.title,
+      description: seoDescription,
+      inLanguage: "en",
+      datePublished: toDate(article.createdAt)?.toISOString(),
+      author: { "@type": "Person", name: article.author || "ENGLEV" },
+      publisher: {
+        "@type": "Organization",
+        name: "ENGLEV",
+        logo: { "@type": "ImageObject", url: "https://englev.uz/englev-logo.png" },
+      },
+      mainEntityOfPage: `https://englev.uz/article/${id}`,
+      // Daraja bo'yicha variantlar — bu maqolaning asosiy farqlovchi xususiyati.
+      educationalLevel: ARTICLE_LEVELS.join(', '),
+    },
+  });
+
   if (loading) {
     return (
         <div className="min-h-screen bg-warm-canvas dark:bg-warm-dark flex items-center justify-center">
@@ -1020,14 +1090,67 @@ export default function ArticleReading() {
     );
   }
 
-  if (!article) return null;
+  if (!article) {
+    // ⚠️ Mehmon uchun Firestore o'chirilgan maqolani ham, premium maqolani ham
+    // bir xil `permission-denied` bilan rad etadi — ikkisini ajratib
+    // bo'lmaydi. Shuning uchun matn ikkala holatda ham to'g'ri bo'lishi kerak.
+    const isMembersOnly = loadError === 'members';
+    return (
+      <div className="reading-root min-h-screen font-sans antialiased" style={{ backgroundColor: 'var(--r-paper)', color: 'var(--r-ink)' }}>
+        {isVisitor
+          ? <Navbar />
+          : !isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
+        <div className="max-w-[560px] mx-auto px-5 py-24 text-center space-y-6">
+          <h1 className="text-[26px] md:text-[32px] font-bold leading-tight" style={{ color: 'var(--r-ink)' }}>
+            {isMembersOnly
+              ? (lang === 'uz' ? "Bu maqola a'zolar uchun" : 'This article is for members')
+              : (lang === 'uz' ? 'Maqola topilmadi' : 'Article not found')}
+          </h1>
+          <p className="r-muted text-[16px] leading-relaxed">
+            {isMembersOnly
+              ? (lang === 'uz'
+                  ? "Ro'yxatdan o'ting va yopiq maqolalarni ham to'liq o'qing. Maqola o'chirilgan bo'lishi ham mumkin — u holda ro'yxatdan boshqasini tanlang."
+                  : "Sign up to read member-only articles. The article may also have been removed — in that case pick another from the list.")
+              : (lang === 'uz'
+                  ? "Bu maqola o'chirilgan yoki manzili noto'g'ri bo'lishi mumkin."
+                  : 'This article may have been removed, or the link is incorrect.')}
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center pt-2">
+            {isMembersOnly && isVisitor && (
+              <button
+                onClick={() => navigate('/register')}
+                className="px-8 py-3 r-accent-bg rounded-full font-bold text-[15px] transition-transform active:scale-95"
+              >
+                {lang === 'uz' ? "Bepul ro'yxatdan o'tish" : 'Sign up free'}
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/articles')}
+              className="px-8 py-3 rounded-full font-bold text-[15px] border transition-colors hover:bg-[var(--r-hover)]"
+              style={{ borderColor: 'var(--r-hairline)', color: 'var(--r-ink)' }}
+            >
+              {lang === 'uz' ? 'Barcha maqolalar' : 'All articles'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const stickyTop = isTeacher ? 'top-0' : 'top-0 md:top-12';
+  // Mehmonda `DashboardHeader` (md: 48px) yo'q — sticky panel tepaga yopishadi.
+  const stickyTop = (isTeacher || isVisitor) ? 'top-0' : 'top-0 md:top-12';
   const iconBtn = "p-2.5 rounded-full transition-colors r-muted r-hover-ink hover:bg-[var(--r-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--r-focus)]";
 
   return (
     <div className="reading-root min-h-screen font-sans antialiased" style={{ backgroundColor: 'var(--r-paper)', color: 'var(--r-ink)' }}>
-      {!isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
+      {/*
+        * Mehmonga landing `Navbar` i beriladi: `DashboardHeader` havolalari
+        * yopiq marshrutlarga olib boradi va bosilsa odam bosh sahifaga
+        * uloqtiriladi — qidiruvdan kelgan o'quvchi uchun bu o'lik yo'l.
+        */}
+      {isVisitor
+        ? <Navbar />
+        : !isTeacher && <DashboardHeader user={user} userData={userData} activeTab="articles" />}
 
       {/* Sub Header / Action Bar */}
       <div className={`sticky ${stickyTop} z-30 backdrop-blur-xl border-b`} style={{ backgroundColor: 'var(--r-paper-blur)', borderColor: 'var(--r-hairline)' }}>
@@ -1581,6 +1704,48 @@ export default function ArticleReading() {
           <ArticleVocabulary vocabulary={activeVocabulary} level={readingLevel} articleTitle={article.title} />
         )}
 
+        {/*
+          * MEHMON UCHUN KONVERSIYA BLOKI.
+          *
+          * Maqola oxiri — qidiruvdan kelgan odam qiymatni ALLAQACHON olgan
+          * nuqta. Ro'yxatdan o'tishni shu yerda taklif qilamiz: maqolani
+          * o'qishdan OLDIN so'ralgan taklif shunchaki chiqib ketishga sabab
+          * bo'ladi. Taklif matni maqolani o'qiyotganda ishlamagan aynan shu
+          * funksiyalarni sanaydi (WordBank, daraja, ovoz).
+          */}
+        {isVisitor && !isLocked && (
+          <section
+            className="mt-14 rounded-2xl border px-6 py-10 text-center"
+            style={{ borderColor: 'var(--r-hairline)', backgroundColor: 'var(--r-hover)' }}
+          >
+            <h2 className="text-[22px] md:text-[26px] font-bold leading-tight font-sans" style={{ color: 'var(--r-ink)' }}>
+              {lang === 'uz'
+                ? "Notanish so'zni bosib, lug'atingizga qo'shing"
+                : 'Tap any word to save it to your vocabulary'}
+            </h2>
+            <p className="r-muted text-[15px] leading-relaxed max-w-md mx-auto mt-3">
+              {lang === 'uz'
+                ? "Bepul hisob bilan: WordBank'ga so'z saqlash, o'z darajangizni tanlash (B1–C1), ovozli o'qish va o'qigan maqolalaringiz tarixi."
+                : 'A free account adds: saving words to WordBank, choosing your level (B1–C1), audio reading, and your reading history.'}
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center mt-7">
+              <button
+                onClick={() => navigate('/register')}
+                className="px-8 py-3 r-accent-bg rounded-full font-bold text-[15px] transition-transform active:scale-95"
+              >
+                {lang === 'uz' ? "Bepul ro'yxatdan o'tish" : 'Sign up free'}
+              </button>
+              <button
+                onClick={() => navigate('/articles')}
+                className="px-8 py-3 rounded-full font-bold text-[15px] border transition-colors hover:bg-[var(--r-paper)]"
+                style={{ borderColor: 'var(--r-hairline)', color: 'var(--r-ink)' }}
+              >
+                {lang === 'uz' ? 'Boshqa maqolalar' : 'More articles'}
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Inline Comments Section (Medium Style) */}
         <section ref={commentsRef} className="mt-14 border-t pt-10 pb-8 scroll-mt-24" style={{ borderColor: 'var(--r-hairline)' }}>
           {/* Header */}
@@ -1597,7 +1762,7 @@ export default function ArticleReading() {
           </div>
 
           {/* Comment Form (Medium style input container) */}
-          {user ? (
+          {!isVisitor ? (
             <div className="rounded-2xl border p-4 mb-9 transition-colors text-left" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}>
               <div className="flex items-center gap-3 mb-3">
                 {userData?.avatar ? (
@@ -1654,7 +1819,7 @@ export default function ArticleReading() {
             <div className="rounded-2xl border p-6 text-center mb-9" style={{ backgroundColor: 'var(--r-surface)', borderColor: 'var(--r-hairline)' }}>
               <p className="text-sm r-muted mb-3">{t('articles.loginToComment') || "Izoh yozish uchun tizimga kiring."}</p>
               <button
-                onClick={() => navigate('/auth/login')}
+                onClick={() => navigate('/register')}
                 className="px-5 py-2 r-accent-bg rounded-full text-[13px] font-semibold transition-transform active:scale-95"
               >
                 {t('auth.signInNow', 'Kirish')}

@@ -1,5 +1,6 @@
 // src/components/ReadingInterface/ReadingFooter.jsx
 import React from "react";
+import { extractTableQuestions } from "../../utils/tableQuestions";
 
 // ⚠️ Bu yordamchilar props/state'ga bog'liq emas — shuning uchun komponent
 // TASHQARISIDA turadi. Ilgari ular har renderda qaytadan yaratilar va
@@ -36,17 +37,9 @@ const extractQuestionsFromGroup = (group) => {
             rawItems = group.items;
         } else if (group.questions && Array.isArray(group.questions)) {
             rawItems = group.questions;
-        } else if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
-            group.rows.forEach(row => {
-                let cells = Array.isArray(row) ? row : (row.cells || []);
-                cells.forEach(cell => {
-                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) rawItems.push(cell);
-                    if (cell.isMultiQuestion && cell.content) rawItems.push(...cell.content);
-                    if (cell.isMixed && cell.parts) {
-                        cell.parts.forEach(part => { if (part.type === 'input') rawItems.push(part); });
-                    }
-                });
-            });
+        } else if (Array.isArray(group.rows)) {
+            // Turga emas, tuzilmaga qaraymiz — `rows` bor guruh har doim jadval.
+            rawItems = extractTableQuestions(group.rows);
         }
 
         const parseMultiIds = (rawId, count) => {

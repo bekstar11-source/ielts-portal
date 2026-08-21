@@ -16,7 +16,7 @@ export const getFileNameFromUrl = (url) => {
 // Vaqt bilan ishlash faqat bitta joyda — src/utils/audioTime.js da. Admin va
 // o'quvchi tomonlari bir xil parser/format ishlatishi shart, aks holda partlar
 // chegarasi soniyalab surilib ketadi.
-export { parseAudioTime as processTime, formatAudioTimePrecise as toMMSS, formatAudioTime, roundAudioTime } from "../../../utils/audioTime";
+export { parseAudioTime as processTime, formatAudioTimePrecise as toMMSS, formatAudioTime, roundAudioTime } from "../../../utils/audioTime.js";
 
 export const detectSectionFromQuestions = (testType, questions) => {
     if (!questions || !Array.isArray(questions) || questions.length === 0) return null;

@@ -1,7 +1,7 @@
 /**
  * Utility functions for ReadingRightPane
  */
-import { getNumeralPrefix } from '../../../utils/ieltsScoring';
+import { getNumeralPrefix, collectQuestionNumbers } from '../../../utils/ieltsScoring.js';
 
 export const toRoman = (num) => {
     const lookup = { m: 1000, cm: 900, d: 500, cd: 400, c: 100, xc: 90, l: 50, xl: 40, x: 10, ix: 9, v: 5, iv: 4, i: 1 };
@@ -51,45 +51,15 @@ export const getHeadingOptionLabels = (options) => {
 };
 
 export const getRangeLabel = (group) => {
-    let allItems = group.items ? [...group.items] : [];
-    if (group.questions) allItems = [...allItems, ...group.questions];
-    if (group.groups) {
-        group.groups.forEach(sub => {
-            if (sub.items) allItems = [...allItems, ...sub.items];
-            if (sub.questions) allItems = [...allItems, ...sub.questions];
-        });
-    }
-    
-    if (group.rows) {
-        group.rows.forEach(row => {
-            const cells = Array.isArray(row) ? row : (row.cells || []);
-            cells.forEach(cell => {
-                if (cell.id) allItems.push(cell);
-                if (cell.content) cell.content.forEach(c => { if (c.id) allItems.push(c); });
-                if (cell.parts) cell.parts.forEach(p => { if (p.id) allItems.push(p); });
-            });
-        });
-    }
-    
-    const qIds = [];
-    allItems.forEach(it => {
-        const idStr = String(it.id || "");
-        if (/^\d+\s*[\-–_]\s*\d+$/.test(idStr)) {
-            const parts = idStr.split(/[\-–_]/);
-            const start = parseInt(parts[0].trim());
-            const end = parseInt(parts[1].trim());
-            if (!isNaN(start) && !isNaN(end)) {
-                for (let n = Math.min(start, end); n <= Math.max(start, end); n++) qIds.push(n);
-            }
-        } else {
-            const num = parseInt(idStr);
-            if (!isNaN(num)) qIds.push(num);
-        }
-    });
-    qIds.sort((a, b) => a - b);
-    const uniqueIds = [...new Set(qIds)];
-    if (uniqueIds.length === 1) return "";
-    return uniqueIds.length > 0 ? `Questions ${uniqueIds[0]}${uniqueIds.length > 1 ? '–' + uniqueIds[uniqueIds.length - 1] : ''}` : "";
+    // Savol raqamlarini yig'ish qoidasi `ieltsScoring.collectQuestionNumbers` da —
+    // ball hisobi va savol sanagich bilan AYNI yuruvchi. Ilgari bu yerda
+    // `rows → cells → content/parts` zanjiri qo'lda yozilgan edi va u
+    // `groups`/`sections` ichiga kirmasdi: sarlavhada "Questions 27–30"
+    // ko'rinardi-yu, guruhda aslida 32-savolgacha bo'lardi.
+    const uniqueIds = [...collectQuestionNumbers(group)].sort((a, b) => a - b);
+
+    if (uniqueIds.length <= 1) return "";
+    return `Questions ${uniqueIds[0]}–${uniqueIds[uniqueIds.length - 1]}`;
 };
 
 export const cleanInstructions = (group, isTFNG) => {

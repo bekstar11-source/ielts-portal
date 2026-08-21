@@ -40,6 +40,14 @@
         "function": "shareTest"
       },
       {
+        "source": "/sitemap.xml",
+        "function": "sitemap"
+      },
+      {
+        "source": "/article/**",
+        "function": "shareArticle"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

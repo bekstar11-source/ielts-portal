@@ -120,35 +120,13 @@ export const detectPassageLabelSuffix = (testData, activePassage) => {
 // (rim raqamli), o'ng panel esa boshqa UI (harfli) chizib, ikkalasi BIR XIL q.id ga
 // turlicha qiymat yozardi. Endi hamma shu ikki funksiyaga tayanadi.
 // ─────────────────────────────────────────────────────────────────────────────
-const lower = (v) => String(v || "").toLowerCase();
 
-/**
- * "Choose the correct heading for each paragraph" — sarlavhalarni moslashtirish.
- * Chap panelga drop-zone chiziladigan yagona tur.
- */
-export const isMatchingHeadingsGroup = (group) => {
-  if (!group) return false;
-  const type = lower(group.type);
-  const instr = lower(group.instruction);
-  return type.includes('matching') && (type.includes('heading') || instr.includes('heading'));
-};
-
-/**
- * "Which paragraph contains the following information?" — ma'lumot/xususiyatni
- * paragrafga moslashtirish. Sarlavha moslashtirish HAR DOIM ustunlik qiladi,
- * chunki uning ko'rsatmasida ham "paragraph" so'zi uchraydi.
- */
-export const isMatchingParagraphGroup = (group) => {
-  if (!group || isMatchingHeadingsGroup(group)) return false;
-  const type = lower(group.type);
-  const instr = lower(group.instruction);
-  return type.includes('matching') && (
-    type.includes('paragraph') ||
-    instr.includes('paragraph') ||
-    instr.includes('contain') ||
-    instr.includes('mention')
-  );
-};
+// Tasniflash qoidalari `src/utils/questionTypeRegistry.js` da — dispatcher,
+// chap panel (drop-zone) va DnD hook AYNI bir funksiyani ishlatishi shart.
+// Ilgari ular shu yerda yozilgan edi va `QuestionGroup.jsx` ichidagi bayroqlar
+// bilan yonma-yon yashardi: bittasi o'zgarganda ikkinchisi eskirardi.
+import { isMatchingHeadingsGroup, isMatchingParagraphGroup } from '../../utils/questionTypeRegistry.js';
+export { isMatchingHeadingsGroup, isMatchingParagraphGroup };
 
 /**
  * Finds the matching headings group for a passage

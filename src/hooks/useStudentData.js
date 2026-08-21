@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../firebase/firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc, documentId } from 'firebase/firestore';
 import { getSafeBandScore } from '../utils/scoreUtils';
+import { collectQuestionNumbers } from '../utils/ieltsScoring';
 
 const safeDate = (dateVal) => {
     if (!dateVal) return null;
@@ -39,49 +40,20 @@ const getAttemptsCountForTest = (testId, results, maxAttempts, partNum = null) =
 // PERF: Cache question counts to avoid repeated heavy calculations
 const questionCountCache = new Map();
 
-// Yangi savol sanash funksiyasi
+// Savol sanagich — `ieltsScoring.collectQuestionNumbers` ustidagi yupqa qobiq.
+//
+// Ilgari bu yerda MUSTAQIL nusxa turardi va u `TestUtils.getActualQuestionCount`
+// dan farq qilardi: "35–36" kabi diapazon ID ni bitta savol deb sanardi va
+// `parts`/`content` ichiga kirmasdi. Natijada bitta test dashboardda 39, test
+// kartochkasida 40 ta savol deb ko'rinardi.
 const getActualQuestionCount = (questions) => {
-    if (!questions || !Array.isArray(questions)) return 0;
-    
-    // Lightweight key: avoids heavy JSON.stringify
+    if (!Array.isArray(questions) || questions.length === 0) return 0;
+
+    // PERF: og'ir JSON.stringify siz yengil kalit.
     const cacheKey = `${questions.length}-${questions[0]?.id || 'no-id'}`;
     if (questionCountCache.has(cacheKey)) return questionCountCache.get(cacheKey);
 
-    const ids = new Set();
-    const extract = (obj) => {
-        if (!obj) return;
-        if (obj.id && !isNaN(parseInt(obj.id))) {
-            ids.add(parseInt(obj.id));
-        }
-        if (obj.rows && Array.isArray(obj.rows)) {
-            obj.rows.forEach(row => {
-                const cells = Array.isArray(row) ? row : (row.cells || []);
-                cells.forEach(cell => {
-                    if (!cell) return;
-                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
-                        extract(cell);
-                    }
-                    if (cell.isMultiQuestion && Array.isArray(cell.content)) {
-                        cell.content.forEach(extract);
-                    }
-                    if (cell.isMixed && Array.isArray(cell.parts)) {
-                        cell.parts.forEach(part => {
-                            if (part && part.type === 'input') {
-                                extract(part);
-                            }
-                        });
-                    }
-                });
-            });
-        }
-        if (Array.isArray(obj.items)) obj.items.forEach(extract);
-        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
-        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
-    };
-    
-    questions.forEach(extract);
-    const count = ids.size || questions.length; // Fallback to length if no IDs found
-
+    const count = collectQuestionNumbers({ questions }).size || questions.length;
     questionCountCache.set(cacheKey, count);
     return count;
 };

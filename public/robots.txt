@@ -1,17 +1,29 @@
 # https://www.robotstxt.org/robotstxt.html
+#
+# QOIDA: bu yerda faqat OMMAVIY (login talab qilmaydigan) sahifalar
+# indekslanadi. Yopiq sahifani `Disallow` ga qo'shishdan oldin uning
+# `src/App.jsx` da `ProtectedRoute` ostida ekaniga ishonch hosil qiling —
+# ikkalasi bir-biriga mos bo'lishi shart.
+
 User-agent: *
 
-# Ommaviy sahifalarni indekslashga ruxsat berish
+# ─── OMMAVIY: qidiruvda ko'rinishi KERAK ────────────────────────────────────
 Allow: /$
 Allow: /login
 Allow: /register
+Allow: /pricing
+Allow: /trial
+Allow: /articles
+Allow: /article/
 Allow: /favicon.png
+Allow: /englev-logo.png
 
-# Yopiq dashboard va test tizimlarini indekslashdan himoya qilish
+# ─── YOPIQ: shaxsiy kabinet va test tizimi ──────────────────────────────────
 Disallow: /dashboard
 Disallow: /test/
 Disallow: /review/
 Disallow: /statistics
+Disallow: /analytics
 Disallow: /leaderboard
 Disallow: /my-results
 Disallow: /vocabulary
@@ -23,19 +35,22 @@ Disallow: /library
 Disallow: /roadmap
 Disallow: /settings
 Disallow: /mock
+Disallow: /mock-buy
 Disallow: /test-results
 Disallow: /mock-exam
+Disallow: /speaking-ai
+Disallow: /speaking-practice
 Disallow: /podcasts
 Disallow: /podcast/
-Disallow: /articles
-Disallow: /article/
-Disallow: /speaking-practice
-Disallow: /pricing
+Disallow: /share/
 Disallow: /diagnostic-intro
 Disallow: /diagnostic-test/
 Disallow: /diagnostic-result/
 Disallow: /teacher
 Disallow: /admin
 
-# Sitemap manzili
+# Trial natijasi shaxsiy — indekslanmasin (lekin /trial ochiq).
+Disallow: /trial/result
+
+# Sitemap manzili (dinamik — `functions/sitemap.js` generatsiya qiladi)
 Sitemap: https://englev.uz/sitemap.xml

@@ -21,6 +21,8 @@ const { submitTestAnswers } = require("./submitTestAnswers");
 const { submitMockExam } = require("./submitMockExam");
 const { rebuildAnalyticsSummary, getStudentAnalytics } = require("./analyticsSummary");
 const { shareTest } = require("./shareTest");
+const { shareArticle } = require("./shareArticle");
+const { sitemap } = require("./sitemap");
 const { expireSubscriptions } = require("./expireSubscriptions");
 const { cleanupSpeakingAudio } = require("./cleanupSpeakingAudio");
 const { requestSpeakingReview, submitSpeakingReview } = require("./speakingReview");
@@ -184,6 +186,17 @@ exports.sharePodcast = functions
 exports.shareTest = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })
     .https.onRequest(shareTest);
+
+// `/article/**` — maqola sahifasiga server tomonda meta teg va (robot uchun)
+// matn qo'shadi. `firebase.json` dagi rewrite orqali chaqiriladi.
+exports.shareArticle = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onRequest(shareArticle);
+
+// `/sitemap.xml` — ro'yxat Firestore'dan real vaqtda yig'iladi.
+exports.sitemap = functions
+    .runWith({ timeoutSeconds: 60, memory: "256MB" })
+    .https.onRequest(sitemap);
 
 exports.expireSubscriptions = expireSubscriptions;
 

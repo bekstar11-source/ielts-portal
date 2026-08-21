@@ -1,4 +1,10 @@
 import React, { useState } from 'react';
+// Jadval katakchasidan savol ajratish qoidasi ball hisobi bilan bitta manbadan olinadi.
+import { extractTableQuestions } from '../../../utils/tableQuestions';
+// Tur → renderer moslamasi ham bitta manbadan: validator "bu turni renderer
+// taniydimi?" degan savolga dispatcher bilan AYNI javobni berishi shart.
+import { resolveListeningRenderer, KNOWN_LISTENING_TYPES } from '../../../utils/questionTypeRegistry';
+import { isMultiAnswerType } from '../../../utils/ieltsScoring';
 
 const isArrowGlyph = (text) => ["↓", "▼", "⬇", "arrow", "⇓"].includes(String(text || '').trim());
 
@@ -121,6 +127,25 @@ export function runValidation(testData) {
             }
         }
 
+        // TUR TANILADIMI?
+        //
+        // `group.type` — sxemasiz erkin matn, va listening dispatcher'i uni
+        // aniq tenglik bilan qidiradi. Ro'yxatda yo'q tur JIM ravishda MCQ ga
+        // tushardi: variantsiz guruh javob maydonisiz chizilib, talaba savolga
+        // javob bera olmasdi — ball esa uni maxrajga qo'shib bandni tushirardi.
+        // Publish paytida ushlamasak, buni faqat talabaning shikoyatidan bilamiz.
+        if (type === 'listening') {
+            const known = resolveListeningRenderer(group.type) !== null || isMultiAnswerType(group.type);
+            if (!known) {
+                errors.push({
+                    id: `group-${gIdx}-unknown-type`,
+                    message: `Savollar Guruhi #${gIdx + 1}: "${group.type || '(bo\'sh)'}" savol turini interfeys tanimaydi — savollar javob maydonisiz chiziladi. Ruxsat etilgan turlar: ${KNOWN_LISTENING_TYPES.join(', ')}`,
+                    category: 'Savollar Tuzilishi',
+                    path: groupPath
+                });
+            }
+        }
+
         // Layout checks for groups
         const typeLower = (group.type || '').toLowerCase();
         if (typeLower === 'map_labeling' || typeLower === 'map') {
@@ -136,7 +161,15 @@ export function runValidation(testData) {
 
         const itemsKey = group.items ? 'items' : (group.questions ? 'questions' : 'items');
         const items = group.items || group.questions || [];
-        if (items.length === 0 && !group.groups) {
+
+        // Table completion savollari `items` da emas, `rows → cells` ichida turadi.
+        // Ilgari validator jadvalga umuman kirmasdi: shu sabab 40 talik testda
+        // "jami savollar: 34 ta" ogohlantirishi chiqar va jadvaldagi javob kaliti
+        // yo'q savollar tekshirilmay o'tib ketardi.
+        const tableItems = extractTableQuestions(group.rows);
+        const hasTable = tableItems.length > 0;
+
+        if (items.length === 0 && !group.groups && !hasTable) {
             warnings.push({
                 id: `group-${gIdx}-empty-items`,
                 message: `Savollar Guruhi #${gIdx + 1} (${group.type || 'noma\'lum'}): ichida birorta ham savol elementi yo'q`,
@@ -150,6 +183,26 @@ export function runValidation(testData) {
             allQuestions.push({ q, group, path: [...groupPath, itemsKey, iIdx] });
         });
 
+        // Ba'zi jadvallarda javob kaliti `items` da, joylashuv esa `rows` da turadi —
+        // ya'ni bitta savol ikkala joyda uchraydi. Shuning uchun `rows` dan kelgan
+        // takroriy id lar tashlab yuboriladi, aks holda validator o'zi yaratgan
+        // dublikatni "savol raqami takrorlangan" xatosi deb ko'rsatardi.
+        // Qo'shimcha ravishda kalitni `items` dan olib qo'yamiz: katakchada `answer`
+        // bo'lmasa ham, savol javobsiz deb belgilanmasligi kerak.
+        const itemById = new Map(
+            items.filter(it => it && it.id != null).map(it => [String(it.id), it])
+        );
+
+        // Jadval katakchalari uchun `path` berilmaydi — katakchaga sakrash manzili
+        // yagona emas (qator massiv ham, obyekt ham bo'lishi mumkin). Xato matnida
+        // savol raqami turadi, admin uni shu bo'yicha topadi.
+        tableItems.forEach((cell, iIdx) => {
+            if (isNonScoredItem(cell, iIdx)) return;
+            const twin = cell.id != null ? itemById.get(String(cell.id)) : undefined;
+            if (twin) return; // allaqachon `items` orqali qo'shilgan
+            allQuestions.push({ q: cell, group });
+        });
+
         if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach((sub, sIdx) => {
                 const subKey = sub.items ? 'items' : (sub.questions ? 'questions' : 'items');
@@ -157,6 +210,12 @@ export function runValidation(testData) {
                 subItems.forEach((q, iIdx) => {
                     if (isNonScoredItem(q, iIdx)) return;
                     allQuestions.push({ q, group, subGroup: sub, path: [...groupPath, 'groups', sIdx, subKey, iIdx] });
+                });
+                const subItemIds = new Set(subItems.filter(it => it && it.id != null).map(it => String(it.id)));
+                extractTableQuestions(sub.rows).forEach((cell, iIdx) => {
+                    if (isNonScoredItem(cell, iIdx)) return;
+                    if (cell.id != null && subItemIds.has(String(cell.id))) return;
+                    allQuestions.push({ q: cell, group, subGroup: sub });
                 });
             });
         }

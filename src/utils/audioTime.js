@@ -77,3 +77,38 @@ export const roundAudioTime = (seconds) => {
     const factor = 10 ** STORED_DECIMALS;
     return Math.round(s * factor) / factor;
 };
+
+/**
+ * Admin kiritgan matnni TEKSHIRIB o'qiydi.
+ *
+ * `parseAudioTime` hech qachon xato qaytarmaydi — u o'quvchi tomonida shunday
+ * kerak (yomon qiymat imtihonni to'xtatmasligi shart). Lekin admin tomonida
+ * jimgina 0 ga aylantirish aynan shu bug'ning manbai edi: "6;05" yozilsa,
+ * maydon to'ldirilgandek ko'rinardi, imtihon esa 0-soniyadan boshlanardi.
+ *
+ * @returns {{valid: boolean, empty: boolean, seconds: number, reason: string}}
+ */
+export const parseAudioTimeInput = (raw) => {
+    if (raw === undefined || raw === null) return { valid: false, empty: true, seconds: 0, reason: 'empty' };
+    const str = String(raw).trim().replace(',', '.');
+    if (str === '') return { valid: false, empty: true, seconds: 0, reason: 'empty' };
+
+    const parts = str.split(':');
+    if (parts.length > 3) return { valid: false, empty: false, seconds: 0, reason: 'format' };
+
+    let total = 0;
+    for (let i = 0; i < parts.length; i++) {
+        const piece = parts[i];
+        const isLast = i === parts.length - 1;
+        // Kasr qismi faqat eng oxirgi (soniya) bo'lagida bo'lishi mumkin.
+        const pattern = isLast ? /^\d+(\.\d+)?$/ : /^\d+$/;
+        if (!pattern.test(piece)) return { valid: false, empty: false, seconds: 0, reason: 'format' };
+        const n = Number(piece);
+        // "6:75" — daqiqa/soniya 60 dan oshmaydi. Bunday qiymat deyarli har doim
+        // xato yozuv, jimgina 7:15 ga aylantirilsa admin sezmay qoladi.
+        if (i > 0 && n >= 60) return { valid: false, empty: false, seconds: 0, reason: 'range' };
+        total = total * 60 + n;
+    }
+
+    return { valid: true, empty: false, seconds: roundAudioTime(total), reason: '' };
+};

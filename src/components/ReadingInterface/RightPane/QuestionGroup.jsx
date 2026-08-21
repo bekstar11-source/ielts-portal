@@ -11,7 +11,7 @@ import {
     QuestionExplanation
 } from '../ReadingQuestionTypes';
 import { getRangeLabel, cleanInstructions, getHeadingOptionLabels } from './RightPaneUtils';
-import { isMatchingHeadingsGroup, isMatchingParagraphGroup } from '../ReadingInterfaceUtils';
+import { classifyReadingGroup, isReadingChoiceGroup, resolveReadingRenderer } from '../../../utils/questionTypeRegistry.js';
 import { isMultiAnswerType } from '../../../utils/ieltsScoring';
 
 const QuestionGroup = ({ 
@@ -30,37 +30,35 @@ const QuestionGroup = ({
     onOpenNotes, 
     isPremium 
 }) => {
-    const type = String(group.type || "").toLowerCase();
-    const instr = String(group.instruction || "").toLowerCase();
-    
-    // Bir nechta variant belgilanadigan turlar — ball hisoblagichdagi `isMultiAnswerType`
-    // bilan AYNAN bir xil ro'yxat. Ilgari bu yerda qo'lda yozilgan ro'yxat bor edi va
-    // pick_four/pick_five guruhlari radio button sifatida chizilardi: talaba faqat 1 ta
-    // variant belgilay olardi, ball esa 4–5 tadan hisoblanardi.
+    // Tasniflash `questionTypeRegistry.classifyReadingGroup` da — ilgari bu
+    // mantiq shu yerda, JSX orasida yozilgan edi: testlab bo'lmasdi va
+    // `nextGroup` uchun xuddi shu ro'yxat pastda ikkinchi marta takrorlanardi.
+    // `isMultiAnswerType` tashqaridan uzatiladi, ya'ni render va ball hisobi
+    // ayni bir predikatga tayanadi.
     const isMultiSelect = isMultiAnswerType(group.type);
-    const isChoiceType = isMultiSelect ||
-                         ['mcq', 'choice', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => type.includes(t));
-    const isMatching = type.includes('matching') || (group.items && group.items.some(i => i.text && i.text.includes('[DROP]')));
-    const isSummary = (type === 'gap_fill' || type.includes('summary') || type === 'summary_box') && !type.includes('note') && !type.includes('flow');
-    const isFlowChart = type.includes('flow') || instr.includes('flow-chart') || instr.includes('flow chart');
-    const isTable = type.includes('table');
-    const isDiagram = type.includes('diagram') || type.includes('labeling');
-    const isTFNG = type.includes('tfng') || type.includes('yesno') || type.includes('true_false') || type.includes('yes_no');
+    // Renderer TANLOVIGA aloqador bayroqlar (isTable, isFlowChart, isMatchingGrid…)
+    // bu yerda kerak emas — ular `resolveReadingRenderer` ichida ishlatiladi.
+    // Quyidagilar esa tanlovdan tashqari narsalarga ta'sir qiladi: chegara
+    // chizig'i, bo'shliq, ko'rsatma matnini tozalash.
+    const {
+        isChoiceType,
+        isSummary,
+        isDiagram,
+        isTFNG,
+        showStaticOptions
+    } = classifyReadingGroup(group, isMultiSelect);
+
+    // Qaysi komponent chiziladi — USTUVORLIK TARTIBI ham registrda.
+    // Ilgari u ichma-ich ternarylar ko'rinishida shu JSX ichida yashardi,
+    // ya'ni golden corpus reading tomonida "savol chiziladimi?" degan
+    // savolni umuman tekshira olmasdi.
+    const renderer = resolveReadingRenderer(group, isMultiSelect);
 
     const rangeLabel = getRangeLabel(group);
     const displayInstruction = cleanInstructions(group, isTFNG);
 
-    const isJustLetters = Array.isArray(group.options) && group.options.length > 0 && group.options.every(opt => {
-        const text = String(typeof opt === 'object' ? opt.text : opt).trim();
-        return text.length <= 3 || /^[A-Z][\.\)]?\s*$/i.test(text);
-    });
     
-    // Tasniflash `ReadingInterfaceUtils` dagi yagona funksiyalar orqali — chap panel (drop-zone)
-    // va DnD hook ham AYNAN shularni ishlatadi, shuning uchun uch panel bir xil qaror qabul qiladi.
-    const isMatchingHeading = isMatchingHeadingsGroup(group);
-    const isMatchingParagraph = isMatchingParagraphGroup(group);
 
-    const showStaticOptions = ((type.includes('matching') && !isMatchingParagraph) || isSummary || isFlowChart) && Array.isArray(group.options) && group.options.length > 0 && !isJustLetters;
 
     const commonProps = {
         group,
@@ -77,14 +75,10 @@ const QuestionGroup = ({
         isPremium
     };
 
-    const isMatchingGrid = type.includes('matching') && !isMatchingHeading && !isMatchingParagraph && Array.isArray(group.options) && group.options.length > 0;
 
     const nextGroup = filteredQuestions[gIdx + 1];
-    const nextType = nextGroup ? String(nextGroup.type || "").toLowerCase() : "";
-    const isNextChoice = nextGroup && (
-        isMultiAnswerType(nextGroup.type) ||
-        ['mcq', 'choice', 'multi', 'tfng', 'yesno', 'true_false', 'yes_no'].some(t => nextType.includes(t))
-    );
+    // Bir xil qoida — ro'yxat ikkinchi marta qo'lda yozilmaydi.
+    const isNextChoice = Boolean(nextGroup) && isReadingChoiceGroup(nextGroup, isMultiAnswerType(nextGroup.type));
     const hideBorder = isChoiceType && isNextChoice;
 
     return (
@@ -95,9 +89,9 @@ const QuestionGroup = ({
                 <div className="bg-transparent border-none p-0 mb-6 shadow-none font-normal text-black text-[15.5px]" dangerouslySetInnerHTML={{ __html: displayInstruction }} />
             )}
 
-            {isMatchingGrid ? (
+            {renderer === 'MatchingGrid' ? (
                 <MatchingGridQuestion {...commonProps} />
-            ) : isMatchingHeading && group.options && group.options.length > 0 ? (
+            ) : renderer === 'MatchingHeadings' ? (
                 <div className="flex flex-col gap-4">
                     <div className="bg-transparent p-0 border-none shadow-none">
                         <p className="text-[16px] font-bold mb-4 text-black">
@@ -141,11 +135,11 @@ const QuestionGroup = ({
                     {showStaticOptions && <MatchingOptionsBox {...commonProps} />}
 
                     <div className={isSummary || isDiagram ? "mt-4" : ""}>
-                        {isTable ? (
+                        {renderer === 'Table' ? (
                             <TableQuestion {...commonProps} />
-                        ) : isDiagram ? (
+                        ) : renderer === 'DiagramLabeling' ? (
                             <DiagramLabelingQuestion {...commonProps} />
-                        ) : isSummary && !isFlowChart ? (
+                        ) : renderer === 'SummaryGapFill' ? (
                             <>
                                 <p className="leading-[2.2] text-black">
                                     {group.items?.map((q, qIdx) => {
@@ -178,11 +172,11 @@ const QuestionGroup = ({
                                     </div>
                                 )}
                             </>
-                        ) : isFlowChart ? (
+                        ) : renderer === 'FlowChart' ? (
                             <FlowChartQuestion {...commonProps} />
                         ) : (
                             group.items?.map((q, qIdx) => {
-                                if (isChoiceType && !isMatching) {
+                                if (renderer === 'Choice') {
                                     return <ChoiceQuestion key={q.id} q={q} val={userAnswers[q.id] || ""} isMultiSelect={isMultiSelect} {...commonProps} />;
                                 }
                                 return (

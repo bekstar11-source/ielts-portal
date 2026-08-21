@@ -121,7 +121,7 @@ export default function PodcastPlayer() {
         return (
             <div className="podcast-layout" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
                 <div style={{ color: "var(--pod-text-2)" }}>Mashqni boshlash uchun tizimga kiring.</div>
-                <button className="pod-btn" onClick={() => navigate("/auth/login")}>Kirish</button>
+                <button className="pod-btn" onClick={() => navigate("/login")}>Kirish</button>
             </div>
         );
     }

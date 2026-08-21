@@ -243,7 +243,30 @@ service cloud.firestore {
     // darajasida ajratib bo'lmaydi — lekin bir marta chaqiruvda ko'pi bilan
     // BITTA izoh o'zgarishini talab qilib, ommaviy o'chirishni to'sib qo'yamiz.
     match /articles/{articleId} {
-      allow read: if isAuth();
+      /*
+       * OMMAVIY O'QISH (SEO uchun ataylab ochilgan).
+       *
+       * Maqolalar — saytning yagona organik trafik manbai. Ilgari ular
+       * `isAuth()` ostida edi, ya'ni Google birorta maqolani ham indekslay
+       * olmasdi: hamma kontent login devori ortida qolardi.
+       *
+       * Endi mehmon (login qilmagan, shu jumladan anonim sessiya) FAQAT
+       * `isMemberOnly == false` maqolani o'qiy oladi. Premium maqola
+       * mehmonga Firestore darajasida ham berilmaydi — ya'ni paywall endi
+       * shunchaki UI bezagi emas.
+       *
+       * ⚠️ `list` so'rovi uchun Firestore qoidani HAR BIR hujjatga emas,
+       * SO'ROVGA nisbatan tekshiradi: mehmon so'rovida
+       * `where('isMemberOnly','==',false)` bo'lishi SHART, aks holda butun
+       * so'rov rad etiladi. Klient tomonda bu `src/pages/articles/
+       * Articles.jsx` dagi `fetchArticles` da bajarilgan.
+       *
+       * ⚠️ Maydoni YO'Q eski hujjat `== false` ga tushmaydi — shuning uchun
+       * `backfill_article_visibility.cjs` barcha maqolaga aniq
+       * `isMemberOnly` qiymatini yozadi. Yangi maqola yaratilganda ham bu
+       * maydon albatta to'ldirilsin.
+       */
+      allow read: if isAuth() || resource.data.isMemberOnly == false;
       allow update: if isAdmin() || isTeacher() || (
         isAuth()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claps', 'comments'])

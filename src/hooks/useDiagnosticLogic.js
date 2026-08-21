@@ -5,6 +5,7 @@ import { doc, getDoc, addDoc, collection, updateDoc, increment, serverTimestamp 
 import { useAuth } from "../context/AuthContext";
 import { calculateBandScore, checkAnswer, scoreMultiAnswer, isChoiceQuestionType } from "../utils/ieltsScoring";
 import { logAction } from "../utils/logger";
+import { extractTableQuestions } from '../utils/tableQuestions';
 
 export function useDiagnosticLogic() {
     const { testId } = useParams();
@@ -158,18 +159,11 @@ export function useDiagnosticLogic() {
 
                     // 4. q.rows — fallback (faqat q.items yo'q bo'lganda)
                     if (q.rows && Array.isArray(q.rows) && q.rows.length > 0 && (!q.items || q.items.length === 0)) {
-                        q.rows.forEach(row => {
-                            if (row.cells && Array.isArray(row.cells)) {
-                                row.cells.forEach(cell => {
-                                    if (cell.isMixed && cell.parts && Array.isArray(cell.parts)) {
-                                        cell.parts.forEach(part => {
-                                            if (part.type === 'input') {
-                                                scoreItem(part.id, part.answer || part.correct_answer, q.type);
-                                            }
-                                        });
-                                    }
-                                });
-                            }
+                        // Ilgari bu yer faqat `row.cells` + `isMixed` katakchalarni ko'rardi:
+                        // massiv ko'rinishidagi qatorlar va id'si to'g'ridan-to'g'ri
+                        // katakchada turgan savollar diagnostikadan tushib qolardi.
+                        extractTableQuestions(q.rows).forEach(item => {
+                            scoreItem(item.id, item.answer || item.correct_answer, q.type);
                         });
                     }
 

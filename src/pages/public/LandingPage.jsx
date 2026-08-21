@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar';
 import SchemaMarkup from '../../components/common/SchemaMarkup';
+import { useSeo } from '../../hooks/useSeo';
 import { track } from '../../lib/analytics';
 import Logo from '../../components/common/Logo';
 import { useTranslation } from '../../context/LanguageContext';
@@ -599,6 +600,17 @@ const FooterHTML = () => {
 export default function IELTSPortalLanding() {
   // Funnel'ning eng yuqori nuqtasi — reklama CPC'sini shu bilan solishtiramiz.
   useEffect(() => { track('landing_view'); }, []);
+
+  // Canonical'ni har bir ommaviy sahifa O'ZI e'lon qiladi. Uni `index.html` ga
+  // statik qo'yib bo'lmaydi: u holda /login va /pricing ham o'zini bosh sahifa
+  // deb ko'rsatardi va sahifalar bir-birining dublikatiga aylanardi.
+  useSeo({
+    title: "ENGLEV | IELTS va ingliz tiliga onlayn tayyorgarlik",
+    description:
+      "Real imtihon muhitida IELTS mock testlari, AI tahlili va daraja bo'yicha " +
+      "o'qish materiallari. Bepul sinov testi bilan darajangizni bilib oling.",
+    path: "/",
+  });
 
   return (
     <div className="lp" style={{ background: '#F7F4EE', minHeight: '100vh', width: '100%', margin: 0, padding: 0 }}>

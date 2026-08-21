@@ -22,6 +22,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Nusxalanadigan fayllar: `src/utils/<name>` → `functions/<name>`. */
 const MIRRORED = [
+  // Ball hisobi. Server (`submitTestAnswers`, `submitMockExam`, `trial`) ball
+  // qo'yadi, klient esa AYNI shu fayl bilan review chizadi. Ikkisi siljisa,
+  // talaba review'da yashil ✓ ko'rib, ball olmaydi — portaldagi eng qimmat bug.
+  'ieltsScoring.js',
   'questionTypes.js',
   'mistakePatterns.js',
   'isoWeek.js',

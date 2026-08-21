@@ -1,4 +1,5 @@
-import { getQuestionTypesFromQuestions } from '../components/admin/CreateTest/CreateTestUtils';
+import { getQuestionTypesFromQuestions } from '../components/admin/CreateTest/CreateTestUtils.js';
+import { collectQuestionNumbers } from './ieltsScoring.js';
 
 const normalizeTypeList = (arr) =>
   Array.isArray(arr) ? arr.filter(Boolean).map(String) : [];
@@ -586,57 +587,13 @@ export const getActualQuestionCount = (test, partNumber = null) => {
         }
     }
 
-    const ids = new Set();
-    const extract = (obj) => {
-        if (!obj) return;
-        if (obj.id) {
-            const idStr = String(obj.id);
-            if (/^\d+\s*[\-–_]\s*\d+$/.test(idStr)) {
-                const parts = idStr.split(/[\-–_]/);
-                const start = parseInt(parts[0], 10);
-                const end = parseInt(parts[1], 10);
-                if (!isNaN(start) && !isNaN(end)) {
-                    for (let n = Math.min(start, end); n <= Math.max(start, end); n++) {
-                        ids.add(n);
-                    }
-                }
-            } else if (/^(\d+\s*,\s*)+\d+$/.test(idStr)) {
-                idStr.split(',').forEach(p => {
-                    const num = parseInt(p, 10);
-                    if (!isNaN(num)) ids.add(num);
-                });
-            } else if (!isNaN(parseInt(idStr))) {
-                ids.add(parseInt(idStr));
-            }
-        }
-        if (obj.rows && Array.isArray(obj.rows)) {
-            obj.rows.forEach(row => {
-                const cells = Array.isArray(row) ? row : (row.cells || []);
-                cells.forEach(cell => {
-                    if (!cell) return;
-                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) {
-                        extract(cell);
-                    }
-                    if (cell.isMultiQuestion && Array.isArray(cell.content)) {
-                        cell.content.forEach(extract);
-                    }
-                    if (cell.isMixed && Array.isArray(cell.parts)) {
-                        cell.parts.forEach(part => {
-                            if (part && part.type === 'input') {
-                                extract(part);
-                            }
-                        });
-                    }
-                });
-            });
-        }
-        if (Array.isArray(obj.items)) obj.items.forEach(extract);
-        if (Array.isArray(obj.questions)) obj.questions.forEach(extract);
-        if (Array.isArray(obj.groups)) obj.groups.forEach(extract);
-    };
+    // Savol raqamlarini yig'ish qoidasi `ieltsScoring.collectQuestionNumbers` da —
+    // `evaluateTest` bilan AYNI daraxt yuruvchisi. Ilgari bu yerda alohida yuruvchi
+    // bor edi va u `parts` / `content` / `cells` / `sections` ga kirmasdi: jadval
+    // ichidagi va aralash katakchadagi savollar kartochkadagi songa kirmay,
+    // "39 ta savol" ko'rinardi — ball esa 40 tadan hisoblanardi.
+    const ids = collectQuestionNumbers({ questions: items });
 
-    items.forEach(extract);
-    
     const count = ids.size;
     if (count > 0) return count;
 

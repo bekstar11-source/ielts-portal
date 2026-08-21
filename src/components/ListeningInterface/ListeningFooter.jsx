@@ -1,4 +1,7 @@
 import React from "react";
+// Jadval katakchasidan savol ajratish qoidasi bitta joyda — ball hisobi (`evaluateTest`)
+// ham aynan shu qoidaga tayanadi, aks holda footerda ko'rinmaydigan savol paydo bo'lardi.
+import { extractTableQuestions } from "../../utils/tableQuestions";
 
 // ⚠️ props/state'ga bog'liq bo'lmagan yordamchilar komponent tashqarisida —
 // aks holda ular har renderda qaytadan yaratilib, quyidagi
@@ -8,7 +11,7 @@ const isRealQuestion = (item) => {
     if (!item || item.id == null) return false;
     if (item.answer) return true;
     const idStr = String(item.id).trim();
-    if (idStr.includes('-')) return false;
+    if (idStr.includes('-') || idStr.includes('–') || idStr.includes('_')) return false;
     return !isNaN(idStr) && idStr !== "";
 };
 
@@ -27,8 +30,12 @@ const extractQuestionsFromGroup = (group) => {
 
         const parseMultiIds = (rawId, count) => {
             const str = String(rawId);
-            if (str.includes('-')) {
-                const parts = str.split('-').map(Number).filter(n => !isNaN(n));
+            // EN TIRE ham ajratkich: bazada diapazon ID lari "35–36" ko'rinishida
+            // yoziladi. Faqat oddiy defis tekshirilganda bunday savol footerda
+            // IKKITA emas, BITTA tugma bo'lib chiqardi — 40 talik testda 39 ta
+            // tugma. `ReadingFooter` da bu allaqachon tuzatilgan edi.
+            if (str.includes('-') || str.includes('–') || str.includes('_')) {
+                const parts = str.split(/[-–_]/).map(Number).filter(n => !isNaN(n));
                 if (parts.length >= 2) {
                     const ids = [];
                     for (let n = parts[0]; n <= parts[parts.length - 1]; n++) ids.push(String(n));
@@ -59,48 +66,24 @@ const extractQuestionsFromGroup = (group) => {
         if (group.groups && Array.isArray(group.groups)) {
             group.groups.forEach(subGroup => {
                 if (subGroup.rows) {
-                    subGroup.rows.forEach(row => {
-                        let cells = Array.isArray(row) ? row : (row.cells || []);
-                        cells.forEach(cell => {
-                            if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
-                            if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
-                            if (cell.isMixed && cell.parts) {
-                                cell.parts.forEach(p => { if (p.type === 'input') questions.push(p); });
-                            }
-                        });
-                    });
+                    questions.push(...extractTableQuestions(subGroup.rows));
                 } else {
                     const items = subGroup.items || subGroup.questions || [];
                     items.forEach(it => {
-                        if (it.type === 'table' || it.rows) {
-                            it.rows.forEach(row => {
-                                let cells = Array.isArray(row) ? row : (row.cells || []);
-                                cells.forEach(cell => {
-                                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
-                                    if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
-                                    if (cell.isMixed && cell.parts) {
-                                        cell.parts.forEach(p => { if (p.type === 'input') questions.push(p); });
-                                    }
-                                });
-                            });
-                        } else {
-                            questions.push(it);
-                        }
+                        // `it.type === 'table'` bo'lsa-yu `rows` bo'lmasa, ilgari bu yer
+                        // `undefined.forEach` bilan yiqilardi — shuning uchun `rows` mavjudligi
+                        // yagona mezon.
+                        if (Array.isArray(it.rows)) questions.push(...extractTableQuestions(it.rows));
+                        else questions.push(it);
                     });
                 }
             });
         }
-        if ((group.type === 'table_completion' || group.type === 'table') && group.rows) {
-            group.rows.forEach(row => {
-                let cellsToIterate = Array.isArray(row) ? row : (row.cells || []);
-                cellsToIterate.forEach(cell => {
-                    if (cell.id && !cell.isMultiQuestion && !cell.isMixed) questions.push(cell);
-                    if (cell.isMultiQuestion && cell.content) questions.push(...cell.content);
-                    if (cell.isMixed && cell.parts) {
-                        cell.parts.forEach(part => { if (part.type === 'input') questions.push(part); });
-                    }
-                });
-            });
+        // Turga emas, tuzilmaga qaraymiz: ba'zi JSON larda guruh turi `note_completion`
+        // bo'lib turib ichida `rows` bo'ladi — turga qarab tekshirilganda bunday
+        // jadvalning savollari footerda umuman ko'rinmasdi.
+        if (Array.isArray(group.rows)) {
+            questions.push(...extractTableQuestions(group.rows));
         }
     return questions;
 };

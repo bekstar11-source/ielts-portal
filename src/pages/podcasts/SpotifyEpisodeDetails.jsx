@@ -136,7 +136,7 @@ export default function SpotifyEpisodeDetails() {
 
     const handleLike = () => {
         if (!user?.uid) {
-            navigate('/auth/login');
+            navigate('/login');
             return;
         }
         toggleLike(user.uid, podcastId);

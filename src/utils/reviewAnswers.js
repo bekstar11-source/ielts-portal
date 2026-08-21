@@ -21,8 +21,8 @@ import {
     getQuestionWeight,
     resolveOptionDisplay,
     findOptionIndex,
-    stripNumeralPrefix
-} from './ieltsScoring';
+    getOptionText
+} from './ieltsScoring.js';
 
 const CONTAINER_KEYS = ['sections', 'questions', 'groups', 'passages', 'items', 'parts', 'content', 'rows', 'cells'];
 const GROUP_ITEM_KEYS = ['questions', 'items', 'rows', 'groups', 'cells', 'content', 'parts'];
@@ -61,12 +61,19 @@ const resolveMatchingText = (val, options) => {
             const foundIdx = findOptionIndex(v, options);
             if (foundIdx === -1) return v;
             const opt = options[foundIdx];
-            const optText = (opt && typeof opt === 'object')
-                ? (opt.text || opt.label || opt.content || "")
-                : String(opt || "");
-            const textStr = String(optText).trim();
-            const stripped = stripNumeralPrefix(textStr);
-            return stripped.replace(/^\s*[A-Z][.)-]\s+/, '').trim() || textStr;
+
+            // Prefiksni kesish qoidasi `ieltsScoring.getOptionText` da — ro'yxat
+            // uzatiladi, shuning uchun "B the no-eye-contact condition" kabi
+            // TINISH BELGISIZ yorliq ham (ro'yxat izchil A/B/C bo'lsa) kesiladi.
+            // Ilgari bu yerda qo'lda yozilgan regex bor edi va u faqat "B." /
+            // "B)" ni tanirdi: review'da sarlavha o'rniga harf yopishgan matn
+            // ko'rinardi.
+            const base = getOptionText(opt, options);
+
+            // "A - Museum" ko'rinishidagi tire bilan ajratilgan yorliq —
+            // `getOptionText` da yo'q (u yerda "A-frame" kabi so'zlarni buzardi),
+            // shu sabab bo'shliq talab qiladigan qo'shimcha qoida saqlanadi.
+            return base.replace(/^\s*[A-Za-z][.)-]\s+/, '').trim() || base;
         })
         .join(' / ');
 };
@@ -109,8 +116,12 @@ export const buildReviewQuestions = (testData, userAnswers = {}, partNumber = nu
                 if (!o || typeof o !== 'object') return;
                 if (o.id && getAnswerKey(o) !== undefined) groupItems.push(o);
                 GROUP_ITEM_KEYS.forEach(sk => {
-                    if (Array.isArray(o[sk])) o[sk].forEach(collectItems);
-                    else if (o[sk] && typeof o[sk] === 'object') collectItems(o[sk]);
+                    const child = o[sk];
+                    if (!child || typeof child !== 'object') return;
+                    // Massiv ichidagi massiv (`rows: [[cell]]`) ham ochilishi shart —
+                    // `evaluateTest.collectItems` bilan bir xil qoida.
+                    if (Array.isArray(child)) child.flat(Infinity).forEach(collectItems);
+                    else collectItems(child);
                 });
             };
             collectItems(obj);
@@ -153,7 +164,10 @@ export const buildReviewQuestions = (testData, userAnswers = {}, partNumber = nu
 
                 const uAns = userAnswers[idStr] ?? userAnswers[obj.id] ?? "";
                 // `evaluateTest` bilan bir xil shart: ID "23-24" / "23,24" ko'p javobli.
-                const isMulti = isMultiAnswerType(currentType) || idStr.includes('-') || idStr.includes(',');
+                // `evaluateTest` bilan AYNAN bir xil shart. `getQuestionWeight` barcha
+                // tire turlarini (defis, en tire, em tire) va vergulni biladi — qo'lda
+                // yozilgan `includes('-')` esa en tireni o'tkazib yuborardi.
+                const isMulti = isMultiAnswerType(currentType) || getQuestionWeight(idStr) > 1;
 
                 let isCorrect = false;
                 let partialText = null;
@@ -208,11 +222,18 @@ export const buildReviewQuestions = (testData, userAnswers = {}, partNumber = nu
             }
         }
 
-        CONTAINER_KEYS.forEach(key => {
-            const val = obj[key];
-            if (Array.isArray(val)) val.forEach(child => walk(child, currentType, options));
-            else if (val && typeof val === 'object') walk(val, currentType, options);
-        });
+        // Ichma-ich massivlarni ham ochamiz. Jadval qatorlari ikki xil yoziladi:
+        // `rows: [{ cells: [...] }]` va `rows: [[cell, cell]]`. Ikkinchi ko'rinishda
+        // qatorning O'ZI massiv bo'ladi va `walk` unda hech qanday kalit topmasdi:
+        // savol ball hisobiga KIRARDI, lekin review ro'yxatida umuman ko'rinmasdi —
+        // talaba xatosini ko'ra olmasdi. `evaluateTest` da bu allaqachon tuzatilgan,
+        // shu sabab bu yerdagi qoida u bilan AYNAN bir xil bo'lishi shart.
+        const visit = (val) => {
+            if (!val || typeof val !== 'object') return;
+            if (Array.isArray(val)) { val.forEach(visit); return; }
+            walk(val, currentType, options);
+        };
+        CONTAINER_KEYS.forEach(key => visit(obj[key]));
     };
 
     walk(testData, null, null);

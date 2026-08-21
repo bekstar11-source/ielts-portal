@@ -192,8 +192,17 @@ function App() {
             <Route path="/podcast/spotify/:podcastId" element={<ProtectedRoute><SpotifyPodcast /></ProtectedRoute>} />
             <Route path="/podcast/album/:albumId" element={<ProtectedRoute><SpotifyAlbum /></ProtectedRoute>} />
             <Route path="/podcast/episode/:podcastId" element={<ProtectedRoute><SpotifyEpisodeDetails /></ProtectedRoute>} />
-            <Route path="/articles" element={<ProtectedRoute><Articles /></ProtectedRoute>} />
-            <Route path="/article/:id" element={<ProtectedRoute><ArticleReading /></ProtectedRoute>} />
+            {/*
+              * OMMAVIY (login talab qilmaydi) — ataylab.
+              *
+              * Maqolalar saytning yagona organik trafik manbai: ular yopiq
+              * bo'lganda Google indekslaydigan sahifa umuman qolmasdi.
+              * Mehmon premium bo'lmagan maqolani to'liq o'qiydi, premium
+              * maqola esa Firestore qoidasi darajasida berilmaydi
+              * (`firestore.rules` → `match /articles/{articleId}`).
+              */}
+            <Route path="/articles" element={<Articles />} />
+            <Route path="/article/:id" element={<ArticleReading />} />
             <Route path="/speaking-practice" element={<ProtectedRoute><SpeakingPractice /></ProtectedRoute>} />
             <Route path="/pricing" element={<Pricing />} />
 
