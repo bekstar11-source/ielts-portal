@@ -34,7 +34,11 @@ service firebase.storage {
       return folder in [
         'part_audios', 'map_images', 'writing_images',
         'articles', 'feed_posts', 'stories',
-        'thumbnails', 'test_collection_covers', 'podcasts'
+        'thumbnails', 'test_collection_covers', 'podcasts',
+        // Multilevel Speaking savol rasmlari. Hamma o'quvchi uchun bir xil,
+        // shuning uchun shaxsiy `speaking/` emas, umumiy papkada turadi.
+        // Server ham aynan shu prefiksni tekshiradi (evaluateSpeaking.js).
+        'multilevel'
       ];
     }
 

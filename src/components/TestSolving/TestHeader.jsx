@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatTime } from '../../utils/ieltsScoring';
 import CustomAudioPlayer from './CustomAudioPlayer';
+import { parseAudioTime as processTimeStr } from '../../utils/audioTime';
 import { useAuth } from '../../context/AuthContext';
 import { Volume2, Volume1, VolumeX, Bell, Menu, PenLine, HelpCircle, EyeOff, X, ChevronRight, Contrast as ContrastIcon, Type, Info, Check as CheckIcon, Maximize, Minimize, ArrowLeft, Share2 } from 'lucide-react';
 import ShareModal from '../common/ShareModal';
@@ -343,6 +344,27 @@ const TestHeader = ({
         }
     };
 
+    // Partning imtihonda qaysi soniyadan boshlanishi. Bir nechta joyda kerak
+    // (pleyerni render qilishda va part tugab keyingisiga o'tishda), shuning
+    // uchun bitta manba.
+    //
+    // `passage.startTime` — admin CreateTest sahifasida bevosita tahrirlaydigan
+    // qiymat, shuning uchun U USTUN. `parts.partN.*` esa hosila nusxa: u eskirib
+    // qolsa, admin qo'ygan vaqt e'tiborsiz qolib, imtihon boshqa soniyadan
+    // boshlanardi.
+    const resolvePartTimes = React.useCallback((index) => {
+        const passage = test?.passages?.[index] || {};
+        const partMeta = test?.parts?.[`part${index + 1}`];
+        const defaultStart = passage.audio ? 0 : (index * 450);
+        const defaultEnd = passage.audio ? 0 : ((index + 1) * 450);
+
+        const isSet = (v) => v !== undefined && v !== null && v !== "";
+        return {
+            startTime: isSet(passage.startTime) ? passage.startTime : (partMeta?.startSec ?? defaultStart),
+            endTime: isSet(passage.endTime) ? passage.endTime : (partMeta?.endSec ?? defaultEnd),
+        };
+    }, [test]);
+
     const finishedParts = useRef(new Set());
     
     const handleEnded = (index) => {
@@ -373,6 +395,17 @@ const TestHeader = ({
             // sikli partni to'g'ri boshlanish nuqtasidan qo'yib yuboradi.
             const nextAudio = document.getElementById(`audio-part-${nextIdx}`);
             if (nextAudio && nextAudio.readyState >= 1) {
+                // Playhead'ni AVVAL keyingi partning boshlanish soniyasiga qo'yamiz.
+                // Ilgari bu yerda to'g'ridan-to'g'ri `play()` chaqirilardi va
+                // element o'z chegarasidan tashqarida (odatda 0-soniyada) turgan
+                // bo'lsa, part admin belgilagan joydan emas, o'sha yerdan
+                // eshitilardi.
+                const nextStart = processTimeStr(resolvePartTimes(nextIdx).startTime) || 0;
+                const nextEnd = processTimeStr(resolvePartTimes(nextIdx).endTime) || 0;
+                const pos = nextAudio.currentTime;
+                if (pos < nextStart - 0.25 || (nextEnd > nextStart && pos >= nextEnd)) {
+                    try { nextAudio.currentTime = nextStart; } catch { /* seek imkonsiz */ }
+                }
                 nextAudio.play().catch(err => {
                     console.warn('Auto-play next blocked:', err);
                     // If blocked, allow the user to play manually if needed,
@@ -484,24 +517,7 @@ const TestHeader = ({
                                 }
                                 seenUrls.add(src);
 
-                                // Calculate overridden bounds
-                                const partKey = `part${index + 1}`;
-                                const partMeta = test?.parts?.[partKey];
-
-                                const defaultStart = passage.audio ? 0 : (index * 450);
-                                const defaultEnd = passage.audio ? 0 : ((index + 1) * 450);
-
-                                // `passage.startTime` — admin CreateTest sahifasida bevosita
-                                // tahrirlaydigan qiymat, shuning uchun U USTUN. `parts.partN.*`
-                                // esa hosila nusxa: u eskirib qolsa, admin qo'ygan vaqt e'tiborsiz
-                                // qolib, imtihon boshqa soniyadan boshlanardi.
-                                const startTime = (passage.startTime !== undefined && passage.startTime !== null && passage.startTime !== "")
-                                    ? passage.startTime
-                                    : (partMeta?.startSec ?? defaultStart);
-
-                                const endTime = (passage.endTime !== undefined && passage.endTime !== null && passage.endTime !== "")
-                                    ? passage.endTime
-                                    : (partMeta?.endSec ?? defaultEnd);
+                                const { startTime, endTime } = resolvePartTimes(index);
 
                                 return (
                                     <CustomAudioPlayer

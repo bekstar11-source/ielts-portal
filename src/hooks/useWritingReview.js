@@ -7,11 +7,21 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { calculateOverallBand } from '../utils/ieltsScoring';
+import {
+    getWritingAnswers, combineWritingBand, aiReviewToFeedback, mapWithConcurrency,
+} from '../utils/writingReview';
 import { useTeacherWorkspace } from './useTeacherWorkspace';
 import { chunkIds } from '../utils/teacherResults';
 
 /** Admin ko'rinishida bir marta olinadigan yozma ishlar chegarasi. */
 const ADMIN_WRITINGS_CAP = 500;
+
+/**
+ * Ommaviy AI tekshiruvida bir vaqtda ketadigan so'rovlar soni. Bitta
+ * `checkWriting` chaqiruvi (vision bilan) daqiqalab ketishi mumkin, shuning
+ * uchun ketma-ket yurish uzoq; 3 tadan yuqorisi esa quota'ga uriladi.
+ */
+const BULK_CONCURRENCY = 3;
 
 // Results store `date` either as a Firestore Timestamp or an ISO string
 // (submitMockExam/submitTestAnswers use new Date().toISOString()), so both
@@ -49,6 +59,7 @@ export const useWritingReview = (userData) => {
 
     const [saving, setSaving] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
+    const [bulkState, setBulkState] = useState({ running: false, done: 0, total: 0 });
 
     const fetchAdminData = async () => {
         setAdminLoading(true);
@@ -91,60 +102,39 @@ export const useWritingReview = (userData) => {
 
     const fetchData = () => (isAdmin ? fetchAdminData() : workspace.refresh());
 
-    const handleSaveFeedback = async (resultId, data) => {
-        setSaving(true);
-        try {
-            const resRef = doc(db, 'results', resultId);
-            const resSnap = await getDoc(resRef);
-            const resData = resSnap.data();
+    /**
+     * Bitta natijaga baholashni yozadi. Ro'yxatni yangilamaydi va toast
+     * ko'rsatmaydi — ommaviy tekshiruv buni o'nlab marta chaqiradi.
+     */
+    const saveFeedbackDoc = async (resultId, data) => {
+        const resRef = doc(db, 'results', resultId);
+        const resSnap = await getDoc(resRef);
+        const resData = resSnap.data();
 
-            const t1 = parseFloat(data.task1Band);
-            const t2 = parseFloat(data.task2Band);
-            
-            // Check which tasks were actually submitted by student
-            let ans = resData.userAnswers || resData.writingAnswers || {};
-            if (resData.attempts && Array.isArray(resData.attempts) && resData.attempts.length > 0) {
-                const lastAttempt = resData.attempts[resData.attempts.length - 1];
-                ans = lastAttempt.userAnswers || lastAttempt.writingAnswers || ans;
-            }
-            if (resData.details?.writingAnswers) {
-                ans = resData.details.writingAnswers || ans;
-            }
-            if (!ans.task1 && resData.task1) ans.task1 = resData.task1;
-            if (!ans.task1 && resData.writingAnswer) ans.task1 = resData.writingAnswer;
-            if (!ans.task2 && resData.task2) ans.task2 = resData.task2;
+        const t1 = parseFloat(data.task1Band);
+        const t2 = parseFloat(data.task2Band);
+        
+        // Check which tasks were actually submitted by student
+        const ans = getWritingAnswers(resData);
+        const hasT1 = !!ans.task1;
+        const hasT2 = !!ans.task2;
 
-            const hasT1 = !!ans.task1;
-            const hasT2 = !!ans.task2;
+        const writingOverall = combineWritingBand(t1, t2, hasT1, hasT2);
 
-            let writingOverall = 0;
-            if (hasT1 && hasT2) {
-                const raw = (t1 + 2 * t2) / 3;
-                let integerPart = Math.floor(raw);
-                const fractionalPart = raw - integerPart;
-                if (fractionalPart >= 0.75) writingOverall = integerPart + 1;
-                else if (fractionalPart >= 0.25) writingOverall = integerPart + 0.5;
-                else writingOverall = integerPart;
-            } else if (hasT1) {
-                writingOverall = t1;
-            } else if (hasT2) {
-                writingOverall = t2;
-            }
+        if (Number.isNaN(writingOverall)) {
+            throw new Error("Topshirilgan vazifalar uchun band tanlanmagan");
+        }
 
-            if (Number.isNaN(writingOverall)) {
-                throw new Error("Topshirilgan vazifalar uchun band tanlanmagan");
-            }
-
-            const updates = {
-                task1Band: hasT1 ? t1 : null,
-                task2Band: hasT2 ? t2 : null,
-                writingBand: writingOverall,
-                task1Details: data.task1Details || null,
-                task2Details: data.task2Details || null,
-                teacherFeedback: data.feedback || '',
-                reviewedAt: new Date().toISOString(),
-                reviewedByTeacher: userData?.uid,
-                status: 'graded'
+        const updates = {
+            task1Band: hasT1 ? t1 : null,
+            task2Band: hasT2 ? t2 : null,
+            writingBand: writingOverall,
+            task1Details: data.task1Details || null,
+            task2Details: data.task2Details || null,
+            teacherFeedback: data.feedback || '',
+            reviewedAt: new Date().toISOString(),
+            reviewedByTeacher: userData?.uid,
+            status: 'graded'
             };
 
             // Calculate overall band for Mock Exam
@@ -179,6 +169,13 @@ export const useWritingReview = (userData) => {
             }
 
             await updateDoc(resRef, updates);
+            return true;
+    };
+
+    const handleSaveFeedback = async (resultId, data) => {
+        setSaving(true);
+        try {
+            await saveFeedbackDoc(resultId, data);
             await fetchData();
             toast.success("Baholash saqlandi");
             return true;
@@ -210,6 +207,74 @@ export const useWritingReview = (userData) => {
         }
     };
 
+    /**
+     * Bir nechta insho uchun AI tekshiruvi. `autoApply` bo'lsa, AI qaytargan
+     * mezonlardan task bandlari hisoblanib, izoh bilan birga natijaga
+     * yoziladi — ya'ni bitta tugma bilan tanlangan ishlar baholanadi.
+     *
+     * Ustoz izohi allaqachon yozilgan bo'lsa, ustidan yozilmaydi.
+     */
+    const handleBulkAICheck = async (ids, { autoApply = true } = {}) => {
+        const targets = [...new Set(ids)].filter(Boolean);
+        if (targets.length === 0) return null;
+
+        setBulkState({ running: true, done: 0, total: targets.length });
+        const checkWriting = httpsCallable(functions, 'checkWriting', { timeout: 300000 });
+        const byId = new Map(writings.map(w => [w.id, w]));
+        const failed = [];
+        const skipped = [];
+        let graded = 0;
+        let checked = 0;
+
+        try {
+            await mapWithConcurrency(targets, BULK_CONCURRENCY, async (id) => {
+                try {
+                    const response = await checkWriting({ resultId: id });
+                    const aiReview = response.data?.aiReview;
+                    checked += 1;
+
+                    if (autoApply) {
+                        const writing = byId.get(id);
+                        const ans = getWritingAnswers(writing);
+                        const submitData = aiReviewToFeedback(aiReview, {
+                            hasT1: !!ans.task1,
+                            hasT2: !!ans.task2,
+                            existingFeedback: writing?.teacherFeedback || '',
+                        });
+                        if (submitData) {
+                            await saveFeedbackDoc(id, submitData);
+                            graded += 1;
+                        } else {
+                            skipped.push(id);
+                        }
+                    }
+                } catch (e) {
+                    console.error('bulk AI check failed', id, e);
+                    failed.push({ id, message: e.message });
+                } finally {
+                    setBulkState(prev => ({ ...prev, done: prev.done + 1 }));
+                }
+            });
+
+            await fetchData();
+
+            if (checked > 0) {
+                toast.success(autoApply
+                    ? `${checked} ta insho tekshirildi, ${graded} tasi baholandi`
+                    : `${checked} ta insho AI orqali tekshirildi`);
+            }
+            if (skipped.length > 0) {
+                toast(`${skipped.length} ta ish uchun AI band bermadi — qo'lda baholang`);
+            }
+            if (failed.length > 0) {
+                toast.error(`${failed.length} ta ishda xatolik: ${failed[0].message}`);
+            }
+            return { checked, graded, skipped, failed };
+        } finally {
+            setBulkState({ running: false, done: 0, total: 0 });
+        }
+    };
+
     // O'qituvchi tarmog'ini react-query o'zi boshqaradi; bu yerda faqat
     // admin so'rovi qo'lda ishga tushiriladi.
     useEffect(() => {
@@ -223,8 +288,10 @@ export const useWritingReview = (userData) => {
         isRefreshing: isAdmin ? false : workspace.isRefreshing,
         saving,
         aiLoading,
+        bulkState,
         handleSaveFeedback,
         handleAICheck,
+        handleBulkAICheck,
         refresh: fetchData
     };
 };

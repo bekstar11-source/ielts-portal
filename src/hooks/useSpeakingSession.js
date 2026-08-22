@@ -4,9 +4,37 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, storage, functions } from '../firebase/firebase';
 import { toWav } from '../utils/audioWav';
 import { play, revokeSpeech, FEEDBACK_MODES, DEFAULT_MODE, DEFAULT_LANG } from '../services/speechTts';
+import { ML_TASKS, mlAnswerSeconds, mlPrepSeconds } from '../utils/multilevelSpeaking';
 
 /** IELTS qismlariga mos maksimal javob uzunligi (sekund). */
 const MAX_SECONDS = { 1: 75, 2: 135, 3: 105 };
+
+/**
+ * Signal — "Begin speaking when you hear this sound".
+ *
+ * Fayl emas, oscillator: bitta qisqa "bip" uchun asset yuklash, uni keshlash
+ * va birinchi bosishda kechikish bilan chalinishini kutish ortiqcha. Ovoz
+ * chiqmasa yozuv baribir boshlanadi — signal eslatma, shart emas.
+ */
+function playBeep() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.36);
+        osc.onended = () => ctx.close().catch(() => {});
+    } catch {
+        // Signalsiz ham davom etaveramiz.
+    }
+}
 
 /** Ohang tanlovi seanslar orasida ham eslab qolinadi. */
 const MODE_STORAGE_KEY = 'speaking:feedbackMode';
@@ -41,11 +69,22 @@ function readStoredMode() {
  * Feedback matni ham, ovoz ham `lang` tilida bo'ladi — o'quvchi interfeysni
  * o'zbekchada ishlatib turib inglizcha feedback eshitmasligi kerak.
  *
- * @param {{ sessionId?: string, lang?: 'uz'|'en', topic?: object }} options
+ * @param {{ sessionId?: string, lang?: 'uz'|'en', topic?: object,
+ *           examType?: 'ielts'|'multilevel' }} options
  */
-export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {}) => {
-    // idle | recording | processing | done | error
+export const useSpeakingSession = ({
+    sessionId,
+    lang = DEFAULT_LANG,
+    topic,
+    examType = 'ielts',
+} = {}) => {
+    // idle | preparing | recording | processing | done | error
     const [status, setStatus] = useState('idle');
+    // Tayyorgarlik hisobi: qolgan soniya va uning turi.
+    // 'prep'  — Multilevel 2/3-qismidagi 1 daqiqa o'ylash vaqti
+    // 'ready' — 1-qismdagi qisqa "hozir boshlanadi" hisobi
+    const [prepRemaining, setPrepRemaining] = useState(0);
+    const [prepKind, setPrepKind] = useState('');
     const [elapsed, setElapsed] = useState(0);
     const [evaluation, setEvaluation] = useState(null);
     const [error, setError] = useState('');
@@ -75,6 +114,11 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
     const stopQuestionRef = useRef(null);
     const mountedRef = useRef(true);
     const meterRef = useRef(null);
+    const prepTimerRef = useRef(null);
+    // Tayyorgarlik davomida mikrofon oqimi shu yerda kutib turadi: ruxsatni
+    // hisob BOSHLANISHIDAN oldin so'raymiz, aks holda signal chalinganda
+    // brauzer dialogi chiqib, o'quvchi birinchi jumlasini yo'qotardi.
+    const streamRef = useRef(null);
     // Yuborilmagan (yoki yuborilishi uzilgan) yozuv — qayta urinish uchun.
     const pendingRef = useRef(null);
     const answerUrlRef = useRef('');
@@ -112,6 +156,9 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
         return () => {
             mountedRef.current = false;
             clearInterval(timerRef.current);
+            clearInterval(prepTimerRef.current);
+            streamRef.current?.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
             stopSpeechRef.current?.();
             stopQuestionRef.current?.();
             revokeSpeech();
@@ -238,6 +285,13 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
                 question: question.text,
                 part: question.part || 1,
                 cueCard: question.cueCard,
+                examType,
+                // Multilevel kontekstі: 2-qismdagi uchta savol, 3-qismdagi
+                // pros/cons jadvali va savol rasmlari. IELTS'da ular yo'q va
+                // server ularni o'qimaydi ham.
+                bullets: question.bullets,
+                prosCons: question.prosCons,
+                photoPaths: question.photoPaths,
                 sessionId,
                 questionId: question.id,
                 feedbackLang: lang,
@@ -267,36 +321,47 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
             setError(e.message || 'Baholashda xato yuz berdi.');
             setStatus('error');
         }
-    }, [sessionId, lang, mode, topic, playFeedback]);
+    }, [sessionId, lang, mode, topic, examType, playFeedback]);
 
     /**
-     * Yozib olishni boshlaydi.
-     * @param {{ id: string, text: string, part?: 1|2|3, cueCard?: string }} question
+     * Savol uchun vaqtlar.
+     *
+     * IELTS'da bitta jadval yetardi — qism raqami javob uzunligini belgilardi.
+     * Multilevel'da esa 1-qismning ichida ham savollar turli uzunlikda (30 s,
+     * rasm savoliga 45 s), shuning uchun savolning INDEKSI ham kerak.
      */
-    const start = useCallback(async (question) => {
-        if (!question?.text) {
-            setError('Savol berilmagan.');
-            setStatus('error');
-            return;
-        }
+    const timingFor = useCallback(
+        (question) => {
+            if (examType !== 'multilevel') {
+                return { prepSec: 0, readySec: 0, limit: MAX_SECONDS[question.part] || 120 };
+            }
+            const part = question.part || 1;
+            return {
+                prepSec: mlPrepSeconds(part),
+                readySec: ML_TASKS[part]?.readySec || 0,
+                limit: mlAnswerSeconds(part, question.index ?? 0) || 120,
+            };
+        },
+        [examType]
+    );
 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-            stopSpeechRef.current?.();
-            stopQuestionRef.current?.();
-            revokeSpeech();
-            revokeAnswerUrl();
-            setIsSpeaking(false);
-            setIsQuestionPlaying(false);
-            setTtsError('');
-            setEvaluation(null);
-            setError('');
-            setCanRetry(false);
-            setElapsed(0);
-            questionRef.current = question;
-            pendingRef.current = null;
+    /**
+     * Mikrofon oqimi tayyor bo'lgach, yozuvni haqiqatda boshlaydi.
+     *
+     * `start` dan ajratilgan, chunki tayyorgarlik hisobi bor bo'lganda bu
+     * qism hisob tugagach, boshqa "tick" da ishga tushadi.
+     */
+    const beginRecording = useCallback(
+        (stream, limit) => {
+            if (!mountedRef.current) {
+                stream.getTracks().forEach((t) => t.stop());
+                return;
+            }
+            streamRef.current = null;
             chunksRef.current = [];
+            setPrepRemaining(0);
+            setPrepKind('');
+            setElapsed(0);
 
             const recorder = new MediaRecorder(stream);
             recorderRef.current = recorder;
@@ -332,7 +397,6 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
                 console.warn('Mic meter error:', meterError);
             }
 
-            const limit = MAX_SECONDS[question.part] || 120;
             setMaxSeconds(limit);
             timerRef.current = setInterval(() => {
                 setElapsed((prev) => {
@@ -342,12 +406,97 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
                     return next;
                 });
             }, 1000);
+        },
+        []
+    );
+
+    /**
+     * Yozib olishni boshlaydi.
+     *
+     * Multilevel'da oldin tayyorgarlik hisobi ketadi (2 va 3-qismda bir
+     * daqiqa o'ylash, 1-qismda qisqa hisob), keyin signal chalinadi va
+     * yozuv o'zi boshlanadi — o'quvchi hech narsa bosmaydi, imtihondagidek.
+     *
+     * @param {{ id: string, text: string, part?: 1|2|3, index?: number,
+     *           cueCard?: string, bullets?: string[], prosCons?: object,
+     *           photoPaths?: string[] }} question
+     */
+    const start = useCallback(async (question) => {
+        if (!question?.text) {
+            setError('Savol berilmagan.');
+            setStatus('error');
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            stopSpeechRef.current?.();
+            stopQuestionRef.current?.();
+            revokeSpeech();
+            revokeAnswerUrl();
+            setIsSpeaking(false);
+            setIsQuestionPlaying(false);
+            setTtsError('');
+            setEvaluation(null);
+            setError('');
+            setCanRetry(false);
+            setElapsed(0);
+            questionRef.current = question;
+            pendingRef.current = null;
+            chunksRef.current = [];
+
+            const { prepSec, readySec, limit } = timingFor(question);
+            const countdown = prepSec || readySec;
+
+            if (countdown <= 0) {
+                beginRecording(stream, limit);
+                return;
+            }
+
+            // Hisob ketayotganda oqim ochiq turadi — ruxsat allaqachon berilgan,
+            // signal chalinishi bilan yozuv darhol boshlanadi.
+            streamRef.current = stream;
+            setPrepKind(prepSec > 0 ? 'prep' : 'ready');
+            setPrepRemaining(countdown);
+            setMaxSeconds(limit);
+            setStatus('preparing');
+
+            prepTimerRef.current = setInterval(() => {
+                setPrepRemaining((prev) => {
+                    if (prev > 1) return prev - 1;
+                    clearInterval(prepTimerRef.current);
+                    const pending = streamRef.current;
+                    if (pending) {
+                        playBeep();
+                        beginRecording(pending, limit);
+                    }
+                    return 0;
+                });
+            }, 1000);
         } catch (e) {
             console.error('Mic error:', e);
             setError("Mikrofon ruxsati berilmadi. Brauzer sozlamalarini tekshiring.");
             setStatus('error');
         }
-    }, [revokeAnswerUrl]);
+    }, [revokeAnswerUrl, timingFor, beginRecording]);
+
+    /**
+     * Tayyorgarlikni erta tugatadi.
+     *
+     * Haqiqiy imtihonda bunday tugma yo'q, lekin bu yer mashq: o'ylab
+     * bo'lgan o'quvchini qolgan qirq soniyani kutishga majburlash mashqni
+     * uzaytiradi, foyda bermaydi.
+     */
+    const skipPrep = useCallback(() => {
+        if (status !== 'preparing') return;
+        clearInterval(prepTimerRef.current);
+        const stream = streamRef.current;
+        if (!stream) return;
+        setPrepRemaining(0);
+        playBeep();
+        beginRecording(stream, maxSeconds);
+    }, [status, maxSeconds, beginRecording]);
 
     /** Yozuvni to'xtatadi va baholashga yuboradi. */
     const stop = useCallback(() => {
@@ -529,6 +678,13 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
         setIsFeedbackLoading(false);
         setFeedbackError('');
         setElapsed(0);
+        // Tayyorgarlik o'rtasida boshqa savolga o'tilsa, hisob ham, ochiq
+        // qolgan mikrofon oqimi ham o'zi bilan ketishi kerak.
+        clearInterval(prepTimerRef.current);
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        setPrepRemaining(0);
+        setPrepKind('');
         setStatus('idle');
     }, [revokeAnswerUrl]);
 
@@ -543,6 +699,9 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
         isSpeaking,
         isRecording: status === 'recording',
         isBusy: status === 'processing',
+        isPreparing: status === 'preparing',
+        prepRemaining,
+        prepKind,
         level,
         answerAudioUrl,
         quota,
@@ -552,6 +711,7 @@ export const useSpeakingSession = ({ sessionId, lang = DEFAULT_LANG, topic } = {
         feedbackError,
         start,
         stop,
+        skipPrep,
         retry,
         speakQuestion,
         stopQuestion,

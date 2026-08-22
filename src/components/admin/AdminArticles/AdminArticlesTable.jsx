@@ -1,6 +1,7 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ImageIcon, Star, Lock, Edit2, Trash2, Clock, BookMarked } from 'lucide-react';
+import { BookOpen, ImageIcon, Star, Lock, Edit2, Trash2, Clock, BookMarked, Eye } from 'lucide-react';
 import { formatArticleCategoryHashtag } from '../../../utils/articleCategory';
 import { ARTICLE_LEVELS, formatReadTimeLabel, getMaxVocabularyCount } from '../../../utils/articleLevels';
 
@@ -58,7 +59,13 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete, isFiltered })
                             transition={{ duration: 0.2 }}
                             className="group bg-white dark:bg-[#1f1e1b] rounded-[28px] border border-black/[0.04] dark:border-white/5 overflow-hidden hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/20 transition-all duration-300 flex flex-col"
                         >
-                            <div className="h-36 w-full relative overflow-hidden bg-gray-100 dark:bg-white/5">
+                            <Link
+                                to={`/article/${article.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Maqolani o'qish"
+                                className="h-36 w-full relative overflow-hidden bg-gray-100 dark:bg-white/5 block"
+                            >
                                 {article.imageUrl ? (
                                     <img
                                         src={article.imageUrl}
@@ -88,12 +95,18 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete, isFiltered })
                                         </span>
                                     )}
                                 </div>
-                            </div>
+                            </Link>
 
                             <div className="p-4 sm:p-5 flex-1 flex flex-col">
-                                <h3 className="text-base font-bold leading-snug mb-1.5 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                                    {article.title || 'Nomsiz maqola'}
-                                </h3>
+                                <Link
+                                    to={`/article/${article.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Maqolani o'qish"
+                                    className="block text-base font-bold leading-snug mb-1.5 group-hover:text-blue-600 transition-colors hover:text-blue-600"
+                                >
+                                    <h3 className="line-clamp-2">{article.title || 'Nomsiz maqola'}</h3>
+                                </Link>
                                 {article.subtitle && (
                                     <p className="text-xs text-gray-500 line-clamp-2 mb-3">{article.subtitle}</p>
                                 )}
@@ -144,6 +157,15 @@ const AdminArticlesTable = ({ articles, loading, onEdit, onDelete, isFiltered })
                                         </div>
                                     </div>
                                     <div className="flex gap-1.5 shrink-0">
+                                        <Link
+                                            to={`/article/${article.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title="O'qish"
+                                            className="p-2 bg-gray-50 dark:bg-white/5 hover:bg-emerald-500 hover:text-white rounded-xl transition-all"
+                                        >
+                                            <Eye size={14} />
+                                        </Link>
                                         <button
                                             type="button"
                                             title="Tahrirlash"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase/firebase';
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 import Logo from '../../components/common/Logo';
+import { GOALS, toCefrLevel } from '../../utils/learningGoal';
 
 const StepTitle = ({ title, subtitle }) => (
     <div className="mb-4 text-center">
@@ -134,16 +135,10 @@ export default function Onboarding() {
     const [loading, setLoading] = useState(false);
     const { t } = useTranslation();
 
-    const steps = [
-        { id: 1, title: t('onboarding.step1Title') },
-        { id: 2, title: t('onboarding.step2Title') },
-        { id: 3, title: t('onboarding.step3Title') },
-        { id: 4, title: t('onboarding.step4Title') }
-    ];
-
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
+        goal: "",
         currentLevel: "",
         hasTakenIELTS: null,
         previousIELTSScore: "",
@@ -152,6 +147,32 @@ export default function Onboarding() {
         weakSkills: [],
         dailyStudyTime: ""
     });
+
+    // Qadamlar MAQSADGA QARAB o'zgaradi: maqsadli band va imtihon sanasi
+    // faqat IELTS tanlaganlardan so'raladi. Umumiy ingliz tilini o'rganayotgan
+    // odamdan "maqsadli band" so'rash — uni birinchi ekrandayoq yo'qotish
+    // demakdir (aynan shu narsa portalni faqat IELTS auditoriyasi bilan
+    // cheklab qo'ygan edi).
+    const stepIds = useMemo(() => {
+        const ids = ['name', 'goal', 'level'];
+        if (formData.goal === GOALS.IELTS) ids.push('target');
+        ids.push('done');
+        return ids;
+    }, [formData.goal]);
+
+    const steps = useMemo(() => stepIds.map((id, i) => ({
+        id,
+        title: {
+            name: t('onboarding.step1Title'),
+            goal: t('onboarding.stepGoalTitle'),
+            level: t('onboarding.step2Title'),
+            target: t('onboarding.step3Title'),
+            done: t('onboarding.step4Title'),
+        }[id],
+        index: i + 1,
+    })), [stepIds, t]);
+
+    const currentStepId = stepIds[currentStep - 1];
 
     const { userData } = useAuth();
 
@@ -168,29 +189,30 @@ export default function Onboarding() {
         }
     }, [userData]);
 
-    const handleSkillToggle = (skill) => {
-        setFormData(prev => ({
-            ...prev,
-            weakSkills: prev.weakSkills.includes(skill)
-                ? prev.weakSkills.filter(s => s !== skill)
-                : [...prev.weakSkills, skill]
-        }));
-    };
-
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    // Har bir qadamning davom etish sharti. Shart yo'q bo'lsa — qadam ixtiyoriy.
+    const canAdvance = {
+        name: Boolean(formData.firstName.trim() && formData.lastName.trim()),
+        goal: Boolean(formData.goal),
+    }[currentStepId] ?? true;
+
     const nextStep = () => {
-        if (currentStep === 1) {
-            if (!formData.firstName.trim() || !formData.lastName.trim()) return;
-        }
-        if (currentStep < 4) setCurrentStep(c => c + 1);
+        if (!canAdvance) return;
+        if (currentStep < stepIds.length) setCurrentStep(c => c + 1);
     };
 
     const prevStep = () => {
         if (currentStep > 1) setCurrentStep(c => c - 1);
     };
+
+    // Maqsad IELTS'dan boshqasiga o'zgarsa qadamlar soni KAMAYADI. Shunda
+    // `currentStep` ro'yxatdan chetga chiqib, ekran bo'sh qolardi.
+    React.useEffect(() => {
+        setCurrentStep((c) => Math.min(c, stepIds.length));
+    }, [stepIds.length]);
 
     const finishOnboarding = async () => {
         if (!user) return;
@@ -201,13 +223,33 @@ export default function Onboarding() {
                 return isNaN(num) ? def : num;
             };
 
+            const isIelts = formData.goal === GOALS.IELTS;
+
             const dataToSave = {
                 ...formData,
                 fullName: `${formData.firstName} ${formData.lastName}`.trim(),
                 onboardingCompleted: true,
-                currentBand: formData.previousIELTSScore ? safeFloat(formData.previousIELTSScore, 4.0) : 4.0,
-                targetBand: safeFloat(formData.targetBand, 7.0),
+                goal: formData.goal || GOALS.IELTS,
+                // `getDefaultReadingLevel` (articleLevels.js) aynan shu maydonni
+                // o'qiydi. Ilgari onboarding faqat `currentLevel` ni ('Beginner')
+                // yozardi va u CEFR emas edi — natijada maqola darajasi HAMMA
+                // uchun B2 da qotib qolgan edi.
+                englishLevel: toCefrLevel(formData.currentLevel),
             };
+
+            // Maqsadli band va imtihon sanasi faqat IELTS uchun ma'noli.
+            // Umumiy ingliz tili tanlaganda ular so'ralmagan, ya'ni default
+            // qiymatni yozib qo'yish statistikani buzardi ("hamma 7.0 ga
+            // intilyapti" degan yolg'on manzara).
+            if (isIelts) {
+                dataToSave.currentBand = formData.previousIELTSScore
+                    ? safeFloat(formData.previousIELTSScore, 4.0)
+                    : 4.0;
+                dataToSave.targetBand = safeFloat(formData.targetBand, 7.0);
+            } else {
+                dataToSave.targetBand = null;
+                dataToSave.examDate = null;
+            }
 
             await setDoc(doc(db, 'users', user.uid), dataToSave, { merge: true });
             
@@ -243,6 +285,37 @@ export default function Onboarding() {
                     className="w-full bg-[#f5f5f7] border-transparent border focus:border-black/10 focus:bg-white rounded-lg py-1.5 px-5 text-[13px] font-medium text-[#1a1a1a] outline-none transition-all"
                     placeholder={t('onboarding.lastNamePlaceholder')}
                 />
+            </div>
+        </div>
+    );
+
+    const renderStepGoal = () => (
+        <div className="max-w-[400px] mx-auto">
+            <StepTitle
+                title={t('onboarding.goalHeader')}
+                subtitle={t('onboarding.goalSub')}
+            />
+            <div className="flex flex-col gap-1.5 mt-8">
+                {[
+                    { val: GOALS.IELTS, label: t('onboarding.goalIelts'), desc: t('onboarding.goalIeltsDesc') },
+                    { val: GOALS.GENERAL, label: t('onboarding.goalGeneral'), desc: t('onboarding.goalGeneralDesc') },
+                    { val: GOALS.UNSURE, label: t('onboarding.goalUnsure'), desc: t('onboarding.goalUnsureDesc') },
+                ].map((option) => (
+                    <button
+                        key={option.val}
+                        onClick={() => handleInputChange('goal', option.val)}
+                        className={`text-left px-5 py-3 rounded-lg border-2 transition-all ${formData.goal === option.val
+                            ? 'border-[#000000] bg-white shadow-xl shadow-black/5'
+                            : 'border-transparent bg-[#f8f8f9] hover:bg-[#ececf0]'
+                        }`}
+                    >
+                        <div className="flex justify-between items-center mb-0.5">
+                            <span className="font-bold text-[13px] text-[#1a1a1a]">{option.label}</span>
+                            {formData.goal === option.val && <Check className="text-[#000000]" size={18} />}
+                        </div>
+                        <p className="text-[#888] text-[11px] font-bold tracking-tight">{option.desc}</p>
+                    </button>
+                ))}
             </div>
         </div>
     );
@@ -314,54 +387,6 @@ export default function Onboarding() {
         </div>
     );
 
-    const renderStep4 = () => (
-        <div className="max-w-lg mx-auto">
-            <StepTitle 
-                title={t('onboarding.studyPlanHeader')} 
-                subtitle={t('onboarding.studyPlanSub')} 
-            />
-            
-            <div className="grid grid-cols-2 gap-2 mb-4">
-                {['Reading', 'Listening', 'Writing', 'Speaking'].map(skill => (
-                    <button
-                        key={skill}
-                        onClick={() => handleSkillToggle(skill)}
-                        className={`px-6 py-4 rounded-lg border-2 text-left transition-all relative ${formData.weakSkills.includes(skill)
-                            ? 'border-[#000000] bg-white shadow-xl shadow-black/5'
-                            : 'border-transparent bg-[#f8f8f9] hover:bg-[#ececf0]'
-                        }`}
-                    >
-                        <span className={`font-bold text-sm ${formData.weakSkills.includes(skill) ? 'text-[#1a1a1a]' : 'text-[#aaa]'}`}>{skill}</span>
-                        {formData.weakSkills.includes(skill) && <Check className="absolute top-4 right-5 text-[#000000]" size={16} />}
-                    </button>
-                ))}
-            </div>
-
-            <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[#aaa] ml-1 mb-2 block">{t('onboarding.dailyTimeLabel')}</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {[
-                        { val: '30m', label: t('onboarding.dailyTime30m') },
-                        { val: '1h', label: t('onboarding.dailyTime1h') },
-                        { val: '2h', label: t('onboarding.dailyTime2h') },
-                        { val: '3h+', label: t('onboarding.dailyTime3h') }
-                    ].map((time) => (
-                        <button
-                            key={time.val}
-                            onClick={() => handleInputChange('dailyStudyTime', time.val)}
-                            className={`py-1.5 rounded-lg text-[11px] font-bold transition-all ${formData.dailyStudyTime === time.val
-                                ? 'bg-[#1a1a1a] text-white shadow-lg'
-                                : 'bg-[#f8f8f9] text-[#777] hover:bg-[#ececf0]'
-                            }`}
-                        >
-                            {time.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-
     return (
         <div className="h-screen bg-white flex overflow-hidden font-sans selection:bg-black/10 selection:text-black">
             {/* Left Side: Onboarding Content (60%) */}
@@ -384,6 +409,9 @@ export default function Onboarding() {
                 <div className="absolute top-6 right-8 z-10">
                     <div className="text-[11px] font-bold text-[#aaa]">
                         Qadam {currentStep} / {steps.length}
+                        {steps[currentStep - 1]?.title && (
+                            <span className="text-[#ccc]"> · {steps[currentStep - 1].title}</span>
+                        )}
                     </div>
                 </div>
 
@@ -398,10 +426,11 @@ export default function Onboarding() {
                                 exit={{ opacity: 0, y: -15 }}
                                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                             >
-                                {currentStep === 1 && renderStep1()}
-                                {currentStep === 2 && renderStep2()}
-                                {currentStep === 3 && renderStep3()}
-                                {currentStep === 4 && (
+                                {currentStepId === 'name' && renderStep1()}
+                                {currentStepId === 'goal' && renderStepGoal()}
+                                {currentStepId === 'level' && renderStep2()}
+                                {currentStepId === 'target' && renderStep3()}
+                                {currentStepId === 'done' && (
                                     <div className="text-center py-8 max-w-sm mx-auto">
                                         <motion.div 
                                             initial={{ scale: 0.5, opacity: 0 }}
@@ -446,7 +475,7 @@ export default function Onboarding() {
                             </motion.div>
                         </AnimatePresence>
 
-                        {currentStep < 4 && (
+                        {currentStepId !== 'done' && (
                             <div className="absolute bottom-0 left-0 w-full p-10 flex justify-between items-center border-t border-[#f0f0f0]/50 bg-white">
                                 <button
                                     onClick={prevStep}
@@ -457,7 +486,8 @@ export default function Onboarding() {
                                 
                                 <button
                                     onClick={nextStep}
-                                    className="px-6 py-2.5 bg-[#1a1a1a] text-white rounded-lg text-[12px] font-bold transition-all flex items-center gap-2 active:scale-95 shadow-xl shadow-black/5"
+                                    disabled={!canAdvance}
+                                    className="px-6 py-2.5 bg-[#1a1a1a] text-white rounded-lg text-[12px] font-bold transition-all flex items-center gap-2 active:scale-95 shadow-xl shadow-black/5 disabled:opacity-30 disabled:active:scale-100 disabled:cursor-not-allowed"
                                 >
                                     {t('onboarding.nextBtn')} <ChevronRight size={16} />
                                 </button>

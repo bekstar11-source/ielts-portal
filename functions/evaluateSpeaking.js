@@ -10,17 +10,18 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
-const {
-    CRITERIA,
-    RESPONSE_SCHEMA,
-    resolveMode,
-    buildPrompt,
-    normalizeEvaluation,
-} = require("./speakingRubric");
+const ieltsRubric = require("./speakingRubric");
+const { CRITERIA, resolveMode } = ieltsRubric;
+const mlRubric = require("./multilevelSpeakingRubric");
+const { ML_CRITERIA, aggregateMlSpeaking } = require("./multilevelSpeaking");
 const { generateJson } = require("./speakingModel");
 const { reserveSpeakingSlot, releaseSpeakingSlot } = require("./speakingQuota");
 const { fetchSpeakingHistory } = require("./speakingHistory");
-const { applyRollup, buildSpeakingDelta } = require("./analyticsRollup");
+const {
+    applyRollup,
+    buildSpeakingDelta,
+    buildMultilevelSpeakingDelta,
+} = require("./analyticsRollup");
 
 // Gemini qabul qiladigan audio formatlar. DIQQAT: audio/webm bu ro'yxatda YO'Q,
 // shuning uchun klient yozuvni WAV ga o'giradi (src/utils/audioWav.js).
@@ -73,8 +74,51 @@ async function readAudio({ audioPath, audioUrl, uid }) {
     return response.buffer();
 }
 
+// Multilevel savollaridagi rasmlar. Bu fayllar admin yuklaydi va HAMMA
+// o'quvchi uchun bir xil, shuning uchun ular audio kabi `speaking/{uid}/`
+// ostida emas, umumiy papkada turadi. Tekshiruv baribir kerak: yo'lni klient
+// yuboradi, ya'ni tekshirilmasa bucket'dagi ixtiyoriy faylni o'qib berardi.
+const PHOTO_PREFIX = "multilevel/";
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+const MAX_PHOTOS = 2;
+
 /**
- * @param {object} data - { audioPath, mimeType, question, part, sessionId, questionId, cueCard, topic }
+ * Savol rasmlarini Storage dan oladi va model qismlariga aylantiradi.
+ *
+ * Rasm topilmasa xato QAYTARMAYDI: rasmsiz baho rasmsiz javobdan ko'ra
+ * yaxshiroq. Lekin bu jimgina o'tmaydi — promptdagi "rasm biriktirilgan"
+ * jumlasi ham shu ro'yxat bo'sh bo'lsa tushmaydi.
+ */
+async function readPhotos(paths) {
+    const list = (Array.isArray(paths) ? paths : []).slice(0, MAX_PHOTOS);
+    const parts = [];
+
+    for (const path of list) {
+        if (typeof path !== "string" || !path.startsWith(PHOTO_PREFIX)) {
+            throw new functions.https.HttpsError("permission-denied", "Rasm yo'li noto'g'ri.");
+        }
+        try {
+            const file = admin.storage().bucket().file(path);
+            const [meta] = await file.getMetadata();
+            if (Number(meta.size) > MAX_PHOTO_BYTES) continue;
+            const [buffer] = await file.download();
+            parts.push({
+                inlineData: {
+                    mimeType: meta.contentType || "image/jpeg",
+                    data: buffer.toString("base64"),
+                },
+            });
+        } catch (error) {
+            console.error("Speaking photo read error:", path, error.message);
+        }
+    }
+
+    return parts;
+}
+
+/**
+ * @param {object} data - { audioPath, mimeType, question, part, sessionId, questionId,
+ *                          examType, cueCard, bullets, prosCons, photoPaths, topic }
  */
 async function evaluateSpeaking(data, context) {
     if (!context.auth) {
@@ -91,6 +135,12 @@ async function evaluateSpeaking(data, context) {
         question,
         part = 1,
         cueCard,
+        // Multilevel uchun: 2-qismdagi uchta savol, 3-qismdagi pros/cons
+        // jadvali va savolga biriktirilgan rasmlar.
+        examType: rawExamType,
+        bullets,
+        prosCons,
+        photoPaths,
         sessionId,
         questionId,
         feedbackLang,
@@ -100,6 +150,12 @@ async function evaluateSpeaking(data, context) {
         questionCount,
         durationSec,
     } = data || {};
+
+    // Imtihon turi. Noma'lum qiymat kelsa IELTS — modul shu bilan boshlangan
+    // va mavjud klientlar bu maydonni umuman yubormaydi.
+    const examType = rawExamType === "multilevel" ? "multilevel" : "ielts";
+    const isMultilevel = examType === "multilevel";
+    const rubric = isMultilevel ? mlRubric : ieltsRubric;
 
     // Noma'lum til kelsa o'zbekchaga tushamiz — interfeys sukut bo'yicha o'zbekcha.
     const lang = feedbackLang === "en" ? "en" : "uz";
@@ -146,6 +202,16 @@ async function evaluateSpeaking(data, context) {
         (buffer) => ({ buffer }),
         (error) => ({ error })
     );
+
+    // Rasmlar ham shu yerda boshlanadi — ular audiodan kichik va mustaqil,
+    // ketma-ket o'qilsa o'quvchi bekorga kutardi.
+    const photoPromise = isMultilevel
+        ? readPhotos(photoPaths).catch((error) => {
+              if (error instanceof functions.https.HttpsError) throw error;
+              console.error("Speaking photos error:", error.message);
+              return [];
+          })
+        : Promise.resolve([]);
 
     // 0. Kunlik limit — AI chaqiruvidan OLDIN band qilinadi.
     //
@@ -205,6 +271,7 @@ async function evaluateSpeaking(data, context) {
             throw new functions.https.HttpsError("internal", "Audio yuklab olinmadi.");
         }
 
+        const photoParts = await photoPromise;
         mark("audio", audioAt);
 
         // 2. Gemini — audio + savol → JSON baholash.
@@ -213,30 +280,41 @@ async function evaluateSpeaking(data, context) {
         const modelAt = Date.now();
         let evaluation;
         try {
+            const promptArgs = {
+                question,
+                part,
+                feedbackLang: lang,
+                mode,
+                studentName,
+                history,
+            };
             const raw = await generateJson({
                 apiKey,
                 parts: [
                     {
-                        text: buildPrompt({
-                            question,
-                            part,
-                            cueCard,
-                            feedbackLang: lang,
-                            mode,
-                            studentName,
-                            history,
-                        }),
+                        text: isMultilevel
+                            ? rubric.buildPrompt({
+                                  ...promptArgs,
+                                  bullets,
+                                  prosCons,
+                                  hasPhotos: photoParts.length > 0,
+                              })
+                            : rubric.buildPrompt({ ...promptArgs, cueCard }),
                     },
                     { inlineData: { mimeType, data: audioBase64 } },
+                    ...photoParts,
                 ],
-                schema: RESPONSE_SCHEMA,
+                schema: rubric.RESPONSE_SCHEMA,
                 // 0.2 da matn qoliplashib qolardi — feedback har safar bir xil
                 // jumla bilan boshlanib, ovozda takrorga o'xshab eshitilardi.
                 // 0.4 og'zaki nutqqa jon kiritadi, ballarni esa hali ham
                 // barqaror ushlab turadi.
                 temperature: 0.4,
             });
-            evaluation = normalizeEvaluation(raw, mode);
+            evaluation = rubric.normalizeEvaluation(raw, mode);
+            if (!evaluation) {
+                throw new Error("Model javobi kutilgan shaklda kelmadi.");
+            }
         } catch (error) {
             throw new functions.https.HttpsError("internal", error.message);
         }
@@ -258,6 +336,7 @@ async function evaluateSpeaking(data, context) {
                     question,
                     part,
                     lang,
+                    examType,
                     audioPath: audioPath || null,
                     durationSec: Number(durationSec) || null,
                     topicId: topicId || null,
@@ -279,7 +358,7 @@ async function evaluateSpeaking(data, context) {
         // ichida qolib ketardi va takrorlanayotganini hech kim ko'rmasdi.
         if (evaluation.corrections.length > 0) {
             writes.push(
-                saveSpeakingMistakes(db, uid, { evaluation, question, part, sessionId }).catch(
+                saveSpeakingMistakes(db, uid, { evaluation, question, part, sessionId, examType }).catch(
                     (error) => {
                         console.error("Speaking mistakes save error:", error);
                     }
@@ -290,12 +369,27 @@ async function evaluateSpeaking(data, context) {
         // Analitika jamlanmasi: `/analytics` Speaking bandlarini va takrorlanuvchi
         // tuzatishlarni shu yerdan oladi. Xatolik yuzaga kelsa ham javob qaytadi —
         // o'quvchi feedbackni yo'qotmasligi kerak.
+        // Ikki imtihon ikki AYRIM jamlanmaga tushadi: IELTS 0-9 band,
+        // Multilevel 0-100 ball. Bitta kalitga qo'shilsa, o'quvchining
+        // Speaking o'rtachasi jimgina buzilardi va grafikda 65 "band" bo'lib
+        // chiqardi.
+        const sourceId = `${sessionId || "speaking"}_${part}_${startedAt}`;
         writes.push(
-            applyRollup(db, uid, buildSpeakingDelta({
-                bands: evaluation.bands,
-                corrections: evaluation.corrections,
-                sourceId: `${sessionId || "speaking"}_${part}_${startedAt}`
-            }))
+            applyRollup(
+                db,
+                uid,
+                isMultilevel
+                    ? buildMultilevelSpeakingDelta({
+                          criteria: evaluation.criteria,
+                          corrections: evaluation.corrections,
+                          sourceId,
+                      })
+                    : buildSpeakingDelta({
+                          bands: evaluation.bands,
+                          corrections: evaluation.corrections,
+                          sourceId,
+                      })
+            )
         );
 
         await Promise.all(writes);
@@ -342,29 +436,55 @@ async function saveAnswer(db, ctx) {
             throw new functions.https.HttpsError("permission-denied", "Sessiya begona.");
         }
 
-        const sums = { ...(session?.bandSums || {}) };
+        // Ikki imtihonning shkalasi boshqacha, lekin mezon kalitlari bir xil
+        // (fluency/lexical/grammar/pronunciation). Shu sabab yig'ish mantig'i
+        // umumiy, faqat ballni QAYERDAN olish va natijani QANDAY nomlash farq
+        // qiladi. Yig'indilar ham alohida maydonlarda: bitta sessiyada ikkala
+        // shkala aralashmasligi kerak.
+        const ml = ctx.examType === "multilevel";
+        const criteria = ml ? ML_CRITERIA : CRITERIA;
+        const sumsField = ml ? "scoreSums" : "bandSums";
+        const scoreOf = (data, key) =>
+            ml ? Number(data?.criteria?.[key]?.score) : Number(data?.bands?.[key]);
+
+        const sums = { ...(session?.[sumsField] || {}) };
         let answered = Number(session?.answeredCount) || 0;
 
         if (answerSnap.exists) {
-            const old = answerSnap.data().bands || {};
-            for (const key of CRITERIA) {
-                sums[key] = (Number(sums[key]) || 0) - (Number(old[key]) || 0);
+            const old = answerSnap.data();
+            for (const key of criteria) {
+                sums[key] = (Number(sums[key]) || 0) - (scoreOf(old, key) || 0);
             }
         } else {
             answered += 1;
         }
 
-        for (const key of CRITERIA) {
-            sums[key] = (Number(sums[key]) || 0) + (Number(ctx.evaluation.bands[key]) || 0);
+        for (const key of criteria) {
+            sums[key] = (Number(sums[key]) || 0) + (scoreOf(ctx.evaluation, key) || 0);
         }
 
         const averages = {};
-        for (const key of CRITERIA) {
-            averages[key] = answered > 0 ? Math.round((sums[key] / answered) * 2) / 2 : 0;
+        for (const key of criteria) {
+            if (answered <= 0) {
+                averages[key] = 0;
+            } else if (ml) {
+                averages[key] = Math.round(sums[key] / answered);
+            } else {
+                averages[key] = Math.round((sums[key] / answered) * 2) / 2;
+            }
         }
-        const overall = answered > 0
+
+        // Multilevel'da sessiya darajasi ham eng zaif mezon bo'yicha chiqadi —
+        // bitta javobdagi qoida bilan AYNAN bir xil, aks holda o'quvchi
+        // javoblarda B2, sessiyada B1 ko'rib chalkashardi.
+        const mlOverall = ml
+            ? aggregateMlSpeaking(
+                  Object.fromEntries(criteria.map((key) => [key, { score: averages[key] }]))
+              )
+            : null;
+        const overall = !ml && answered > 0
             ? Math.round(
-                (CRITERIA.reduce((sum, key) => sum + sums[key], 0) / (answered * CRITERIA.length)) * 2
+                (CRITERIA.reduce((sum, key) => sum + (Number(sums[key]) || 0), 0) / (answered * CRITERIA.length)) * 2
             ) / 2
             : 0;
 
@@ -391,6 +511,7 @@ async function saveAnswer(db, ctx) {
                 questionId: ctx.questionId,
                 question: ctx.question,
                 part: ctx.part,
+                examType: ctx.examType,
                 feedbackLang: ctx.lang,
                 audioPath: ctx.audioPath,
                 durationSec: ctx.durationSec,
@@ -412,11 +533,22 @@ async function saveAnswer(db, ctx) {
                 topicId: ctx.topicId,
                 topicTitle: ctx.topicTitle,
                 part: ctx.part,
+                examType: ctx.examType,
                 questionCount: ctx.questionCount,
                 answeredCount: answered,
-                bandSums: sums,
-                bands: averages,
-                overallBand: overall,
+                ...(ml
+                    ? {
+                          scoreSums: sums,
+                          criteriaScores: averages,
+                          level: mlOverall?.level || null,
+                          score: mlOverall?.score ?? null,
+                          weakest: mlOverall?.weakest || null,
+                      }
+                    : {
+                          bandSums: sums,
+                          bands: averages,
+                          overallBand: overall,
+                      }),
                 feedbackLang: ctx.lang,
                 createdAt: session?.createdAt || now,
                 updatedAt: now,
@@ -436,7 +568,7 @@ async function saveAnswer(db, ctx) {
  * "qaysi xato takrorlanyapti" degan savolga barcha ko'nikmalar bo'yicha
  * javob berish mumkin bo'lsin.
  */
-async function saveSpeakingMistakes(db, uid, { evaluation, question, part, sessionId }) {
+async function saveSpeakingMistakes(db, uid, { evaluation, question, part, sessionId, examType }) {
     const mistakes = evaluation.corrections.map((item) => ({
         question,
         userAnswer: String(item.said || "").slice(0, 300),
@@ -452,11 +584,20 @@ async function saveSpeakingMistakes(db, uid, { evaluation, question, part, sessi
         .set({
             skill: "speaking",
             part,
+            examType: examType || "ielts",
             sessionId: sessionId || null,
             mistakes,
-            bands: evaluation.bands,
+            // Multilevel'da band yo'q — bo'sh `bands` yozib, keyin uni o'rtacha
+            // hisobiga qo'shib yuborgandan ko'ra, daraja va ballni o'z nomi
+            // bilan yozamiz.
+            ...(examType === "multilevel"
+                ? { level: evaluation.level, score: evaluation.score }
+                : { bands: evaluation.bands }),
             date: admin.firestore.FieldValue.serverTimestamp(),
-            testTitle: `Speaking Part ${part}`,
+            testTitle:
+                examType === "multilevel"
+                    ? `Multilevel Speaking Part ${part}`
+                    : `Speaking Part ${part}`,
         });
 }
 

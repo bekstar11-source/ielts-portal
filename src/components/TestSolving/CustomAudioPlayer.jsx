@@ -49,6 +49,31 @@ const CustomAudioPlayer = forwardRef(({
     const parsedStartTime = useMemo(() => processTimeStr(startTime), [startTime]);
     const parsedEndTime = useMemo(() => processTimeStr(endTime), [endTime]);
 
+    // Metadata yuklanmagan <audio> da `currentTime` ni o'rnatish ishonchsiz:
+    // brauzer uni faqat "default playback start position" ga yozadi va yuklash
+    // yakunlangach playhead 0 ga qaytib qolishi mumkin. Amalda buni talaba
+    // shunday ko'rardi: practice rejimida keyingi part `preload="none"` bilan
+    // turadi, part birinchi marta ochilganda metadata hali yo'q — shuning uchun
+    // audio admin belgilagan soniyadan emas, boshqa joydan boshlanardi. Progress
+    // barni qo'l bilan surgandan keyin esa fayl allaqachon yuklangani uchun seek
+    // ishlardi. Endi seek metadata kelganda YANA bir marta qo'llanadi.
+    const pendingSeekRef = useRef(null);
+    const seekWhenReady = useCallback((time) => {
+        const audio = audioRef.current;
+        if (!audio || !Number.isFinite(time)) return;
+        try { audio.currentTime = time; } catch { /* seek imkonsiz */ }
+        pendingSeekRef.current = audio.readyState >= 1 ? null : time;
+    }, []);
+
+    // Playhead part chegarasidan tashqarida (oldingi partda yoki tugaganidan
+    // keyin) turibdimi?
+    const isOutsideSegment = useCallback((t) => {
+        if (!Number.isFinite(t)) return true;
+        if (t < parsedStartTime - 0.25) return true;
+        if (parsedEndTime > parsedStartTime && t >= parsedEndTime) return true;
+        return false;
+    }, [parsedStartTime, parsedEndTime]);
+
     // Allow parent to seek
     useImperativeHandle(ref, () => ({
         seekTo: (time) => {
@@ -68,8 +93,8 @@ const CustomAudioPlayer = forwardRef(({
                     finalTime = parsedStartTime + targetTime;
                 }
 
-                // Set time safely
-                audioRef.current.currentTime = finalTime;
+                // Set time safely (metadata hali yo'q bo'lsa — yuklangach takrorlanadi)
+                seekWhenReady(finalTime);
                 
                 // Pause all other audio elements to prevent overlapping audio
                 document.querySelectorAll('audio[id^="audio-part-"]').forEach(a => {
@@ -220,6 +245,12 @@ const CustomAudioPlayer = forwardRef(({
         };
         
         const onLoaded = () => {
+            // Metadata yo'qligi sababli bajarilmay qolgan seek — endi qo'llanadi.
+            if (pendingSeekRef.current !== null) {
+                const want = pendingSeekRef.current;
+                pendingSeekRef.current = null;
+                try { audio.currentTime = want; } catch { /* seek imkonsiz */ }
+            }
             // Playhead HAR DOIM part chegarasi ichida bo'lishi kerak. Ilgari faqat
             // "juda orqada" holati tuzatilardi, shuning uchun oldingi ijrodan qolgan
             // pozitsiya (masalan fayl oxiri) partni butunlay boshqa joydan boshlardi.
@@ -373,6 +404,18 @@ const CustomAudioPlayer = forwardRef(({
         }
     }, [resumeTime, isPlayingPart, parsedStartTime, parsedEndTime]);
 
+    // Part faollashganda playhead admin belgilagan boshlanish nuqtasiga qo'yiladi.
+    // Faqat chegaradan tashqarida bo'lsa — part ichida pauza qilib boshqa partga
+    // o'tib qaytgan talaba o'z joyini yo'qotmasligi kerak.
+    useEffect(() => {
+        if (!isPlayingPart) return;
+        if (resumeTime > 0 && !hasResumed.current) return; // resume effekti hal qiladi
+        const audio = audioRef.current;
+        if (!audio || !audio.paused) return;
+        if (audio.readyState >= 1 && !isOutsideSegment(audio.currentTime)) return;
+        seekWhenReady(parsedStartTime);
+    }, [isPlayingPart, parsedStartTime, resumeTime, isOutsideSegment, seekWhenReady, src]);
+
     // Exam auto-play logic
     useEffect(() => {
         if (!isExam) return;
@@ -410,6 +453,10 @@ const CustomAudioPlayer = forwardRef(({
         const attemptPlay = () => {
             if (isSilentRef.current) return; // Do not auto-play during silent period
             if (audio && audio.paused && !audio.ended && audio.readyState >= 2) {
+                // Autoplay o'zi seek qilmasa, part chegarasidan tashqarida qolgan
+                // playhead (masalan oldingi partdan qolgan joy) o'sha yerdan
+                // ijro bo'lib ketardi.
+                if (isOutsideSegment(audio.currentTime)) audio.currentTime = parsedStartTime;
                 isSystemPausedRef.current = false;
                 audio.play()
                     .then(() => {
@@ -442,7 +489,7 @@ const CustomAudioPlayer = forwardRef(({
             clearInterval(interval);
             events.forEach(event => document.removeEventListener(event, unlock));
         };
-    }, [isExam, isPlayingPart, isBuffering, shouldAutoPlay, index, src, resumeSilentPeriod, parsedStartTime, parsedEndTime]);
+    }, [isExam, isPlayingPart, isBuffering, shouldAutoPlay, index, src, resumeSilentPeriod, parsedStartTime, parsedEndTime, isOutsideSegment]);
 
     const togglePlay = () => {
         if (isExam) return;
@@ -467,8 +514,8 @@ const CustomAudioPlayer = forwardRef(({
             const atEnd = parsedEndTime > parsedStartTime
                 ? audio.currentTime >= parsedEndTime
                 : (audio.duration > 0 && audio.currentTime >= audio.duration);
-            if (atEnd || audio.currentTime < parsedStartTime) {
-                audio.currentTime = parsedStartTime;
+            if (atEnd || audio.readyState < 1 || isOutsideSegment(audio.currentTime)) {
+                seekWhenReady(parsedStartTime);
             }
             isSystemPausedRef.current = false;
             audio.play().catch(() => { });

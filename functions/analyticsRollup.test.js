@@ -19,7 +19,8 @@ const {
     isoWeekKey,
     buildTestDelta,
     buildWritingDelta,
-    buildSpeakingDelta
+    buildSpeakingDelta,
+    buildMultilevelSpeakingDelta
 } = require("./analyticsRollup");
 
 test("isoWeekKey ISO-8601 qoidasiga amal qiladi", () => {
@@ -330,4 +331,40 @@ test("submitTestAnswers talab qilgan har bir eksport mavjud", () => {
     imported.forEach((name) => {
         assert.strictEqual(typeof rollup[name], "function", `analyticsRollup.${name} eksport qilinmagan`);
     });
+});
+
+test("multilevel speaking IELTS band jamlanmasiga aralashmaydi", () => {
+    const ielts = mergeDelta(
+        emptySummary(),
+        buildSpeakingDelta({ bands: { fluency: 6.5, lexical: 6 }, sourceId: "a" })
+    );
+    const both = mergeDelta(
+        ielts,
+        buildMultilevelSpeakingDelta({
+            criteria: { fluency: { score: 65 }, lexical: { score: 60 } },
+            sourceId: "b",
+        })
+    );
+
+    // IELTS bandlari tegilmagan.
+    assert.strictEqual(both.skills.speaking.criteriaSum.fluency, 6.5);
+    assert.strictEqual(both.skills.speaking.tasks, 1);
+    // Multilevel ballari o'z kalitida.
+    assert.strictEqual(both.skills.multilevelSpeaking.criteriaSum.fluency, 65);
+    assert.strictEqual(both.skills.multilevelSpeaking.tasks, 1);
+});
+
+test("multilevel deltasi ikki javobdan keyin yig'iladi", () => {
+    let summary = emptySummary();
+    for (const score of [60, 70]) {
+        summary = mergeDelta(
+            summary,
+            buildMultilevelSpeakingDelta({
+                criteria: { grammar: { score } },
+                sourceId: `s${score}`,
+            })
+        );
+    }
+    assert.strictEqual(summary.skills.multilevelSpeaking.criteriaSum.grammar, 130);
+    assert.strictEqual(summary.skills.multilevelSpeaking.tasks, 2);
 });

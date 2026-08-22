@@ -1,4 +1,5 @@
 import { stripHtml } from './textUtils';
+import { clampCefr } from './cefr.js';
 
 export const ARTICLE_LEVELS = ['B1', 'B2', 'C1'];
 
@@ -152,8 +153,13 @@ export function getMaxVocabularyCount(article) {
 
 export function getDefaultReadingLevel(userData) {
     const fromProfile = userData?.englishLevel || userData?.level;
-    if (fromProfile && ARTICLE_LEVELS.includes(String(fromProfile).toUpperCase())) {
-        return String(fromProfile).toUpperCase();
+    if (fromProfile) {
+        // ⚠️ `clampCefr` SHART: onboarding endi A2 ni ham yozishi mumkin
+        // (boshlang'ich daraja), lekin maqolalar faqat B1/B2/C1 da mavjud.
+        // Ilgari bu yerda oddiy `includes` tekshiruvi turardi va A2 o'quvchisi
+        // jimgina B2 ga tushib ketardi — ya'ni unga eng og'ir matn berilardi.
+        const matched = clampCefr(fromProfile, ARTICLE_LEVELS);
+        if (matched) return matched;
     }
     try {
         const saved = localStorage.getItem('articlePreferredLevel');

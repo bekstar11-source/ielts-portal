@@ -255,8 +255,11 @@ export default function ArticleReading() {
   const [readingLevel, setReadingLevel] = useState('B2');
   const [clappedCommentIds, setClappedCommentIds] = useState(() => new Set());
 
-  // Premium ruxsat (bir joyda hisoblanadi — pastda bir necha marta ishlatiladi)
+  // Premium ruxsat (bir joyda hisoblanadi — pastda bir necha marta ishlatiladi).
+  // Admin va o'qituvchi kontentni tekshirishi kerak — ular paywallga tushmaydi.
   const canAccessPremium =
+    userData?.role === 'admin' ||
+    userData?.role === 'teacher' ||
     userData?.accountType === 'pro' ||
     userData?.isPro ||
     userData?.accountType === 'standard' ||

@@ -15,8 +15,7 @@ import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import DashboardModals from "../../components/dashboard/DashboardModals";
 import PricingModal from "../../components/dashboard/PricingModal";
 import SiteFooter from "../../components/common/SiteFooter";
-import TestCommentSection from "../../components/TestReview/TestCommentSection";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { hapticFeedback } from "../../utils/haptic";
 import BottomNav from "../../components/dashboard/BottomNav";
 import { useTranslation } from "../../context/LanguageContext";
@@ -100,8 +99,6 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
   const [activeTab, setActiveTab] = useState('results');
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState('all');
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [selectedResult, setSelectedResult] = useState(null);
   const [userRatings, setUserRatings] = useState({});
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -623,48 +620,6 @@ export default function MyResults({ tests: propTests, loading: propLoading }) {
           </>
         )}
 
-      {/* --- SIDE PANEL: COMMENTS --- */}
-      <AnimatePresence>
-        {isCommentsOpen && selectedResult && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsCommentsOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000]"
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 h-screen w-full max-w-[380px] bg-warm-canvas dark:bg-warm-dark-elevated z-[1001] shadow-2xl flex flex-col border-l border-warm-hairline dark:border-white/10"
-            >
-              <div className="h-16 bg-warm-ink text-white flex items-center justify-between px-6 shrink-0">
-                <div className="flex flex-col">
-                  <h2 className="text-sm font-black tracking-widest leading-none">{t('myResults.comments')}</h2>
-                  <span className="text-[10px] text-warm-on-dark-soft font-medium mt-1 truncate max-w-[300px]">{selectedResult.testTitle}</span>
-                </div>
-                <button
-                  onClick={() => setIsCommentsOpen(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-                >
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto px-4 py-6 no-scrollbar">
-                <TestCommentSection 
-                  testId={selectedResult.testId || selectedResult.id} 
-                  user={user} 
-                  userData={userData} 
-                />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
       
       {!isComponent && (
         <BottomNav 

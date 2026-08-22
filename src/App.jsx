@@ -78,6 +78,8 @@ const StudentAnalytics = lazy(() => import('./pages/student/StudentAnalytics'));
 const MistakeDrill = lazy(() => import('./pages/student/MistakeDrill'));
 const StudentLeaderboard = lazy(() => import('./pages/student/StudentLeaderboard'));
 const SpeakingPractice = lazy(() => import('./pages/test/SpeakingPractice'));
+const MultilevelSpeaking = lazy(() => import('./pages/test/MultilevelSpeaking'));
+const AdminMultilevelSpeaking = lazy(() => import('./pages/admin/AdminMultilevelSpeaking'));
 const ArticleReading = lazy(() => import('./pages/articles/ArticleReading'));
 const Articles = lazy(() => import('./pages/articles/Articles'));
 const AdminArticles = lazy(() => import('./pages/admin/AdminArticles'));
@@ -204,6 +206,16 @@ function App() {
             <Route path="/articles" element={<Articles />} />
             <Route path="/article/:id" element={<ArticleReading />} />
             <Route path="/speaking-practice" element={<ProtectedRoute><SpeakingPractice /></ProtectedRoute>} />
+            {/* Multilevel Speaking — flag src/config/features.js da. Yopiq
+                bo'lganda route umuman yo'q: yarim tayyor imtihonni ochib
+                qo'yishdan ko'ra 404 tushunarliroq. */}
+            {FEATURES.multilevelSpeaking && (
+              <Route path="/multilevel-speaking" element={<ProtectedRoute><MultilevelSpeaking /></ProtectedRoute>} />
+            )}
+            {FEATURES.multilevelSpeaking && (
+              <Route path="/multilevel-speaking/:testId" element={<ProtectedRoute><MultilevelSpeaking /></ProtectedRoute>} />
+            )}
+            <Route path="/admin/multilevel-speaking" element={<ProtectedRoute allowedRoles={['admin']}><AdminMultilevelSpeaking /></ProtectedRoute>} />
             <Route path="/pricing" element={<Pricing />} />
 
             {/* DIAGNOSTIC ROUTES */}

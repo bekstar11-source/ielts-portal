@@ -11,6 +11,12 @@ export const FEATURES = {
     // haqiqiy guruhini ochib begona ismlarni ko'rmasligi uchun yopiq turadi.
     // Haqiqiy hook (`useGroupAttendance`) paydo bo'lganda `true` qilinadi.
     groupAttendance: false,
+
+    // Multilevel Speaking (/multilevel-speaking). Baholash, imtihon oqimi va
+    // admin paneli tayyor, lekin baholash rubrikasi RASMIY emas — umumiy
+    // CEFR deskriptorlariga asoslangan. Testlar to'ldirilib, ballari real
+    // natijalarga solishtirilgach ochiladi.
+    multilevelSpeaking: true,
 };
 
 export const isFeatureEnabled = (key) => FEATURES[key] !== false;

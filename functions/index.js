@@ -23,6 +23,7 @@ const { rebuildAnalyticsSummary, getStudentAnalytics } = require("./analyticsSum
 const { shareTest } = require("./shareTest");
 const { shareArticle } = require("./shareArticle");
 const { sitemap } = require("./sitemap");
+const { generatePlacementQuestions } = require("./generatePlacementQuestions");
 const { expireSubscriptions } = require("./expireSubscriptions");
 const { cleanupSpeakingAudio } = require("./cleanupSpeakingAudio");
 const { requestSpeakingReview, submitSpeakingReview } = require("./speakingReview");
@@ -65,6 +66,12 @@ exports.submitSpeakingReview = functions
 exports.generateVocab = functions
     .runWith({ timeoutSeconds: 60, memory: "256MB" })
     .https.onCall(generateVocab);
+
+// CEFR placement bankiga savol QORALAMASI. Firestore'ga yozmaydi — admin
+// ko'rib chiqib o'zi saqlaydi (`functions/generatePlacementQuestions.js`).
+exports.generatePlacementQuestions = functions
+    .runWith({ timeoutSeconds: 120, memory: "256MB" })
+    .https.onCall(generatePlacementQuestions);
 
 exports.translateWord = functions
     .runWith({ timeoutSeconds: 30, memory: "256MB" })

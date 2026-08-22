@@ -59,7 +59,12 @@ export default function Library() {
         ...(FEATURES.speakingAi
           ? [{ label: t('library.speakingAi') || 'Speaking AI', desc: 'Interactive AI examiner feedback', path: '/speaking-ai' }]
           : []),
-        { label: t('library.speakingPractice') || 'Speaking Practice', desc: 'Record and practice speech cards', path: '/speaking-practice' }
+        { label: t('library.speakingPractice') || 'Speaking Practice', desc: 'Record and practice speech cards', path: '/speaking-practice' },
+        // Multilevel — flag src/config/features.js da. Yopiq bo'lganda
+        // route ham yo'q, shuning uchun havola ham ko'rinmasligi kerak.
+        ...(FEATURES.multilevelSpeaking
+          ? [{ label: t('library.multilevelSpeaking') || 'Multilevel Speaking', desc: 'Uch qism, CEFR darajasi bilan baho', path: '/multilevel-speaking' }]
+          : [])
       ]
     }
   ];

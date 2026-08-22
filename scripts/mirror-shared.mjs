@@ -30,7 +30,17 @@ const MIRRORED = [
   'mistakePatterns.js',
   'isoWeek.js',
   'writingErrors.js',
-  'timingAnalysis.js'
+  'timingAnalysis.js',
+
+  // CEFR placement: ball SERVERDA qo'yiladi (javob kalitlari mehmonga
+  // berilmaydi), natija esa KLIENTDA chiziladi — ikkisi bir xil mantiqni
+  // ishlatishi shart.
+  'cefr.js',
+  'placementScoring.js',
+
+  // Multilevel Speaking shkalasi: ballni server (`evaluateSpeaking`) qo'yadi,
+  // natija kartasi va progress grafigi klientda chiziladi.
+  'multilevelSpeaking.js'
 ];
 
 const BANNER = (name) =>

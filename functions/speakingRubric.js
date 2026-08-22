@@ -472,6 +472,11 @@ function normalizeEvaluation(raw, mode) {
 module.exports = {
     CRITERIA,
     METRIC_KEYS,
+    // Ovoz va til qoidalari Multilevel rubrikasida ham AYNAN shu holda
+    // ishlatiladi (`multilevelSpeakingRubric.js`) — feedback ikkala imtihonda
+    // bir xil o'qiladi, faqat baholash shkalasi boshqacha.
+    SPEECH_RULES,
+    LANG_RULES,
     FEEDBACK_MODES,
     DEFAULT_MODE,
     RESPONSE_SCHEMA,

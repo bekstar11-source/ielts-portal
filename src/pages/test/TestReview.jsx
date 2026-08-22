@@ -9,7 +9,6 @@ import { LoadingScreen } from "../../components/common/RouteGuards";
 // Components
 import ReadingInterface from "../../components/ReadingInterface/ReadingInterface";
 import ListeningInterface from '../../components/ListeningInterface/ListeningInterface';
-import TestCommentSection from "../../components/TestReview/TestCommentSection";
 
 // Refactored Components
 import ReviewHeader from "../../components/TestReview/ReviewHeader";
@@ -18,6 +17,7 @@ import WritingReview from "../../components/TestReview/WritingReview";
 import SpeakingReview from "../../components/TestReview/SpeakingReview";
 import DetailedAnswersModal from "../../components/TestReview/DetailedAnswersModal";
 import PremiumLockedReview from "../../components/TestReview/PremiumLockedReview";
+import ReportIssueModal from "../../components/TestReview/ReportIssueModal";
 
 export default function TestReview() {
     const { id } = useParams();
@@ -30,8 +30,8 @@ export default function TestReview() {
                       ['admin', 'teacher'].includes(userData?.role);
 
     const [textSize, setTextSize] = useState('text-medium');
-    const [isCommentsOpen, setIsCommentsOpen] = useState(false);
     const [isAnswersListOpen, setIsAnswersListOpen] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
     const [flaggedQuestions] = useState(new Set());
 
     const [readingActivePart, setReadingActivePart] = useState(0);
@@ -139,11 +139,6 @@ export default function TestReview() {
         };
     };
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('openComments') === 'true') setIsCommentsOpen(true);
-    }, []);
-
     if (loading) return <LoadingScreen />;
     if (!resultData || !testData) return <div className="p-10 text-center">Ma'lumot topilmadi</div>;
 
@@ -163,8 +158,6 @@ export default function TestReview() {
                 setAudioTime={setAudioTime}
                 volume={volume}
                 setVolume={setVolume}
-                isCommentsOpen={isCommentsOpen}
-                setIsCommentsOpen={setIsCommentsOpen}
                 onSaveGrade={handleSaveGrade}
                 isSaving={isSaving}
                 navigate={navigate}
@@ -173,6 +166,7 @@ export default function TestReview() {
                 isAnswersListOpen={isAnswersListOpen}
                 setIsAnswersListOpen={setIsAnswersListOpen}
                 isPremium={effectiveIsPremium}
+                onReportIssue={() => setIsReportOpen(true)}
             />
 
             <div className="flex flex-col flex-1 overflow-hidden relative">
@@ -256,21 +250,15 @@ export default function TestReview() {
                 </div>
             </div>
 
-            {/* DISCUSSION SIDEBAR */}
-            {isCommentsOpen && (
-                <div className="fixed inset-0 z-[100] flex justify-end">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCommentsOpen(false)} />
-                    <div className="relative w-full max-w-md h-full bg-white shadow-2xl animate-in slide-in-from-right duration-300">
-                        <TestCommentSection
-                            testId={testData.id}
-                            testTitle={testData.title}
-                            user={user}
-                            userData={userData}
-                            onClose={() => setIsCommentsOpen(false)}
-                        />
-                    </div>
-                </div>
-            )}
+            {/* REPORT AN ISSUE MODAL */}
+            <ReportIssueModal
+                isOpen={isReportOpen}
+                onClose={() => setIsReportOpen(false)}
+                testData={testData}
+                resultId={id}
+                partNumber={resultData.partNumber ?? null}
+                moduleType={getSectionScoreAndBand().moduleType}
+            />
 
             {/* DETAILED ANSWERS MODAL */}
             {isAnswersListOpen && (

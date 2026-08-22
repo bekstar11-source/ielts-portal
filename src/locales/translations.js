@@ -634,6 +634,15 @@ export const translations = {
     },
     onboarding: {
       step1Title: "Tanishuv",
+      stepGoalTitle: "Maqsad",
+      goalHeader: "Sizning maqsadingiz nima?",
+      goalSub: "Shunga qarab platformani siz uchun sozlaymiz.",
+      goalIelts: "IELTS imtihoni",
+      goalIeltsDesc: "Ball kerak: o'qish, ish yoki viza uchun",
+      goalGeneral: "Umumiy ingliz tili",
+      goalGeneralDesc: "Gapirish, o'qish va so'z boyligini oshirish",
+      goalUnsure: "Hali bilmayman",
+      goalUnsureDesc: "Avval darajamni ko'ray, keyin qaror qilaman",
       step2Title: "Daraja",
       step3Title: "Maqsad",
       step4Title: "Tayyor!",
@@ -851,7 +860,8 @@ export const translations = {
       writingTask1: "Task 1 (Hisobot)",
       writingTask2: "Task 2 (Insho)",
       speakingAi: "Speaking AI",
-      speakingPractice: "Speaking mashqi"
+      speakingPractice: "Speaking mashqi",
+      multilevelSpeaking: "Multilevel Speaking"
     },
     settings: {
       telegramTitle: "Telegram bog'lanishi",
@@ -1308,7 +1318,10 @@ export const translations = {
       reportSubmit: "Yuborish",
       reportCancel: "Bekor qilish",
       reportSubmitted: "Xabar yuborildi",
-      reportError: "Xato yuz berdi. Qayta urinib ko'ring."
+      reportError: "Xato yuz berdi. Qayta urinib ko'ring.",
+      reportTestIssue: "Xato haqida xabar berish",
+      reportTestPlaceholder: "Bu testda qanday xato yoki kamchilik bor? Savol raqami, to'g'ri javob va h.k. \u2014 batafsil yozing...",
+      reportThanks: "Xabaringiz uchun rahmat \u2014 administrator tez orada ko'rib chiqadi."
     },
     teacher: {
       portal: "O'qituvchi portali",
@@ -2659,6 +2672,15 @@ export const translations = {
     },
     onboarding: {
       step1Title: "Introduction",
+      stepGoalTitle: "Goal",
+      goalHeader: "What is your goal?",
+      goalSub: "We will tailor the platform to match it.",
+      goalIelts: "IELTS exam",
+      goalIeltsDesc: "I need a band score for study, work or a visa",
+      goalGeneral: "General English",
+      goalGeneralDesc: "Speaking, reading and building vocabulary",
+      goalUnsure: "Not sure yet",
+      goalUnsureDesc: "Let me check my level first, then decide",
       step2Title: "Level",
       step3Title: "Goal",
       step4Title: "Ready!",
@@ -2875,7 +2897,8 @@ export const translations = {
       writingTask1: "Task 1 (Report)",
       writingTask2: "Task 2 (Essay)",
       speakingAi: "Speaking AI",
-      speakingPractice: "Speaking Practice"
+      speakingPractice: "Speaking Practice",
+      multilevelSpeaking: "Multilevel Speaking"
     },
     settings: {
       telegramTitle: "Telegram connection",
@@ -3332,7 +3355,10 @@ export const translations = {
        reportSubmit: "Submit",
        reportCancel: "Cancel",
        reportSubmitted: "Report submitted",
-       reportError: "Something went wrong. Please try again."
+       reportError: "Something went wrong. Please try again.",
+       reportTestIssue: "Report a mistake",
+       reportTestPlaceholder: "What's wrong or missing in this test? Question number, correct answer, etc. \u2014 describe it in detail...",
+       reportThanks: "Thanks for the report \u2014 an administrator will review it shortly."
      },
      teacher: {
        portal: "Teacher Portal",

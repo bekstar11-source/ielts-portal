@@ -504,6 +504,50 @@ function buildSpeakingDelta({ bands, corrections = [], date = new Date(), source
 }
 
 /**
+ * Multilevel Speaking javobidan delta quradi.
+ *
+ * `buildSpeakingDelta` dan farqi faqat shkalada va omborda: ballar 0-100 va
+ * ular `skills.multilevelSpeaking` ga tushadi. Takrorlanuvchi xatolar esa
+ * umumiy omborga boradi — xato xato bo'lib qolaveradi, qaysi imtihonda
+ * qilinganidan qat'i nazar.
+ *
+ * @param {{ criteria: object, corrections?: Array, date?: Date, sourceId?: string }} input
+ */
+function buildMultilevelSpeakingDelta({
+    criteria: rawCriteria,
+    corrections = [],
+    date = new Date(),
+    sourceId = null,
+}) {
+    const criteria = {};
+    Object.entries(rawCriteria || {}).forEach(([key, value]) => {
+        const num = Number(value?.score);
+        if (Number.isFinite(num) && num > 0) criteria[key] = num;
+    });
+
+    const repeated = corrections
+        .map((item) => {
+            const text = String(item?.better || "").trim();
+            const key = normalizeString(text);
+            if (!key) return null;
+            return {
+                key,
+                text: text.slice(0, 120),
+                family: "speaking",
+                count: 1,
+                lastSeen: date.getTime(),
+            };
+        })
+        .filter(Boolean);
+
+    return {
+        sourceId,
+        multilevelSpeaking: { tasks: 1, criteria },
+        repeated,
+    };
+}
+
+/**
  * Bitta urinishdagi xatolarni ikki songa siqadi: tasniflanganlari va ulardan
  * nechtasi "yaqin marra".
  *
@@ -602,6 +646,15 @@ function mergeDelta(summary, delta) {
 
     if (delta.writing) next.skills.writing = addCriteria(next.skills.writing, delta.writing);
     if (delta.speaking) next.skills.speaking = addCriteria(next.skills.speaking, delta.speaking);
+    // Multilevel ATAYLAB alohida kalitda. Uning ballari 0-100, IELTS'niki
+    // 0-9 — bitta jamlanmaga qo'shilsa, o'quvchining Speaking o'rtachasi
+    // jimgina buzilardi va grafikda 65 "band" bo'lib chiqardi.
+    if (delta.multilevelSpeaking) {
+        next.skills.multilevelSpeaking = addCriteria(
+            next.skills.multilevelSpeaking,
+            delta.multilevelSpeaking
+        );
+    }
 
     if (delta.sourceId) {
         next.appliedIds = [...(base.appliedIds || []), delta.sourceId].slice(-APPLIED_LIMIT);
@@ -786,6 +839,7 @@ module.exports = {
     buildTestDelta,
     buildWritingDelta,
     buildSpeakingDelta,
+    buildMultilevelSpeakingDelta,
     summarizeMistakeBatch,
     // Sinov va qayta ishlatish uchun ochilgan sof funksiyalar:
     mergeDelta,

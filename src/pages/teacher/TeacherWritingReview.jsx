@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../context/LanguageContext';
 import { useWritingReview } from '../../hooks/useWritingReview';
+import { getWritingAnswers, calculateTaskBand, combineWritingBand } from '../../utils/writingReview';
 import {
     TeacherWritingReviewSkeleton, RefreshBar,
 } from '../../components/teacher/TeacherSkeletons';
@@ -20,9 +21,11 @@ export default function TeacherWritingReview() {
     const { t, lang } = useTranslation();
     const isDark = theme === 'dark';
     const location = useLocation();
-    const { 
-        writings, students, loading, isRefreshing, saving, aiLoading, handleSaveFeedback, handleAICheck
+    const {
+        writings, students, loading, isRefreshing, saving, aiLoading, bulkState,
+        handleSaveFeedback, handleAICheck, handleBulkAICheck
     } = useWritingReview(userData);
+    const isAdmin = userData?.role === 'admin';
 
     const navState = location.state;
     const [selectedId, setSelectedId] = useState(navState?.selectedId ?? null);
@@ -30,6 +33,8 @@ export default function TeacherWritingReview() {
     const [searchTerm, setSearchTerm] = useState('');
     const [feedbackData, setFeedbackData] = useState({});
     const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+    // Ommaviy tekshiruv uchun belgilangan ishlar (faqat admin ko'rinishida).
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const [prevNavState, setPrevNavState] = useState(navState);
     if (navState !== prevNavState) {
@@ -43,40 +48,9 @@ export default function TeacherWritingReview() {
     const activeWriting = writings.find(w => w.id === selectedId);
     const fd = feedbackData[selectedId] || {};
 
-    const getAnswers = (res) => {
-        if (!res) return {};
-        let source = res.userAnswers || res.writingAnswers || {};
-        if (Array.isArray(res.attempts) && res.attempts.length > 0) {
-            const lastAttempt = res.attempts[res.attempts.length - 1];
-            source = lastAttempt.userAnswers || lastAttempt.writingAnswers || source;
-        }
-        if (res.details?.writingAnswers) {
-            source = res.details.writingAnswers;
-        }
-
-        const ans = { ...source };
-        if (!ans.task1 && res.task1) ans.task1 = res.task1;
-        if (!ans.task1 && res.writingAnswer) ans.task1 = res.writingAnswer;
-        if (!ans.task2 && res.task2) ans.task2 = res.task2;
-        return ans;
-    };
-
-    const answers = activeWriting ? getAnswers(activeWriting) : {};
+    const answers = activeWriting ? getWritingAnswers(activeWriting) : {};
     const hasT1 = activeWriting ? !!answers.task1 : false;
     const hasT2 = activeWriting ? !!answers.task2 : false;
-
-    const calculateTaskBand = (details) => {
-        if (!details) return '';
-        const { ta, tr, cc, lr, gra } = details;
-        const criteria = [ta || tr, cc, lr, gra].map(parseFloat).filter(n => !isNaN(n));
-        if (criteria.length < 4) return '';
-        const avg = criteria.reduce((sum, v) => sum + v, 0) / criteria.length;
-        let integerPart = Math.floor(avg);
-        const fractionalPart = avg - integerPart;
-        if (fractionalPart >= 0.75) return (integerPart + 1).toFixed(1);
-        if (fractionalPart >= 0.25) return (integerPart + 0.5).toFixed(1);
-        return integerPart.toFixed(1);
-    };
 
     const setTaskDetails = (taskNum, criterion, value) => {
         setFeedbackData(prev => {
@@ -111,23 +85,25 @@ export default function TeacherWritingReview() {
     };
 
     const calculateOverallScoreDisplay = () => {
-        const t1 = parseFloat(getTaskBandValue(1));
-        const t2 = parseFloat(getTaskBandValue(2));
+        const overall = combineWritingBand(getTaskBandValue(1), getTaskBandValue(2), hasT1, hasT2);
+        return isNaN(overall) || overall === 0 ? '--' : overall.toFixed(1);
+    };
 
-        if (hasT1 && hasT2) {
-            if (isNaN(t1) || isNaN(t2)) return '--';
-            const raw = (t1 + 2 * t2) / 3;
-            let integerPart = Math.floor(raw);
-            const fractionalPart = raw - integerPart;
-            if (fractionalPart >= 0.75) return (integerPart + 1).toFixed(1);
-            if (fractionalPart >= 0.25) return (integerPart + 0.5).toFixed(1);
-            return integerPart.toFixed(1);
-        } else if (hasT1) {
-            return isNaN(t1) ? '--' : t1.toFixed(1);
-        } else if (hasT2) {
-            return isNaN(t2) ? '--' : t2.toFixed(1);
-        }
-        return '--';
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+    };
+
+    const selectMany = (ids, shouldSelect) => {
+        setSelectedIds(prev => (shouldSelect
+            ? [...new Set([...prev, ...ids])]
+            : prev.filter(id => !ids.includes(id))));
+    };
+
+    const runBulkCheck = async ({ autoApply }) => {
+        const result = await handleBulkAICheck(selectedIds, { autoApply });
+        // Baholanganlar ro'yxatdan chiqib ketadi; qolganini qo'lda ko'rish
+        // uchun tanlov faqat to'liq muvaffaqiyatda tozalanadi.
+        if (result && result.failed.length === 0) setSelectedIds([]);
     };
 
     const handleSave = async () => {
@@ -250,6 +226,12 @@ export default function TeacherWritingReview() {
             <WritingReviewSidebar
                 writings={writings} students={students} filter={filter} setFilter={setFilter}
                 searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedId={selectedId} setSelectedId={setSelectedId} isDark={isDark}
+                selectedIds={selectedIds}
+                onToggleSelect={isAdmin ? toggleSelect : undefined}
+                onSelectMany={selectMany}
+                onClearSelection={() => setSelectedIds([])}
+                bulkState={bulkState}
+                onBulkCheck={runBulkCheck}
             />
 
             <div className="flex-1 flex flex-col h-full overflow-hidden">

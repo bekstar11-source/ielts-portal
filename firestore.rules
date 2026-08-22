@@ -441,6 +441,15 @@ service cloud.firestore {
                             || (isTeacher() && resource.data.get('authorId', '') == request.auth.uid);
     }
 
+    // MULTILEVEL SPEAKING TESTLARI
+    // Savollar javob kaliti emas — o'quvchi ularni baribir ekranda ko'radi,
+    // shuning uchun o'qish hammaga ochiq. Yozish faqat adminga: bu yerdagi
+    // rasm YO'LLARI serverga uzatiladi va u faylni Admin SDK bilan o'qiydi.
+    match /multilevelSpeakingTests/{testId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
     // SPEAKING REVIEW ORDERS (pullik jonli tekshiruv buyurtmalari)
     // Narx va holat serverda: `requestSpeakingReview` yaratadi, Telegram
     // botdagi admin tasdig'i to'langan holatga o'tkazadi.
