@@ -686,11 +686,21 @@ export default function CreateTest() {
         } catch (err) { toast.error(err.message); } finally { setUploading(false); setUploadingPart(null); e.target.value = ""; }
     }, [uploadToFirebase, handleWritingUpdate, setUploading, setUploadingPart]);
 
-    // field — matn ("startTime") yoki bir nechta maydonli obyekt ({startTime, endTime}).
-    // Obyekt shakli waveform uchun zarur: ketma-ket ikki chaqiruv bir xil eskirgan
-    // jsonInput'ni o'qib, birinchi o'zgarishni yo'q qilib yuborardi.
-    const handlePassageTimeChange = useCallback((index, field, value) => {
-        const patch = typeof field === 'object' && field !== null ? field : { [field]: value };
+    // Uch xil chaqiruv shakli qo'llab-quvvatlanadi:
+    //   (index, 'startTime', '6:05')
+    //   (index, { startTime: '6:05', endTime: '13:34' })
+    //   ([{ index, patch }, ...])
+    // Oxirgisi chegara tekislash uchun zarur: ikki partni ketma-ket ikki chaqiruv
+    // bilan yozsak, ikkalasi ham bir xil eskirgan jsonInput'ni o'qib, birinchi
+    // o'zgarish yo'qolib ketardi.
+    const handlePassageTimeChange = useCallback((indexOrPatches, field, value) => {
+        const patches = Array.isArray(indexOrPatches)
+            ? indexOrPatches
+            : [{
+                index: indexOrPatches,
+                patch: typeof field === 'object' && field !== null ? field : { [field]: value }
+            }];
+        if (!patches.length) return;
 
         // Iloji bo'lsa o'zgarishni JSON orqali qo'llaymiz — shunda undo/redo tarixi
         // sinxron qoladi (avval JSON to'g'ridan-to'g'ri yozilib, tarix eskirib qolardi).
@@ -698,10 +708,12 @@ export default function CreateTest() {
             try {
                 const parsed = JSON.parse(jsonInput);
                 if (Array.isArray(parsed.passages)) {
-                    if (!parsed.passages[index]) {
-                        parsed.passages[index] = { id: index + 1, title: `Part ${index + 1}` };
-                    }
-                    Object.assign(parsed.passages[index], patch);
+                    patches.forEach(({ index, patch }) => {
+                        if (!parsed.passages[index]) {
+                            parsed.passages[index] = { id: index + 1, title: `Part ${index + 1}` };
+                        }
+                        Object.assign(parsed.passages[index], patch);
+                    });
                     applyJsonValue(JSON.stringify(parsed, null, 2));
                     return;
                 }
@@ -711,18 +723,67 @@ export default function CreateTest() {
         }
         setTestData(prev => {
             const newPassages = [...(prev.passages || [])];
-            if (!newPassages[index]) {
-                newPassages[index] = {
-                    id: index + 1,
-                    title: `Part ${index + 1}`,
-                    content: "",
-                    audio: audioMode === 'single' ? singleAudioUrl : (partAudios[index] || "")
-                };
-            }
-            newPassages[index] = { ...newPassages[index], ...patch };
+            patches.forEach(({ index, patch }) => {
+                if (!newPassages[index]) {
+                    newPassages[index] = {
+                        id: index + 1,
+                        title: `Part ${index + 1}`,
+                        content: "",
+                        audio: audioMode === 'single' ? singleAudioUrl : (partAudios[index] || "")
+                    };
+                }
+                newPassages[index] = { ...newPassages[index], ...patch };
+            });
             return { ...prev, passages: newPassages };
         });
     }, [jsonInput, applyJsonValue, setTestData, audioMode, singleAudioUrl, partAudios]);
+
+    // Audio manzilini test hujjatiga ham yozadi.
+    //
+    // Ilgari manzilni QO'LDA yozish (yuklash emas) faqat lokal holatni
+    // o'zgartirardi: admin sahifasida yangi fayl eshitilar, testda esa eski
+    // `passage.audio` o'ynardi — "belgilagan joyim boshqa chiqyapti" shikoyatining
+    // yarmi shundan edi.
+    const applyAudioUrl = useCallback((url, index = null) => {
+        const isSingle = index === null;
+        // JSON matnini ham yangilaymiz, aks holda keyingi JSON tahriri eski
+        // manzilni qaytarib qo'yardi.
+        if (jsonInput) {
+            try {
+                const parsed = JSON.parse(jsonInput);
+                if (isSingle) {
+                    parsed.audio = url;
+                    if (Array.isArray(parsed.passages)) parsed.passages.forEach(p => { if (p) p.audio = url; });
+                } else if (Array.isArray(parsed.passages)) {
+                    if (!parsed.passages[index]) parsed.passages[index] = { id: index + 1, title: `Part ${index + 1}` };
+                    parsed.passages[index].audio = url;
+                }
+                applyJsonValue(JSON.stringify(parsed, null, 2));
+            } catch (e) {
+                console.warn("JSON sync skipped:", e.message);
+            }
+        }
+        // JSON'dan keyin yoziladi: `updateTestDataFromJSON` eski manzilni
+        // ko'chirib kelishi mumkin, oxirgi so'z shu yerda qolishi kerak.
+        setTestData(prev => {
+            const newPassages = [...(prev.passages || [])];
+            if (isSingle) {
+                return {
+                    ...prev,
+                    audio_url: url,
+                    passages: newPassages.map(p => ({ ...(p || {}), audio: url }))
+                };
+            }
+            if (!newPassages[index]) newPassages[index] = { id: index + 1, title: `Part ${index + 1}`, content: "" };
+            newPassages[index] = { ...newPassages[index], audio: url };
+            return { ...prev, passages: newPassages };
+        });
+    }, [jsonInput, applyJsonValue, setTestData]);
+
+    const handleSingleAudioUrlChange = useCallback((url) => {
+        setSingleAudioUrl(url);
+        applyAudioUrl(url, null);
+    }, [setSingleAudioUrl, applyAudioUrl]);
 
     const scrollToValidator = () => {
         if (!showEditor) setViewMode(isWide ? 'split' : 'editor');
@@ -767,7 +828,10 @@ export default function CreateTest() {
     const openAutoFix = useCallback(() => setShowAutoFix(true), []);
     const openAnswerImport = useCallback(() => setShowAnswerImport(true), []);
     const openTemplate = useCallback(() => setShowTemplateModal(true), []);
-    const handleAudioUrlChange = useCallback((url, i) => setPartAudios(p => ({ ...p, [i]: url })), [setPartAudios]);
+    const handleAudioUrlChange = useCallback((url, i) => {
+        setPartAudios(p => ({ ...p, [i]: url }));
+        applyAudioUrl(url, i);
+    }, [setPartAudios, applyAudioUrl]);
     const handleDeleteMap = useCallback((i) => setUploadedMaps(p => p.filter((_, idx) => idx !== i)), [setUploadedMaps]);
 
     // Ctrl+K buyruqlar ro'yxati
@@ -946,7 +1010,7 @@ export default function CreateTest() {
                                 setAudioMode={setAudioMode}
                                 singleAudioUrl={singleAudioUrl}
                                 handleSingleAudioUpload={handleSingleAudioUpload}
-                                handleSingleAudioUrlChange={setSingleAudioUrl}
+                                handleSingleAudioUrlChange={handleSingleAudioUrlChange}
                                 partAudios={partAudios}
                                 handlePartAudioUpload={handlePartAudioUpload}
                                 handleAudioUrlChange={handleAudioUrlChange}

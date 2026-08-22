@@ -61,6 +61,15 @@
             "value": "same-origin-allow-popups"
           }
         ]
+      },
+      {
+        "source": "/@(favicon.ico|favicon.svg|favicon.png|apple-touch-icon.png|englev-logo.png|englev-logo-dark.png)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600, must-revalidate"
+          }
+        ]
       }
     ]
   }

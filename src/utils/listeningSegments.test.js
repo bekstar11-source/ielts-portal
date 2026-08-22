@@ -104,3 +104,27 @@ test('tugash boshlanishdan oldin bo\'lsa xato beriladi', () => {
     assert.ok(codes(parts[0]).includes('end-before-start'));
     assert.strictEqual(worstIssueLevel(parts[0].issues), 'error');
 });
+
+test('o\'z audiosi bor partda bo\'sh tugash — xato emas, ogohlantirish', () => {
+    const [part] = analyzeListeningParts([{ audio: 'p1.mp3', startTime: '0:00' }], 1, { fileDuration: 420 });
+    const endIssue = part.issues.find(i => i.code === 'end-empty');
+    assert.strictEqual(endIssue.level, 'warning');
+    assert.strictEqual(part.end, 420);
+
+    // Umumiy audioda esa bo'sh tugash eski 7:30 lik taxminga tushadi — bu xato.
+    const [shared] = analyzeListeningParts([{ startTime: '0:00' }], 1, { fileDuration: 1700 });
+    assert.strictEqual(shared.issues.find(i => i.code === 'end-empty').level, 'error');
+    assert.strictEqual(shared.end, LEGACY_PART_SECONDS);
+});
+
+test('har part o\'z faylining uzunligi bilan tekshiriladi', () => {
+    const parts = analyzeListeningParts(
+        [{ audio: 'p1.mp3', startTime: '0:00', endTime: '5:00' },
+         { audio: 'p2.mp3', startTime: '0:00', endTime: '9:00' }],
+        2,
+        { fileDurations: [200, 500] }
+    );
+    // 5:00 (300s) > 200s va 9:00 (540s) > 500s — ikkalasi ham o'z faylidan uzun.
+    assert.ok(codes(parts[0]).includes('end-beyond-file'));
+    assert.ok(codes(parts[1]).includes('end-beyond-file'));
+});

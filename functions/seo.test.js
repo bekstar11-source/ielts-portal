@@ -10,7 +10,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 
 const { setMetaTag, setCanonical, setTitle, appendJsonLd, escapeHtml } = require("./htmlMeta");
-const { toPlainText, getContentBlocks, buildDescription } = require("./shareArticle");
+const { toPlainText, getContentBlocks, buildDescription, buildPrerenderHtml } = require("./shareArticle");
 const { escapeXml } = require("./sitemap");
 
 const HTML = `<!doctype html><html><head>
@@ -109,4 +109,53 @@ test("escapeXml sitemap'ni buzadigan belgilarni qochiradi", () => {
 test("escapeHtml null/undefined da yiqilmaydi", () => {
   assert.strictEqual(escapeHtml(null), "");
   assert.strictEqual(escapeHtml(undefined), "");
+});
+
+// ─── PRERENDER ──────────────────────────────────────────────────────────────
+
+test("buildPrerenderHtml sarlavha, subtitle va matnni semantik teglarga soladi", () => {
+  const out = buildPrerenderHtml(
+    { title: "Dreams", subtitle: "<p>Kirish</p>", author: "Aziz" },
+    [{ type: "paragraph", text: "<p>Birinchi.</p>" }, { type: "heading", text: "Bo'lim" }]
+  );
+  assert.match(out, /<h1>Dreams<\/h1>/);
+  assert.match(out, /<p class="sub">Kirish<\/p>/);
+  assert.match(out, /<p class="by">Aziz<\/p>/);
+  assert.match(out, /<p>Birinchi\.<\/p>/);
+  // Sarlavha bloki <h2> bo'lishi kerak — ierarxiya qidiruv tizimi uchun muhim.
+  assert.match(out, /<h2>Bo&#039;lim<\/h2>/);
+});
+
+test("prerender maqola matnidagi HTML'ni qochiradi (skript tushmasin)", () => {
+  // Maqola muharriridan kelgan xom HTML to'g'ridan-to'g'ri qo'yilsa, sahifaga
+  // begona teg yoki skript tushardi. Matn har doim oddiy matnga aylantiriladi.
+  const out = buildPrerenderHtml(
+    { title: 'A <script>alert(1)</script>' },
+    [{ type: "paragraph", text: '<img src=x onerror="alert(2)">matn' }]
+  );
+  assert.ok(!out.includes("<script>"));
+  assert.ok(!out.includes("onerror"));
+  assert.match(out, /&lt;script&gt;/);
+});
+
+test("prerender bloklar sonini cheklaydi", () => {
+  const many = Array.from({ length: 200 }, (_, i) => ({ type: "paragraph", text: `p${i}` }));
+  const out = buildPrerenderHtml({ title: "T" }, many);
+  assert.strictEqual((out.match(/<p>/g) || []).length, 60);
+});
+
+test("prerender bo'sh bloklarni tashlab ketadi", () => {
+  const out = buildPrerenderHtml({ title: "T" }, [
+    { type: "paragraph", text: "<p>&nbsp;</p>" },
+    { type: "paragraph", text: "bor" },
+  ]);
+  assert.strictEqual((out.match(/<p>/g) || []).length, 1);
+});
+
+test("premium maqolada blok bo'lmaydi — matn sizib chiqmaydi", () => {
+  // `shareArticle` premium maqolada `blocks` ni ataylab bo'sh qoldiradi;
+  // shu holatda prerender faqat sarlavhadan iborat bo'lishi kerak.
+  const out = buildPrerenderHtml({ title: "Premium" }, []);
+  assert.match(out, /<h1>Premium<\/h1>/);
+  assert.ok(!out.includes("<p>"));
 });

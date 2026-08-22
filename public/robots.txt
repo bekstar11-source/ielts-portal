@@ -15,6 +15,8 @@ Allow: /pricing
 Allow: /trial
 Allow: /articles
 Allow: /article/
+Allow: /favicon.ico
+Allow: /favicon.svg
 Allow: /favicon.png
 Allow: /englev-logo.png
 

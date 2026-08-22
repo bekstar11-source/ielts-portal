@@ -18,26 +18,35 @@
 // ijtimoiy tarmoq skraperlari JS'ni UMUMAN ishga tushirmaydi. Shuning uchun
 // server tomonda ham xuddi shu qiymatlar kerak — ikkalasi mos bo'lishi shart.
 //
-// ─── NEGA MAQOLA MATNI HTML GA QO'SHILMAYDI ────────────────────────────────
+// ─── MAQOLA MATNI HTML ICHIDA (PRERENDER) ──────────────────────────────────
 //
-// Vasvasa bor: robotga (User-Agent bo'yicha) maqola matnini xom HTML ichida
-// berish — shunda Yandex uni JS'siz ham o'qirdi. LEKIN Firebase Hosting CDN'i
-// `Vary: User-Agent` ni HISOBGA OLMAYDI: kesh kaliti faqat URL. Ya'ni robot
-// uchun tayyorlangan javob keshga tushib, keyin oddiy foydalanuvchiga
-// berilardi (va aksincha) — natijada odam React yuklanguncha bezaksiz matnni
-// ko'rardi, robot esa matnsiz nusxani olardi.
+// Matn `#root` ichiga OLDINDAN yoziladi va HAMMAGA bir xil beriladi.
 //
-// Shuning uchun bu yerda faqat meta teglar, canonical va JSON-LD bor — ular
-// ko'rinishga ta'sir qilmaydi va keshlanishi butunlay xavfsiz. Googlebot JS'ni
-// render qilgani uchun matnni baribir ko'radi.
+// NEGA User-Agent bo'yicha AJRATILMAYDI: Firebase Hosting CDN'i `Vary` ni
+// hisobga olmaydi — kesh kaliti faqat URL. Robot uchun alohida javob
+// tayyorlansa, u keshga tushib oddiy foydalanuvchiga berilardi (va aksincha).
+// Bundan tashqari UA bo'yicha boshqa kontent berish "cloaking" ga o'xshab
+// qoladi. Hammaga bir xil HTML — kesh xavfsiz, cloaking xavfi nol.
 //
-// Yandex uchun to'liq yechim — chekkada (edge) haqiqiy prerender. Loyihada
-// allaqachon Cloudflare worker bor (`cloudflare/firebase-cdn-worker.js`),
-// mantiqiy keyingi qadam o'sha yerda.
+// NEGA UMUMAN KERAK: Googlebot JS'ni render qiladi, lekin Yandex (bu bozorda
+// jiddiy ulush) buni ancha ishonchsiz bajaradi. Prerender'siz Yandex maqola
+// matnini umuman ko'rmasligi mumkin edi.
+//
+// FOYDALANUVCHIGA ZARARI YO'Q: React `createRoot().render()` birinchi
+// render'da `#root` ichini tozalaydi, ya'ni matn ilova yuklangach almashadi.
+// Oraliqda odam BEZAKSIZ matn ko'rmasligi uchun pastda `PRERENDER_STYLE` bor —
+// u o'quv mavzusining rangi va tipografiyasini takrorlaydi. Natijada bu
+// "chaqnash" emas, balki bosqichma-bosqich yuklanish bo'lib ko'rinadi va LCP
+// (eng katta kontent chizilishi) ham yaxshilanadi.
+//
+// ⚠️ Mavzu: ilovada tungi rejim `.dark` klassi orqali (localStorage'dan)
+// beriladi — JS'gacha uni bilib bo'lmaydi. Shuning uchun bu yerda
+// `prefers-color-scheme` ishlatiladi: bu eng yaqin taxmin.
 
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 const {
+  escapeHtml,
   setMetaTag,
   setCanonical,
   setTitle,
@@ -108,6 +117,61 @@ function toIso(value) {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Prerender uchun tipografiya.
+ *
+ * O'quv mavzusining palitrasi (`ArticleReading.jsx` dagi `--r-paper`/`--r-ink`)
+ * bilan bir xil qiymatlar — React yuklanganda ekrandagi rang o'zgarmasin.
+ */
+const PRERENDER_STYLE = `
+<style id="prerender-style">
+#prerender-article{max-width:680px;margin:0 auto;padding:64px 20px;
+ font-family:'Source Serif 4',Georgia,serif;color:#1f1e1c;background:#faf9f5;
+ font-size:19px;line-height:1.72}
+#prerender-article h1{font-size:38px;line-height:1.18;margin:0 0 12px;
+ letter-spacing:-.01em;font-weight:700}
+#prerender-article h2{font-size:26px;line-height:1.3;margin:32px 0 12px;font-weight:700}
+#prerender-article .sub{font-size:20px;color:#6c6a64;margin:0 0 8px}
+#prerender-article .by{font-size:15px;color:#6c6a64;margin:0 0 32px;
+ font-family:'Public Sans',system-ui,sans-serif}
+#prerender-article p{margin:0 0 1.35em}
+body{margin:0;background:#faf9f5}
+@media (prefers-color-scheme:dark){
+ #prerender-article{color:#e8e5de;background:#171614}
+ #prerender-article .sub,#prerender-article .by{color:#948f85}
+ body{background:#171614}
+}
+</style>`;
+
+/** Bir sahifada chiqariladigan maksimal blok — javob hajmi cheklansin. */
+const MAX_PRERENDER_BLOCKS = 60;
+
+/**
+ * `#root` ichiga qo'yiladigan semantik maqola HTML'i.
+ *
+ * Matn HAR DOIM oddiy matnga aylantirilib, keyin qochiriladi: maqola
+ * muharriridan kelgan xom HTML'ni to'g'ridan-to'g'ri qo'yish sahifaga begona
+ * teg (yoki skript) tushishiga yo'l ochardi.
+ */
+function buildPrerenderHtml(data, blocks) {
+  const parts = [];
+  if (data.title) parts.push(`<h1>${escapeHtml(data.title)}</h1>`);
+  if (data.subtitle) parts.push(`<p class="sub">${escapeHtml(toPlainText(data.subtitle))}</p>`);
+  if (data.author) parts.push(`<p class="by">${escapeHtml(data.author)}</p>`);
+
+  for (const block of blocks.slice(0, MAX_PRERENDER_BLOCKS)) {
+    const text = toPlainText(block && block.text);
+    if (!text) continue;
+    // Sarlavha bloklari <h2> bo'ladi — hujjat ierarxiyasi qidiruv tizimi
+    // uchun ham, ekran o'quvchisi uchun ham ma'noli bo'lsin.
+    parts.push(block.type === "heading"
+      ? `<h2>${escapeHtml(text)}</h2>`
+      : `<p>${escapeHtml(text)}</p>`);
+  }
+
+  return `<article id="prerender-article">${parts.join("")}</article>`;
 }
 
 async function shareArticle(req, res) {
@@ -190,6 +254,17 @@ async function shareArticle(req, res) {
         mainEntityOfPage: url,
         educationalLevel: LEVEL_ORDER.join(", "),
       });
+
+      // Matnni `#root` ichiga oldindan yozamiz — Yandex va JS ishlatmaydigan
+      // boshqa robotlar uchun. Premium maqolada bu blok YO'Q: u yerda `blocks`
+      // ataylab bo'sh, ya'ni paywall matni sizib chiqmaydi.
+      if (blocks.length) {
+        html = html.replace("</head>", `${PRERENDER_STYLE}\n</head>`);
+        html = html.replace(
+          '<div id="root"></div>',
+          `<div id="root">${buildPrerenderHtml(data, blocks)}</div>`
+        );
+      }
     }
 
     // Brauzerda 10 daqiqa, CDN'da 1 soat — `shareTest.js` bilan bir xil.
@@ -203,4 +278,4 @@ async function shareArticle(req, res) {
   }
 }
 
-module.exports = { shareArticle, toPlainText, getContentBlocks, buildDescription };
+module.exports = { shareArticle, toPlainText, getContentBlocks, buildDescription, buildPrerenderHtml };

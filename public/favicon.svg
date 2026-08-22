@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Englev">
+  <!-- Englev brend belgisi (Logo.jsx: LogoMark bilan bir xil geometriya).
+       Siyoh fonda qog'oz bar'lar + terrakota burmalar — favicon.png bilan bir xil. -->
+  <rect width="120" height="120" fill="#141413"/>
+  <g transform="translate(60,60) scale(0.79) translate(-60,-60)">
+    <polygon points="34,12 108,12 86,34 12,34" fill="#F0EEE6"/>
+    <polygon points="12,34 34,34 36,49 14,49" fill="#D97757"/>
+    <polygon points="36,49 92,49 70,71 14,71" fill="#F0EEE6"/>
+    <polygon points="14,71 36,71 34,86 12,86" fill="#D97757"/>
+    <polygon points="34,86 108,86 86,108 12,108" fill="#F0EEE6"/>
+  </g>
+</svg>

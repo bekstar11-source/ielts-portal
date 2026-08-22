@@ -67,15 +67,17 @@ const issue = (level, code, message) => ({ level, code, message });
  *
  * @param {Array} passages
  * @param {number} partCount
- * @param {{fileDuration?: number}} opts
+ * @param {{fileDuration?: number, fileDurations?: number[]}} opts
  * @returns {Array<{index, start, end, issues, ...}>}
  */
 export const analyzeListeningParts = (passages = [], partCount = 4, opts = {}) => {
-    const fileDuration = Number(opts.fileDuration) || 0;
+    // Bo'laklangan rejimda har partning O'Z fayli bor — uzunlik ham har xil.
+    const durationFor = (i) => Number(opts.fileDurations?.[i] ?? opts.fileDuration) || 0;
     const list = [];
 
     for (let i = 0; i < partCount; i++) {
         const p = passages[i] || {};
+        const fileDuration = durationFor(i);
         const bounds = resolvePartBounds(p, i, fileDuration);
         const startInput = parseAudioTimeInput(p.startTime);
         const endInput = parseAudioTimeInput(p.endTime);
@@ -95,7 +97,9 @@ export const analyzeListeningParts = (passages = [], partCount = 4, opts = {}) =
             issues.push(issue('error', 'end-invalid',
                 `Tugash vaqti noto'g'ri yozilgan ("${p.endTime}").`));
         } else if (bounds.usesFallbackEnd) {
-            issues.push(issue(!bounds.cuts && bounds.end === 0 ? 'warning' : 'error', 'end-empty',
+            // Kesish chegarasi bo'lmasa — audio oxirigacha ketadi, bu ko'pincha
+            // ataylab. Eski 7:30 lik taxminga tushib qolish esa haqiqiy xato.
+            issues.push(issue(bounds.cuts ? 'error' : 'warning', 'end-empty',
                 bounds.cuts
                     ? `Tugash kiritilmagan — imtihon eski standart bo'yicha ${formatAudioTimePrecise(bounds.end)} da to'xtaydi.`
                     : `Tugash kiritilmagan — audio oxirigacha o'ynaydi.`));

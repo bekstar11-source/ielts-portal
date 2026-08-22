@@ -1,84 +1,208 @@
-import React, { useRef, useState, useEffect } from "react";
-import { toMMSS, processTime, formatAudioTime } from "./CreateTestUtils";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { toMMSS, formatAudioTime, roundAudioTime } from "./CreateTestUtils";
+import { parseAudioTimeInput } from "../../../utils/audioTime";
+import { analyzeListeningParts } from "../../../utils/listeningSegments";
 import PartWaveformEditor from "./PartWaveformEditor";
 import { getCdnUrl } from "../../../utils/cdnUtils";
 
-const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, extraSilentTime = 0, isDark, onMark }) => {
+// Strelka bilan bir bosishda qancha suriladi. 0.5s — quloq ilg'aydigan eng
+// kichik farq; undan mayda qadam admin vaqtini behuda oladi.
+const NUDGE_STEP = 0.5;
+// Chegarani quloq bilan tekshirish uchun eshittiriladigan oyna.
+const BOUNDARY_PREVIEW = 3;
+// Bo'sh ro'yxat uchun BARQAROR havola: har renderda yangi `[]` yuborilsa,
+// to'lqin muharriridagi sinxronlash effekti bekorga qayta ishga tushardi.
+const EMPTY_PASSAGES = [];
+
+/**
+ * Vaqt maydoni: "6:05", "1:07:30", "365" — hammasi tushuniladi.
+ *
+ * Muhimi: NOTO'G'RI yozuv jimgina saqlanmaydi. Ilgari "6;05" kabi yozuv 0 ga
+ * aylanib qolar va admin buni faqat imtihon boshqa joydan boshlanganda bilardi.
+ */
+const TimeField = ({ label, title, value, onCommit, isDark, placeholder, disabled }) => {
+    const [draft, setDraft] = useState(null);
+    const shown = draft !== null ? draft : (value ?? "");
+    const parsed = parseAudioTimeInput(shown);
+    const invalid = !parsed.valid && !parsed.empty;
+
+    const commit = (raw) => {
+        const p = parseAudioTimeInput(raw);
+        if (p.valid) onCommit(toMMSS(p.seconds));
+        else if (p.empty) onCommit("");
+    };
+
+    const nudge = (delta) => {
+        const base = parsed.valid ? parsed.seconds : 0;
+        const next = Math.max(0, roundAudioTime(base + delta));
+        setDraft(null);
+        onCommit(toMMSS(next));
+    };
+
+    const inputCls = `w-full h-8 pl-2 pr-5 rounded-lg border outline-none text-[10px] font-mono tabular-nums transition ${
+        invalid
+            ? 'border-red-500 text-red-500'
+            : (isDark ? 'bg-[#1f1e1b] border-white/5 focus:border-blue-500' : 'bg-white border-gray-200 focus:border-blue-500')
+    } ${isDark && !invalid ? '' : ''}`;
+
+    return (
+        <div>
+            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1" title={title}>{label}</span>
+            <div className="relative">
+                <input
+                    type="text"
+                    inputMode="decimal"
+                    disabled={disabled}
+                    className={inputCls}
+                    placeholder={placeholder}
+                    value={shown}
+                    onChange={e => { setDraft(e.target.value); commit(e.target.value); }}
+                    onBlur={() => { if (!invalid) setDraft(null); }}
+                    onKeyDown={e => {
+                        if (e.key === 'ArrowUp') { e.preventDefault(); nudge(e.shiftKey ? 1 : NUDGE_STEP); }
+                        if (e.key === 'ArrowDown') { e.preventDefault(); nudge(e.shiftKey ? -1 : -NUDGE_STEP); }
+                        if (e.key === 'Enter') { e.currentTarget.blur(); }
+                    }}
+                />
+                {/* Aniq sozlash: 0.5s qadam (Shift bilan 1s) */}
+                <div className="absolute right-0.5 top-1/2 -translate-y-1/2 flex flex-col">
+                    <button type="button" tabIndex={-1} disabled={disabled} onClick={() => nudge(NUDGE_STEP)}
+                        className="h-3 w-4 flex items-center justify-center opacity-35 hover:opacity-100 disabled:opacity-15" title={`+${NUDGE_STEP}s`}>
+                        <svg className="w-2 h-2" viewBox="0 0 8 8" fill="currentColor"><path d="M4 1l3 4H1z" /></svg>
+                    </button>
+                    <button type="button" tabIndex={-1} disabled={disabled} onClick={() => nudge(-NUDGE_STEP)}
+                        className="h-3 w-4 flex items-center justify-center opacity-35 hover:opacity-100 disabled:opacity-15" title={`-${NUDGE_STEP}s`}>
+                        <svg className="w-2 h-2" viewBox="0 0 8 8" fill="currentColor"><path d="M4 7L1 3h6z" /></svg>
+                    </button>
+                </div>
+            </div>
+            <p className={`mt-0.5 text-[8px] font-mono ${invalid ? 'text-red-500 font-bold' : 'opacity-30'}`}>
+                {invalid
+                    ? `xato format · saqlanmadi${value ? ` (${value})` : ''}`
+                    : (parsed.valid ? `${parsed.seconds.toFixed(1)}s` : 'bo\'sh')}
+            </p>
+        </div>
+    );
+};
+
+/**
+ * Segment preview — imtihondagi pleyerning AYNAN o'zi kabi ishlaydi:
+ * `start` dan boshlanadi, `end` da to'xtaydi va undan keyin "kutish" sukunatini
+ * ham xuddi shunday sanaydi. Shu tufayli bu yerda eshitilgan narsa imtihonda
+ * ham bir xil eshitiladi.
+ */
+const AudioSegmentPlayer = ({ index, audioUrl, start, end, cuts, silence, isDark, onMark, onDuration }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [absTime, setAbsTime] = useState(0);      // audio faylidagi haqiqiy pozitsiya
     const [fileDuration, setFileDuration] = useState(0);
-    // "Belgilash rejimi" — butun audio bo'ylab yurib, vaqtlarni playhead'dan olish uchun
     const [markMode, setMarkMode] = useState(false);
+    const [silentElapsed, setSilentElapsed] = useState(0);
     const rafRef = useRef(null);
+    const silenceRef = useRef(null);
+    const stopAtRef = useRef(null);   // vaqtinchalik chegara (masalan "oxirini eshitish")
 
-    const start = processTime(startTimeStr);
-    const end = processTime(endTimeStr);
-    const silence = Number(extraSilentTime) || 0;
-
-    const segmentDuration = (end > start)
-        ? (end - start)
-        : (fileDuration > start ? fileDuration - start : 0);
+    const segmentEnd = cuts ? end : (fileDuration > start ? fileDuration : 0);
+    const segmentDuration = segmentEnd > start ? segmentEnd - start : 0;
     // O'quvchi tomonda part davomiyligi sukunat bilan birga hisoblanadi —
-    // preview ham xuddi shu raqamni ko'rsatishi kerak, aks holda admin bu yerda
-    // 7:30 ko'rib, imtihonda 7:40 ni ko'rardi.
+    // preview ham xuddi shu raqamni ko'rsatishi kerak.
     const viewDuration = markMode ? fileDuration : segmentDuration + silence;
-    const viewTime = markMode ? absTime : Math.max(0, absTime - start);
+    const viewTime = markMode
+        ? absTime
+        : Math.min(viewDuration, Math.max(0, absTime - start) + silentElapsed);
 
-    useEffect(() => {
-        return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
+    const stopSilence = useCallback(() => {
+        if (silenceRef.current) { clearInterval(silenceRef.current); silenceRef.current = null; }
+        setSilentElapsed(0);
     }, []);
 
-    const handleProgressClick = (e) => {
-        const audio = audioRef.current;
-        if (!audioUrl || !audio || viewDuration <= 0) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-        const target = markMode ? pct * fileDuration : start + pct * viewDuration;
-        audio.currentTime = Math.min(target, end > start ? end : fileDuration);
-        setAbsTime(audio.currentTime);
+    const stopTicker = useCallback(() => {
+        if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    }, []);
+
+    useEffect(() => () => { stopTicker(); stopSilence(); }, [stopTicker, stopSilence]);
+
+    // Ijro davomidagi chegara ref'dan o'qiladi: admin soniyani ijro paytida
+    // o'zgartirsa ham yangi chegara DARHOL kuchga kiradi (ilgari ijro eski
+    // qiymat bilan davom etib, preview yolg'on ko'rsatardi).
+    const boundsRef = useRef({ start, end, cuts, silence });
+    useEffect(() => { boundsRef.current = { start, end, cuts, silence }; }, [start, end, cuts, silence]);
+
+    // Imtihondagidek: sukunat REAL soat bo'yicha sanaladi.
+    const runSilence = () => {
+        const { silence: total } = boundsRef.current;
+        if (total <= 0) return;
+        const startedAt = performance.now();
+        stopSilence();
+        silenceRef.current = setInterval(() => {
+            const elapsed = (performance.now() - startedAt) / 1000;
+            if (elapsed >= total) {
+                stopSilence();
+                setSilentElapsed(total);
+            } else {
+                setSilentElapsed(elapsed);
+            }
+        }, 100);
     };
 
-    // Segment chegarasi rAF bilan kuzatiladi — o'quvchi player'idagi bilan bir xil
-    // aniqlik. 100ms lik interval segmentni ~0.1s uzaytirib yuborardi va preview
-    // imtihondan boshqa joyda to'xtardi.
     const startTicker = (audio) => {
-        if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+        stopTicker();
         const tick = () => {
             rafRef.current = requestAnimationFrame(tick);
             if (audio.paused) return;
-            if (!markMode && end > start && audio.currentTime >= end) {
+            const b = boundsRef.current;
+            const limit = stopAtRef.current !== null ? stopAtRef.current : (b.cuts ? b.end : Infinity);
+            if (!markMode && limit !== Infinity && audio.currentTime >= limit) {
                 audio.pause();
-                try { audio.currentTime = end; } catch { /* seek imkonsiz */ }
+                try { audio.currentTime = limit; } catch { /* seek imkonsiz */ }
+                setAbsTime(limit);
+                if (stopAtRef.current === null) runSilence();
+                stopAtRef.current = null;
+                return;
             }
             setAbsTime(audio.currentTime);
         };
         tick();
     };
 
+    const playFrom = (from, stopAt = null) => {
+        const audio = audioRef.current;
+        if (!audioUrl || !audio) return;
+        document.querySelectorAll('audio[id^="preview-audio-"]').forEach(a => { if (a !== audio && !a.paused) a.pause(); });
+        stopSilence();
+        stopAtRef.current = stopAt;
+        try { audio.currentTime = from; } catch { /* metadata hali yo'q */ }
+        setAbsTime(from);
+        audio.play().then(() => { setIsPlaying(true); startTicker(audio); })
+            .catch(e => console.error("Error playing preview:", e));
+    };
+
     const togglePlay = () => {
         const audio = audioRef.current;
         if (!audioUrl || !audio) return;
-
         if (isPlaying) { audio.pause(); return; }
-
-        document.querySelectorAll('audio[id^="preview-audio-"]').forEach(a => {
-            if (a !== audio && !a.paused) a.pause();
-        });
-
-        if (!markMode && (audio.currentTime < start || (end > start && audio.currentTime >= end))) {
-            audio.currentTime = start;
-        }
-        audio.play().then(() => {
-            setIsPlaying(true);
-            startTicker(audio);
-        }).catch(e => console.error("Error playing preview:", e));
+        if (markMode) { playFrom(audio.currentTime); return; }
+        const outside = audio.currentTime < start || (cuts && audio.currentTime >= end);
+        playFrom(outside ? start : audio.currentTime);
     };
 
-    const handlePause = () => {
-        setIsPlaying(false);
-        if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    const handleProgressClick = (e) => {
+        const audio = audioRef.current;
+        if (!audioUrl || !audio || viewDuration <= 0) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+        stopSilence();
+        // Bosilgan nuqta ko'rsatkich chizig'i bilan AYNI shkalada o'lchanadi
+        // (sukunat qismi ham shkalaga kiradi), aks holda bosgan joy bilan
+        // playhead to'xtagan joy bir-biriga to'g'ri kelmasdi.
+        const target = markMode
+            ? pct * fileDuration
+            : Math.min(segmentEnd || fileDuration, start + pct * (viewDuration || fileDuration));
+        try { audio.currentTime = target; } catch { /* metadata hali yo'q */ }
+        setAbsTime(target);
     };
+
+    const handlePause = () => { setIsPlaying(false); stopTicker(); };
 
     // `Math.floor` yo'q: playhead qayerda bo'lsa, o'sha nuqta saqlanadi.
     const mark = (field) => {
@@ -87,7 +211,8 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, extraSi
         onMark(field, toMMSS(audio.currentTime));
     };
 
-    const markBtn = `h-6 px-2 rounded-lg border text-[9px] font-black transition active:scale-95 ${isDark ? 'border-white/10 hover:bg-white/10 text-gray-300' : 'border-gray-200 hover:bg-white text-gray-600'}`;
+    const markBtn = `h-6 px-2 rounded-lg border text-[9px] font-black transition active:scale-95 disabled:opacity-30 ${isDark ? 'border-white/10 hover:bg-white/10 text-gray-300' : 'border-gray-200 hover:bg-white text-gray-600'}`;
+    const inSilence = silentElapsed > 0 && silentElapsed < silence;
 
     return (
         <div className="mt-2 pt-2 border-t border-gray-100 dark:border-white/5">
@@ -102,7 +227,9 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, extraSi
                     preload="metadata"
                     onLoadedMetadata={() => {
                         const d = audioRef.current?.duration;
-                        setFileDuration(Number.isFinite(d) ? d : 0);
+                        const safe = Number.isFinite(d) ? d : 0;
+                        setFileDuration(safe);
+                        onDuration?.(safe);
                     }}
                 />
                 <button
@@ -127,14 +254,21 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, extraSi
                         className={`flex-1 h-2 -my-0.5 rounded-full relative cursor-pointer ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}
                     >
                         {/* Belgilash rejimida joriy segment ko'k yo'lakcha bilan ko'rsatiladi */}
-                        {markMode && fileDuration > 0 && end > start && (
+                        {markMode && fileDuration > 0 && segmentEnd > start && (
                             <div
                                 className="absolute inset-y-0 bg-blue-500/25 rounded-full pointer-events-none"
-                                style={{ left: `${(start / fileDuration) * 100}%`, width: `${((end - start) / fileDuration) * 100}%` }}
+                                style={{ left: `${(start / fileDuration) * 100}%`, width: `${((segmentEnd - start) / fileDuration) * 100}%` }}
+                            />
+                        )}
+                        {/* Sukunat qismi — imtihonda audio jim turadigan vaqt */}
+                        {!markMode && silence > 0 && viewDuration > 0 && (
+                            <div
+                                className="absolute inset-y-0 right-0 bg-amber-400/25 rounded-r-full pointer-events-none"
+                                style={{ width: `${(silence / viewDuration) * 100}%` }}
                             />
                         )}
                         <div
-                            className="h-full bg-blue-500 rounded-full pointer-events-none transition-all duration-75"
+                            className={`h-full rounded-full pointer-events-none transition-all duration-75 ${inSilence ? 'bg-amber-400' : 'bg-blue-500'}`}
                             style={{ width: `${viewDuration > 0 ? Math.min(100, (viewTime / viewDuration) * 100) : 0}%` }}
                         />
                     </div>
@@ -142,34 +276,59 @@ const AudioSegmentPlayer = ({ index, audioUrl, startTimeStr, endTimeStr, extraSi
                 </div>
             </div>
 
-            {onMark && (
-                <div className="flex items-center gap-1.5 mt-2">
-                    <button
-                        type="button"
-                        onClick={() => setMarkMode(m => !m)}
-                        disabled={!audioUrl}
-                        title="Butun audio bo'ylab yurib, vaqtlarni playhead'dan belgilash"
-                        className={`h-6 px-2 rounded-lg border text-[9px] font-black transition active:scale-95 disabled:opacity-30 ${
-                            markMode
-                                ? 'bg-blue-600 border-blue-600 text-white'
-                                : (isDark ? 'border-white/10 hover:bg-white/10 text-gray-300' : 'border-gray-200 hover:bg-white text-gray-600')
-                        }`}
-                    >
-                        Belgilash
-                    </button>
-                    {markMode && (
-                        <>
-                            <button type="button" onClick={() => mark('startTime')} className={markBtn} title="Joriy vaqtni boshlanish deb belgilash">
-                                ⇤ Boshlanish
-                            </button>
-                            <button type="button" onClick={() => mark('endTime')} className={markBtn} title="Joriy vaqtni tugash deb belgilash">
-                                Tugash ⇥
-                            </button>
-                            <span className="text-[9px] font-mono opacity-40 ml-auto">{toMMSS(absTime)}</span>
-                        </>
-                    )}
-                </div>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <button
+                    type="button"
+                    onClick={() => playFrom(start, Math.min(segmentEnd || Infinity, start + BOUNDARY_PREVIEW))}
+                    disabled={!audioUrl || markMode}
+                    className={markBtn}
+                    title={`Segment boshidagi ${BOUNDARY_PREVIEW} soniyani eshitish — to'g'ri joydan boshlanyaptimi?`}
+                >
+                    ▶ boshi
+                </button>
+                <button
+                    type="button"
+                    onClick={() => playFrom(Math.max(start, (segmentEnd || 0) - BOUNDARY_PREVIEW), segmentEnd || null)}
+                    disabled={!audioUrl || markMode || !(segmentEnd > start)}
+                    className={markBtn}
+                    title={`Segment oxiridagi ${BOUNDARY_PREVIEW} soniyani eshitish — gap o'rtasidan kesilmadimi?`}
+                >
+                    ▶ oxiri
+                </button>
+                {onMark && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => { setMarkMode(m => !m); stopSilence(); }}
+                            disabled={!audioUrl}
+                            title="Butun audio bo'ylab yurib, vaqtlarni playhead'dan belgilash"
+                            className={`h-6 px-2 rounded-lg border text-[9px] font-black transition active:scale-95 disabled:opacity-30 ${
+                                markMode
+                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                    : (isDark ? 'border-white/10 hover:bg-white/10 text-gray-300' : 'border-gray-200 hover:bg-white text-gray-600')
+                            }`}
+                        >
+                            Belgilash
+                        </button>
+                        {markMode && (
+                            <>
+                                <button type="button" onClick={() => mark('startTime')} className={markBtn} title="Joriy vaqtni boshlanish deb belgilash">
+                                    ⇤ Boshlanish
+                                </button>
+                                <button type="button" onClick={() => mark('endTime')} className={markBtn} title="Joriy vaqtni tugash deb belgilash">
+                                    Tugash ⇥
+                                </button>
+                                <span className="text-[9px] font-mono opacity-40 ml-auto">{toMMSS(absTime)}</span>
+                            </>
+                        )}
+                    </>
+                )}
+                {inSilence && (
+                    <span className="text-[9px] font-black text-amber-500 ml-auto">
+                        sukunat {silentElapsed.toFixed(0)}s / {silence}s
+                    </span>
+                )}
+            </div>
         </div>
     );
 };
@@ -189,6 +348,49 @@ const MediaManager = ({
     // writing/speaking uchun bu blok shunchaki shovqin edi.
     const showMaps = testData.type === 'reading' || testData.type === 'listening';
     const hasAnyAudio = audioMode === 'single' ? !!singleAudioUrl : Object.values(partAudios || {}).some(Boolean);
+
+    // Audio uzunligi — "tugash belgilanmagan" va "fayldan tashqarida" holatlarini
+    // aniq soniyaga aylantirish uchun kerak. Har part o'z faylidan xabar beradi.
+    const [fileDurations, setFileDurations] = useState({});
+    const reportDuration = useCallback((index, seconds) => {
+        setFileDurations(prev => (prev[index] === seconds ? prev : { ...prev, [index]: seconds }));
+    }, []);
+    const reportSharedDuration = useCallback((seconds) => {
+        setFileDurations(prev => {
+            const next = { ...prev };
+            let changed = false;
+            for (let i = 0; i < 12; i++) { if (next[i] !== seconds) { next[i] = seconds; changed = true; } }
+            return changed ? next : prev;
+        });
+    }, []);
+
+    const passages = testData.passages || EMPTY_PASSAGES;
+    // Chegaralar AYNAN imtihondagi qoida bo'yicha hisoblanadi — admin ekranda
+    // "qanday belgiladim" emas, "imtihonda qanday eshitiladi" ni ko'radi.
+    const partAnalysis = useMemo(() => analyzeListeningParts(
+        passages,
+        listeningPartCount,
+        { fileDurations: Array.from({ length: listeningPartCount }, (_, i) => fileDurations[i] || 0) }
+    ), [passages, listeningPartCount, fileDurations]);
+
+    const problemCount = useMemo(() => partAnalysis.reduce((acc, p) => {
+        p.issues.forEach(i => { acc[i.level] = (acc[i.level] || 0) + 1; });
+        return acc;
+    }, {}), [partAnalysis]);
+
+    // Qo'shni partlarni bitta nuqtada uchrashtiradi. Ikkala part ham BIR
+    // chaqiruvda yoziladi: ketma-ket ikki chaqiruv bir-birini o'chirib yuborardi.
+    const alignBoundary = (i) => {
+        const cur = partAnalysis[i];
+        const next = partAnalysis[i + 1];
+        if (!cur || !next) return;
+        // O'rtacha nuqta: ikkala part ham eng kam siljiydi.
+        const mid = roundAudioTime((cur.end + next.start) / 2);
+        onPassageTimeChange([
+            { index: i, patch: { endTime: toMMSS(mid) } },
+            { index: i + 1, patch: { startTime: toMMSS(mid) } },
+        ]);
+    };
 
     return (
         <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
@@ -362,80 +564,131 @@ const MediaManager = ({
             {/* AUDIO TIMESTAMPS MANAGER */}
             {testData.type === 'listening' && onPassageTimeChange && (
                 <div className="border-t border-gray-100 dark:border-white/5 pt-5">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
                         <label className="text-xs font-bold opacity-60">Audio Segmentlari Vaqtlari (Passages Timestamps)</label>
-                        <span className="text-[9px] font-bold text-gray-400 bg-gray-500/5 px-2 py-0.5 rounded border border-gray-500/10">MM:SS · yoki "Belgilash" bilan playhead'dan oling</span>
+                        {(problemCount.error || problemCount.warning) ? (
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                                problemCount.error
+                                    ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                            }`}>
+                                {problemCount.error ? `${problemCount.error} ta xato` : `${problemCount.warning} ta ogohlantirish`}
+                            </span>
+                        ) : (
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full border bg-green-500/10 text-green-500 border-green-500/20">
+                                Chegaralar joyida
+                            </span>
+                        )}
                     </div>
+                    <p className="text-[9px] opacity-35 mb-3">
+                        Format: <span className="font-mono">m:ss</span>, <span className="font-mono">m:ss.d</span>, <span className="font-mono">h:mm:ss</span> yoki oddiy soniya.
+                        Maydonda ↑/↓ tugmalari {NUDGE_STEP}s (Shift bilan 1s) suradi. Bu yerda ko'ringan vaqt — imtihonda eshitiladigan vaqt.
+                    </p>
+
                     {/* Yagona audio rejimida to'lqin ustida region surib belgilash mumkin */}
                     {audioMode === 'single' && singleAudioUrl && (
                         <div className="mb-3">
                             <PartWaveformEditor
                                 key={singleAudioUrl}
                                 audioUrl={getCdnUrl(singleAudioUrl)}
-                                passages={testData.passages || []}
+                                passages={passages}
                                 partCount={listeningPartCount}
-                                onChange={(i, patch) => onPassageTimeChange(i, patch)}
+                                onChange={onPassageTimeChange}
+                                onDuration={reportSharedDuration}
                                 isDark={isDark}
                             />
                         </div>
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[...Array(listeningPartCount)].map((_, i) => {
+                        {partAnalysis.map((part) => {
+                            const i = part.index;
                             const passage = testData.passages?.[i] || {};
                             const partAudioUrl = audioMode === 'single' ? singleAudioUrl : (partAudios[i] || passage.audio || "");
+                            const hasError = part.issues.some(x => x.level === 'error');
+                            const hasWarning = !hasError && part.issues.length > 0;
+                            const misaligned = part.gapAfter || part.overlapAfter;
                             return (
-                                <div key={i} className={`p-3 rounded-xl border ${isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-                                    <div className="flex items-center justify-between mb-2">
+                                <div key={i} className={`p-3 rounded-xl border ${
+                                    hasError
+                                        ? 'border-red-500/30 bg-red-500/[0.04]'
+                                        : hasWarning
+                                            ? 'border-amber-500/30 bg-amber-500/[0.04]'
+                                            : (isDark ? 'bg-[#181715] border-white/5' : 'bg-gray-50 border-gray-200')
+                                }`}>
+                                    <div className="flex items-center justify-between gap-2 mb-2">
                                         <span className="text-[10px] font-bold uppercase opacity-40">Part {i + 1} Vaqti</span>
-                                        {(passage.startTime || passage.endTime || passage.extraSilentTime) && (
-                                            <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                                                {passage.startTime || "0:00"} - {passage.endTime || "0:00"}
-                                                {passage.extraSilentTime ? ` (+${passage.extraSilentTime}s)` : ""}
-                                            </span>
-                                        )}
+                                        <span className={`text-[9px] font-bold font-mono tabular-nums px-1.5 py-0.5 rounded ${
+                                            hasError ? 'text-red-500 bg-red-500/10' : 'text-blue-500 bg-blue-500/10'
+                                        }`}>
+                                            {toMMSS(part.start)} → {part.end > part.start ? toMMSS(part.end) : "?"}
+                                            {part.duration > 0 ? ` · ${formatAudioTime(part.duration)}` : ""}
+                                            {part.silence > 0 ? ` (+${part.silence}s)` : ""}
+                                        </span>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        <div>
-                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Boshlash</span>
-                                            <input
-                                                type="text"
-                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}
-                                                placeholder="0:00"
-                                                value={passage.startTime || ""}
-                                                onChange={e => onPassageTimeChange(i, 'startTime', e.target.value)}
-                                            />
-                                        </div>
-                                        <div>
-                                            <span className="text-[8px] font-bold uppercase opacity-35 block mb-1">Tugash</span>
-                                            <input
-                                                type="text"
-                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}
-                                                placeholder="7:30"
-                                                value={passage.endTime || ""}
-                                                onChange={e => onPassageTimeChange(i, 'endTime', e.target.value)}
-                                            />
-                                        </div>
+                                        <TimeField
+                                            label="Boshlash"
+                                            title="Part shu soniyadan boshlab eshitiladi"
+                                            placeholder="0:00"
+                                            value={passage.startTime || ""}
+                                            onCommit={(v) => onPassageTimeChange(i, 'startTime', v)}
+                                            isDark={isDark}
+                                        />
+                                        <TimeField
+                                            label="Tugash"
+                                            title="Part shu soniyada to'xtaydi"
+                                            placeholder="7:30"
+                                            value={passage.endTime || ""}
+                                            onCommit={(v) => onPassageTimeChange(i, 'endTime', v)}
+                                            isDark={isDark}
+                                        />
                                         <div>
                                             <span className="text-[8px] font-bold uppercase opacity-35 block mb-1" title="Part tugagandan keyin keyingi partgacha necha soniya sukunat qo'shilishi">Kutish (sek)</span>
                                             <input
                                                 type="number"
-                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] ${isDark ? 'bg-[#1f1e1b] border-white/5' : 'bg-white border-gray-200'}`}
+                                                className={`w-full h-8 px-2 rounded-lg border outline-none text-[10px] font-mono tabular-nums ${isDark ? 'bg-[#1f1e1b] border-white/5 focus:border-blue-500' : 'bg-white border-gray-200 focus:border-blue-500'}`}
                                                 placeholder="0"
                                                 min="0"
                                                 value={passage.extraSilentTime !== undefined ? passage.extraSilentTime : ""}
                                                 onChange={e => onPassageTimeChange(i, 'extraSilentTime', e.target.value === "" ? "" : Number(e.target.value))}
                                             />
+                                            <p className="mt-0.5 text-[8px] font-mono opacity-30">javob uchun pauza</p>
                                         </div>
                                     </div>
+
+                                    {part.issues.length > 0 && (
+                                        <ul className="mt-2 space-y-1">
+                                            {part.issues.map((issue, k) => (
+                                                <li key={k} className={`flex items-start gap-1 text-[9px] font-medium leading-snug ${issue.level === 'error' ? 'text-red-500' : 'text-amber-600 dark:text-amber-500'}`}>
+                                                    <span className="shrink-0">{issue.level === 'error' ? '✕' : '!'}</span>
+                                                    <span>{issue.message}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+
+                                    {misaligned ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => alignBoundary(i)}
+                                            className="mt-2 h-6 px-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-500 text-[9px] font-black transition active:scale-95 hover:bg-blue-500/20"
+                                            title={`Part ${i + 1} tugashi va Part ${i + 2} boshlanishini bitta nuqtaga keltirish`}
+                                        >
+                                            ⇄ Part {i + 2} bilan tekislash
+                                        </button>
+                                    ) : null}
+
                                     <AudioSegmentPlayer
                                         index={i}
                                         audioUrl={getCdnUrl(partAudioUrl)}
-                                        startTimeStr={passage.startTime || ""}
-                                        endTimeStr={passage.endTime || ""}
-                                        extraSilentTime={passage.extraSilentTime}
+                                        start={part.start}
+                                        end={part.end}
+                                        cuts={part.cuts}
+                                        silence={part.silence}
                                         isDark={isDark}
                                         onMark={(field, value) => onPassageTimeChange(i, field, value)}
+                                        onDuration={(d) => reportDuration(i, d)}
                                     />
                                 </div>
                             );
